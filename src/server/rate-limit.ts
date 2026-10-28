@@ -15,8 +15,18 @@ export type RateLimitResult = {
   retryAfter: number | null;
 };
 
-/** Login and sign-up attempts: 5 per minute per key. */
-export const AUTH_RATE_LIMIT: RateLimitRule = { window: 60, max: 5 };
+/**
+ * Login and sign-up attempts per IP address: 30 per minute. Generous on
+ * purpose: Philippine mobile networks put many phones behind one shared IP
+ * (carrier-grade NAT), so a strict IP limit would lock out strangers.
+ */
+export const AUTH_IP_RATE_LIMIT: RateLimitRule = { window: 60, max: 30 };
+
+/**
+ * Login and sign-up attempts per email address: 5 per minute. This is the
+ * limit that actually stops password guessing against one account.
+ */
+export const AUTH_EMAIL_RATE_LIMIT: RateLimitRule = { window: 60, max: 5 };
 
 /** Turns the stored counter into an allow/deny decision. Pure, for testing. */
 export function decide(

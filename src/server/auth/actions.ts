@@ -11,7 +11,12 @@ import {
   toFieldErrors,
   type FieldErrors,
 } from "@/lib/validation/auth";
-import { AUTH_RATE_LIMIT, consume } from "@/server/rate-limit";
+import {
+  AUTH_EMAIL_RATE_LIMIT,
+  AUTH_IP_RATE_LIMIT,
+  consume,
+  type RateLimitRule,
+} from "@/server/rate-limit";
 import { clientIp, formString } from "./request";
 
 export type AuthFormState = {
@@ -41,10 +46,18 @@ function errorCode(error: unknown): string | null {
   return "UNKNOWN";
 }
 
-/** Checks every key; blocked if any one of them is over the limit. */
-async function isRateLimited(keys: string[]): Promise<boolean> {
+/** Counts one attempt per IP and per email; blocked if either is over its limit. */
+async function isRateLimited(
+  action: "signup" | "login",
+  ip: string,
+  email: string,
+): Promise<boolean> {
+  const checks: [string, RateLimitRule][] = [
+    [`${action}:ip:${ip}`, AUTH_IP_RATE_LIMIT],
+    [`${action}:email:${email}`, AUTH_EMAIL_RATE_LIMIT],
+  ];
   const results = await Promise.all(
-    keys.map((key) => consume(key, AUTH_RATE_LIMIT)),
+    checks.map(([key, rule]) => consume(key, rule)),
   );
   return results.some((result) => !result.allowed);
 }
@@ -67,12 +80,12 @@ export async function signUp(
     return { errors: toFieldErrors(parsed.error), values };
   }
 
+  const { name, email, phone, password } = parsed.data;
   const requestHeaders = await headers();
-  if (await isRateLimited([`signup:ip:${clientIp(requestHeaders)}`])) {
+  if (await isRateLimited("signup", clientIp(requestHeaders), email)) {
     return { message: TOO_MANY_ATTEMPTS, values };
   }
 
-  const { name, email, phone, password } = parsed.data;
   try {
     await getAuth().api.signUpEmail({
       body: { name, email, phone, password },
@@ -111,11 +124,9 @@ export async function logIn(
 
   const { email, password } = parsed.data;
   const requestHeaders = await headers();
-  const limited = await isRateLimited([
-    `login:ip:${clientIp(requestHeaders)}`,
-    `login:email:${email}`,
-  ]);
-  if (limited) return { message: TOO_MANY_ATTEMPTS, values };
+  if (await isRateLimited("login", clientIp(requestHeaders), email)) {
+    return { message: TOO_MANY_ATTEMPTS, values };
+  }
 
   try {
     await getAuth().api.signInEmail({

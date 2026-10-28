@@ -26,7 +26,8 @@ vi.mock("@/lib/auth", () => ({
   }),
 }));
 vi.mock("@/server/rate-limit", () => ({
-  AUTH_RATE_LIMIT: { window: 60, max: 5 },
+  AUTH_IP_RATE_LIMIT: { window: 60, max: 30 },
+  AUTH_EMAIL_RATE_LIMIT: { window: 60, max: 5 },
   consume: mocks.consume,
 }));
 
@@ -74,10 +75,15 @@ describe("signUp", () => {
     await expect(signUp({}, form(signUpFields))).rejects.toThrow(
       "REDIRECT:/orders",
     );
+    // Loose per IP (shared mobile IPs), strict per email.
     expect(mocks.consume).toHaveBeenCalledWith("signup:ip:203.0.113.5", {
       window: 60,
-      max: 5,
+      max: 30,
     });
+    expect(mocks.consume).toHaveBeenCalledWith(
+      "signup:email:maria@example.com",
+      { window: 60, max: 5 },
+    );
     expect(mocks.signUpEmail).toHaveBeenCalledWith({
       body: {
         name: "Maria Santos",
@@ -141,13 +147,13 @@ describe("logIn", () => {
       .mockResolvedValueOnce({ allowed: false, retryAfter: 40 });
     const state = await logIn({}, form(fields));
     expect(state.message).toMatch(/Too many attempts/);
-    expect(mocks.consume).toHaveBeenCalledWith(
-      "login:ip:203.0.113.5",
-      expect.anything(),
-    );
+    expect(mocks.consume).toHaveBeenCalledWith("login:ip:203.0.113.5", {
+      window: 60,
+      max: 30,
+    });
     expect(mocks.consume).toHaveBeenCalledWith(
       "login:email:maria@example.com",
-      expect.anything(),
+      { window: 60, max: 5 },
     );
     expect(mocks.signInEmail).not.toHaveBeenCalled();
   });

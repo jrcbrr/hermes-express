@@ -12,7 +12,8 @@ const chain = vi.hoisted(() => {
 });
 vi.mock("@/db", () => ({ getDb: () => chain }));
 
-const { AUTH_RATE_LIMIT, consume, decide } = await import("./rate-limit");
+const { AUTH_EMAIL_RATE_LIMIT, AUTH_IP_RATE_LIMIT, consume, decide } =
+  await import("./rate-limit");
 
 const rule = { window: 60, max: 5 };
 const now = 1_000_000;
@@ -58,9 +59,16 @@ describe("consume", () => {
 
   it("allows the request if the database returns no row", async () => {
     returning.mockResolvedValueOnce([]);
-    await expect(consume("k", AUTH_RATE_LIMIT)).resolves.toEqual({
+    await expect(consume("k", AUTH_EMAIL_RATE_LIMIT)).resolves.toEqual({
       allowed: true,
       retryAfter: null,
     });
+  });
+});
+
+describe("auth limits", () => {
+  it("are looser per IP (shared mobile IPs) than per email", () => {
+    expect(AUTH_IP_RATE_LIMIT).toEqual({ window: 60, max: 30 });
+    expect(AUTH_EMAIL_RATE_LIMIT).toEqual({ window: 60, max: 5 });
   });
 });
