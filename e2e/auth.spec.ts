@@ -33,8 +33,8 @@ test.describe("with a database", () => {
     // Several server round trips to Neon plus password hashing; give it room.
     test.slow();
     // Locally every request shares one rate-limit bucket (no client IP), so
-    // back-to-back runs would hit the 5-per-minute login limit. A unique test
-    // IP keeps each run separate. (On Vercel the platform sets this header.)
+    // many back-to-back runs could hit the per-IP limit. A unique test IP
+    // keeps each run separate. (On Vercel the platform sets this header.)
     await page.setExtraHTTPHeaders({
       "x-forwarded-for": `198.51.100.${Math.floor(Math.random() * 250) + 1}`,
     });
@@ -69,5 +69,12 @@ test.describe("with a database", () => {
     await page.getByRole("button", { name: "Log in" }).click();
     await expect(page).toHaveURL(onPath("/profile"), { timeout: 15_000 });
     await expect(page.getByText(email)).toBeVisible();
+
+    // Account menu links lead to real pages, not "not found".
+    await page.goto("/orders");
+    await expect(
+      page.getByRole("heading", { level: 1, name: "Your orders" }),
+    ).toBeVisible();
+    await expect(page.getByText(/coming soon/)).toBeVisible();
   });
 });
