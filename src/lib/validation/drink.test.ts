@@ -74,9 +74,9 @@ describe("drinkConfigSchema", () => {
     expect(firstMessage({ iceLevel: "light" })).toBe(
       "Ice level is only for iced drinks.",
     );
-    expect(
-      parse({ temperature: "blended", iceLevel: "regular" }).success,
-    ).toBe(false);
+    expect(parse({ temperature: "blended", iceLevel: "regular" }).success).toBe(
+      false,
+    );
     expect(parse({ temperature: "iced", iceLevel: "regular" }).success).toBe(
       true,
     );
