@@ -11,3 +11,6 @@ CLAUDE.md
 MASTER_PROMPT.md
 AGENTS.md
 docs/PLAN.md
+
+# Raw exported AI conversations: kept exactly as exported
+docs/ai-logs/

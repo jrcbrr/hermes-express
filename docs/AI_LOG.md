@@ -38,7 +38,10 @@ Rules the AI follows are in [`../CLAUDE.md`](../CLAUDE.md). Stage prompts are in
   - Approved a placeholder home page (name + tagline) so the tests check something real; the real landing page is Stage 1.
   - Interrupted the session once (while the AI was checking my Git identity), then switched to plan mode to review the remaining steps before more changes were made.
   - Commits use my GitHub noreply email, so my personal email stays out of a public repo.
-  - _(Add your own notes here: anything you questioned, changed or rejected.)_
+  - Did the account steps myself (`vercel login`, `vercel link`, `vercel env pull`, importing the repo into Vercel, adding Neon), and had the AI create the public GitHub repo and open PR #1 only after I explicitly confirmed.
+  - Set up branch protection on `main` myself. The AI found that my first settings (1 required approval, no bypass, no required checks) would block my own PRs forever while not enforcing CI. It explained this and waited for my OK; I then approved: PR required, 0 approvals, CI check "Lint, typecheck, test, build, E2E" required, no bypass, no force-push.
+  - Asked the AI to merge PR #1 and handle the session log; it scanned the exported log for secrets before committing it to the public repo.
+  - _(My own reflections: what I questioned, changed or rejected, and why.)_
 - **Problems & fixes:**
   - **Git identity not set:** the first commit failed. Fixed by setting a repo-only identity (`jrcbrr` + GitHub noreply email).
   - **`create-next-app` refuses non-empty folders:** scaffolded into a temporary folder, then copied the files in.
@@ -54,4 +57,4 @@ Rules the AI follows are in [`../CLAUDE.md`](../CLAUDE.md). Stage prompts are in
   - Plan first, then build: the AI's plan surfaced decisions (branch naming, placeholder page, safe `db:migrate`) before any code was written.
   - New framework versions change things (route type generation, ESLint without `next lint`), so reading the version-matched docs matters more than memory.
   - CI runs the same commands I run locally, so "works on my machine" turns into "works everywhere".
-- **Raw log:** docs/ai-logs/2026-10-28-stage-0.md _(export with `/export` at the end of the session)_
+- **Raw log:** [docs/ai-logs/2026-10-28-stage-0.md](ai-logs/2026-10-28-stage-0.md) (exported before the final merge, so the merge itself is not in the raw log)
