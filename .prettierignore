@@ -1,0 +1,16 @@
+# Generated or vendored files
+package-lock.json
+.next/
+coverage/
+playwright-report/
+test-results/
+src/db/migrations/
+
+# Hand-written planning docs: keep the author's formatting as-is
+CLAUDE.md
+MASTER_PROMPT.md
+AGENTS.md
+docs/PLAN.md
+
+# Raw exported AI conversations: kept exactly as exported
+docs/ai-logs/
