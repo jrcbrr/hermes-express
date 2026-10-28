@@ -1,5 +1,7 @@
 // Seeds branches and staff accounts. Safe to run again: existing rows are
-// updated in place and existing passwords are never overwritten.
+// updated in place and existing passwords are never overwritten, unless you
+// pass --reset-passwords (npm run db:seed -- --reset-passwords), which sets
+// staff passwords from .env.local and signs those accounts out.
 // Menu and promos are added in Stage 3 and later.
 import { randomUUID } from "node:crypto";
 import { loadEnvConfig } from "@next/env";
@@ -12,10 +14,11 @@ async function main() {
   // Imported after loading env so DATABASE_URL is set.
   const { siteConfig } = await import("@/config/site");
   const { getDb } = await import("./index");
-  const { account, branch, user } = await import("./schema");
-  const { readStaffSeeds } = await import("./seed-env");
+  const { account, branch, session, user } = await import("./schema");
+  const { parseSeedArgs, readStaffSeeds } = await import("./seed-env");
 
-  // Check every variable before touching the database.
+  // Check the arguments and every variable before touching the database.
+  const options = parseSeedArgs(process.argv.slice(2));
   const staff = readStaffSeeds();
   const db = getDb();
 
@@ -83,6 +86,18 @@ async function main() {
       .where(
         and(eq(account.userId, userId), eq(account.providerId, "credential")),
       );
+    if (credential && options.resetPasswords) {
+      await db
+        .update(account)
+        .set({ password: await hashPassword(member.password) })
+        .where(eq(account.id, credential.id));
+      // Old sessions might belong to someone who knew the old password.
+      await db.delete(session).where(eq(session.userId, userId));
+      console.log(
+        `  ✓ ${member.email} (${member.role}) password reset, signed out everywhere`,
+      );
+      continue;
+    }
     if (credential) {
       console.log(
         `  ✓ ${member.email} (${member.role}) already exists, role updated`,

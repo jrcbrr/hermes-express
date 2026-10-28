@@ -3,6 +3,7 @@ import { siteConfig } from "@/config/site";
 import {
   BARISTA_PASSWORD_VARS,
   baristaEmail,
+  parseSeedArgs,
   readStaffSeeds,
 } from "./seed-env";
 
@@ -57,6 +58,24 @@ describe("readStaffSeeds", () => {
         "- SEED_BARISTA_BGC_PASSWORD must be at least 8 characters.",
         "- SEED_BARISTA_LAKESHORE_PASSWORD is missing.",
       ].join("\n"),
+    );
+  });
+});
+
+describe("parseSeedArgs", () => {
+  it("never resets passwords by default", () => {
+    expect(parseSeedArgs([])).toEqual({ resetPasswords: false });
+  });
+
+  it("resets passwords only when asked", () => {
+    expect(parseSeedArgs(["--reset-passwords"])).toEqual({
+      resetPasswords: true,
+    });
+  });
+
+  it("rejects unknown or misspelled options", () => {
+    expect(() => parseSeedArgs(["--reset-password"])).toThrow(
+      'Unknown seed option "--reset-password"',
     );
   });
 });

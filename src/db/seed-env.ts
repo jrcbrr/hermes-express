@@ -78,3 +78,22 @@ export function readStaffSeeds(
   }
   return staff;
 }
+
+export type SeedOptions = {
+  /** Overwrite existing staff passwords with the values in .env.local. */
+  resetPasswords: boolean;
+};
+
+/** Reads the seed's command-line flags. Unknown flags are an error, not ignored. */
+export function parseSeedArgs(args: readonly string[]): SeedOptions {
+  const options: SeedOptions = { resetPasswords: false };
+  for (const arg of args) {
+    if (arg === "--reset-passwords") options.resetPasswords = true;
+    else {
+      throw new Error(
+        `Unknown seed option "${arg}". The only option is --reset-passwords.`,
+      );
+    }
+  }
+  return options;
+}
