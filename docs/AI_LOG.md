@@ -58,3 +58,34 @@ Rules the AI follows are in [`../CLAUDE.md`](../CLAUDE.md). Stage prompts are in
   - New framework versions change things (route type generation, ESLint without `next lint`), so reading the version-matched docs matters more than memory.
   - CI runs the same commands I run locally, so "works on my machine" turns into "works everywhere".
 - **Raw log:** [docs/ai-logs/2026-10-28-stage-0.md](ai-logs/2026-10-28-stage-0.md) (exported before the final merge, so the merge itself is not in the raw log)
+
+## 2026-10-29 — Stage 1: Design system & landing page
+
+- **Goal:** Give the app its look and identity (colour tokens, fonts, logo, mascot, favicon, theme and sound toggles, header, mobile tab bar, footer) and build the full landing page, tested on phone and desktop.
+- **Key prompts I gave:**
+  - The Stage 1 master prompt from `MASTER_PROMPT.md` (plan first, wait for "go").
+  - Chose "Espresso text on gold" when the AI flagged that white text on Hermes gold fails WCAG AA.
+  - Approved the plan.
+- **What the AI did:**
+  - Read the plan sections and the Next.js 16 docs for fonts and app icons, then wrote a plan in plan mode.
+  - Found a conflict in `PLAN.md`: white on `#B8892E` is about 3.1:1, but the plan requires AA everywhere. It asked me instead of guessing.
+  - Built tokens in `globals.css` (brand names plus shadcn aliases), fonts, theme provider and toggle, `useSound` hook, logo, mascot, app icons, header, tab bar, footer, landing sections and `formatPeso` / `formatTime`.
+  - Used CSS keyframes for the cup animations instead of adding Motion now, so the landing page ships no extra JavaScript (Motion comes in Stage 4).
+  - Took Playwright screenshots at 375px and 1280px in light and dark to check the layout itself, and fixed what it saw.
+  - Wrote unit tests and Playwright checks, ran lint, format, typecheck, coverage, build and E2E, then committed in small prefixed commits.
+- **What I reviewed / changed / rejected and why:**
+  - Picked espresso text on gold buttons, keeping the exact brand gold.
+  - _(My own reflections: what I questioned, changed or rejected, and why.)_
+- **Problems & fixes:**
+  - **AA contrast conflict in the plan:** resolved with espresso `primary-foreground`; `PLAN.md` updated.
+  - **Name clash:** PLAN's `muted` is a text colour, but shadcn uses `muted` as a background. Mapped PLAN's `muted` to `muted-foreground` and documented the mapping in `ARCHITECTURE.md`.
+  - **"Sign in" and cart showed on mobile:** the button styles set `inline-flex`, which overrode `hidden`. Fixed by wrapping desktop-only items in a `hidden md:flex` container. Caught from the screenshots, not the tests.
+  - **`new Date()` in the footer** would break static prerendering with Cache Components. The footer now shows "© Hermes Express" without a year, as in the plan.
+  - **No `user-event` package:** tests use `fireEvent` instead of adding a dependency.
+  - **A commit picked up unrelated staged deletions:** the AI rebuilt the unpushed branch commits so each one holds one logical change.
+- **What I learned:**
+  - Design tokens let one class (`bg-surface`) work in both themes, so dark mode is mostly free once tokens exist.
+  - Brand colours still need contrast checks; a "nice" palette can fail accessibility.
+  - Hydration matters: the theme icon swaps through CSS (`dark:`) so server and browser render the same HTML.
+  - Screenshots catch layout bugs that tests miss.
+- **Raw log:** [docs/ai-logs/2026-10-29-stage-1.md](ai-logs/2026-10-29-stage-1.md) (to export with `/export`)

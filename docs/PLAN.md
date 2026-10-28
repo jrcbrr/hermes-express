@@ -55,7 +55,7 @@ Cozy coffee neutrals, with **gold** (Hermes' winged sandals) as the primary acce
 | `foreground` | `#2B1E17` (espresso) | `#F3ECE2` | Main text |
 | `muted` | `#7A6A5D` | `#A8998B` | Secondary text |
 | `primary` | `#B8892E` (Hermes gold) | `#D4A853` | Buttons, highlights |
-| `primary-foreground` | `#FFFFFF` | `#14110F` | Text on primary |
+| `primary-foreground` | `#2B1E17` | `#14110F` | Text on primary (espresso, not white: white on gold is ~3.1:1 and fails AA) |
 | `accent` | `#2F5D7C` (Aegean blue) | `#6FA3C7` | Links, badges, focus |
 | `success` | `#3F7D58` | `#6BBF8A` | Status: ready / completed |
 | `danger` | `#B2453A` | `#E07A6F` | Errors, sold out |
