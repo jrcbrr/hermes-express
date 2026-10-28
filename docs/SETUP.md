@@ -76,12 +76,13 @@ Open http://localhost:3000.
 
 The database is Neon Postgres, accessed through Drizzle ORM.
 
-| Command                  | When to use it                                                                                                                                               |
-| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `npm run db:generate`    | After editing `src/db/schema.ts`. Creates a SQL migration in `src/db/migrations/`. Commit it.                                                                |
-| `npm run db:migrate`     | Applies pending migrations to the database in `DATABASE_URL`. Skips if `DATABASE_URL` is not set.                                                            |
-| `npm run db:seed`        | Adds the 3 branches from `site.ts`, the admin and one barista per branch. Safe to re-run: it never overwrites passwords. Menu and promos arrive in Stage 3+. |
-| `npx drizzle-kit studio` | Opens a browser UI to look at the data.                                                                                                                      |
+| Command                                | When to use it                                                                                                                                                                     |
+| -------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `npm run db:generate`                  | After editing `src/db/schema.ts`. Creates a SQL migration in `src/db/migrations/`. Commit it.                                                                                      |
+| `npm run db:migrate`                   | Applies pending migrations to the database in `DATABASE_URL`. Skips if `DATABASE_URL` is not set.                                                                                  |
+| `npm run db:seed`                      | Adds the 3 branches from `site.ts`, the admin and one barista per branch. Safe to re-run: it never overwrites passwords. Menu and promos arrive in Stage 3+.                       |
+| `npm run db:seed -- --reset-passwords` | Same as above, but also sets existing staff passwords to the current `.env.local` values and signs those accounts out everywhere. Use it after changing a `SEED_*_PASSWORD` value. |
+| `npx drizzle-kit studio`               | Opens a browser UI to look at the data.                                                                                                                                            |
 
 Rule: **migrations are additive only.** Never drop or rename columns or tables without a migration plan (see `CLAUDE.md`).
 

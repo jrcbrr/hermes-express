@@ -18,7 +18,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - `requireUser()` / `requireRole()` server helpers; `/barista` (barista or admin) and `/admin` (admin) placeholder pages use them.
 - Rate limiting on sign-up and login (5 per minute per IP, and per email for login), stored in Postgres; Better Auth's own endpoints use the same limiter.
 - Tables `branch`, `user`, `session`, `account`, `verification`, `rate_limit` (migration `0000_auth_and_branches`).
-- Seed script part 1: the 3 branches from `site.ts`, an admin from `SEED_ADMIN_EMAIL` / `SEED_ADMIN_PASSWORD`, and one barista per branch, each with their own password variable. It stops with a clear error if a variable is missing or shorter than 8 characters.
+- Seed script part 1: the 3 branches from `site.ts`, an admin from `SEED_ADMIN_EMAIL` / `SEED_ADMIN_PASSWORD`, and one barista per branch, each with their own password variable. It stops with a clear error if a variable is missing or shorter than 8 characters. Pass `--reset-passwords` (`npm run db:seed -- --reset-passwords`) to apply changed seed passwords to existing staff accounts and sign them out; a normal run never overwrites passwords.
 - `vercel.json` build command runs migrations before each build.
 - Tests: roles, validation schemas, rate limiter, session helpers, auth and profile actions, proxy redirects, account menu, auth forms; E2E for protected-route redirects, form errors, and sign up → log out → log in (skips without a database).
 - ADR [0002: Authentication and authorization](docs/decisions/0002-auth.md).
