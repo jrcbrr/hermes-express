@@ -129,7 +129,7 @@ CI has no database yet, so the database-backed E2E test (`e2e/auth.spec.ts`, "si
 2. In GitHub → Settings → Secrets and variables → Actions, add repository secrets `DATABASE_URL` (the `ci` branch's pooled connection string) and `BETTER_AUTH_SECRET`.
 3. In `.github/workflows/ci.yml`, pass both secrets as `env` and run `npm run db:migrate` before the E2E step.
 
-Locally, all requests share one rate-limit bucket (there is no client IP), so the E2E test sends a random test IP header to stay under the 5-per-minute login limit.
+Locally, all requests share one rate-limit bucket (there is no client IP), so the E2E test sends a random test IP header so repeated runs stay under the per-IP limit.
 
 ## 7. Deployment
 

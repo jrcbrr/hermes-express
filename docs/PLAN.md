@@ -437,7 +437,7 @@ CI has no database yet, so E2E tests that need one (such as sign up → log out 
 
 ### Security basics
 - Secrets only in `.env.local` / Vercel env vars. `.env*` is git-ignored except `.env.example`.
-- Passwords hashed by Better Auth. Rate limiting on auth routes (5 attempts per minute per IP, and per email for login), stored in Postgres so it holds across serverless instances.
+- Passwords hashed by Better Auth. Rate limiting on sign-up and login: 5 attempts per minute per email (stops password guessing) and 30 per minute per IP (loose, because Philippine mobile networks share one IP across many phones). Stored in Postgres so it holds across serverless instances.
 - Secret values (passwords, `BETTER_AUTH_SECRET`) are never written into docs, commits, logs or chat; docs name the variable and where to get the value instead.
 - Zod validation on every input; server-side price recomputation.
 - No real payment data is ever collected.

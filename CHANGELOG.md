@@ -16,7 +16,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Header account menu: Log in / Sign up when signed out; Profile, Orders, Rewards, Log out when signed in; Barista and Admin links for those roles.
 - `src/proxy.ts` sends signed-out visitors from checkout, orders, favorites, rewards, profile, `/barista` and `/admin` to login, and back afterwards.
 - `requireUser()` / `requireRole()` server helpers; `/barista` (barista or admin) and `/admin` (admin) placeholder pages use them.
-- Rate limiting on sign-up and login (5 per minute per IP, and per email for login), stored in Postgres; Better Auth's own endpoints use the same limiter.
+- Rate limiting on sign-up and login (5 per minute per email, 30 per minute per IP so customers sharing a mobile network IP aren't locked out), stored in Postgres; Better Auth's own endpoints use the same limiter.
 - Tables `branch`, `user`, `session`, `account`, `verification`, `rate_limit` (migration `0000_auth_and_branches`).
 - Seed script part 1: the 3 branches from `site.ts`, an admin from `SEED_ADMIN_EMAIL` / `SEED_ADMIN_PASSWORD`, and one barista per branch, each with their own password variable. It stops with a clear error if a variable is missing or shorter than 8 characters. Pass `--reset-passwords` (`npm run db:seed -- --reset-passwords`) to apply changed seed passwords to existing staff accounts and sign them out; a normal run never overwrites passwords.
 - `vercel.json` build command runs migrations before each build.
@@ -37,6 +37,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - `docs/SETUP.md` no longer suggests `vercel env pull .env.local`, and warns that it overwrites `.env.local` with production values.
 
 #### Fixed
+
+- Orders, Rewards, Favorites and Checkout show a signed-in "coming soon" page instead of "page not found" (the account menu links to them).
+- Removed leftover Vercel-pulled variables (`POSTGRES_*`, `PG*`, Neon Auth and realtime) from the local `.env.local`; they pointed at the production database and nothing uses them.
 
 - 23 E2E test accounts that had been created in the production database (before the `dev` branch existed) were removed.
 
