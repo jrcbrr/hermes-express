@@ -4,41 +4,51 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/*
+ * Tailwind theme. Every color is a CSS variable defined below, so the same
+ * class (for example `bg-surface`) works in light and dark mode.
+ *
+ * Brand tokens use the names from docs/PLAN.md §3. The shadcn/ui names
+ * (card, popover, secondary, muted, destructive, input, ring) are aliases of
+ * brand tokens so generated primitives match the brand. See
+ * docs/ARCHITECTURE.md for the mapping.
+ */
 @theme inline {
+  /* Brand tokens */
   --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-surface-muted: var(--surface-muted);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-sans);
-  --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-sans);
-  --color-sidebar-ring: var(--sidebar-ring);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar: var(--sidebar);
-  --color-chart-5: var(--chart-5);
-  --color-chart-4: var(--chart-4);
-  --color-chart-3: var(--chart-3);
-  --color-chart-2: var(--chart-2);
-  --color-chart-1: var(--chart-1);
-  --color-ring: var(--ring);
-  --color-input: var(--input);
-  --color-border: var(--border);
-  --color-destructive: var(--destructive);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-accent: var(--accent);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-muted: var(--muted);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-secondary: var(--secondary);
-  --color-primary-foreground: var(--primary-foreground);
   --color-primary: var(--primary);
-  --color-popover-foreground: var(--popover-foreground);
-  --color-popover: var(--popover);
-  --color-card-foreground: var(--card-foreground);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-success: var(--success);
+  --color-danger: var(--danger);
+  --color-border: var(--border);
+
+  /* shadcn/ui aliases */
   --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-destructive: var(--destructive);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  /* Drink colors for illustrations (the builder uses per-ingredient colors). */
+  --color-coffee-espresso: var(--coffee-espresso);
+  --color-coffee-latte: var(--coffee-latte);
+  --color-coffee-milk: var(--coffee-milk);
+  --color-coffee-foam: var(--coffee-foam);
+
+  --font-sans: var(--font-inter);
+  --font-heading: var(--font-nunito);
+
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -48,83 +58,213 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
+/* "Olympus Café" palette, light mode (docs/PLAN.md §3). */
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --background: #faf6ef;
+  --surface: #ffffff;
+  --surface-muted: #f1ebe1;
+  --foreground: #2b1e17;
+  --muted-foreground: #7a6a5d;
+  --primary: #b8892e;
+  /* Espresso, not white: white on gold is ~3.1:1 and fails WCAG AA. */
+  --primary-foreground: #2b1e17;
+  --accent: #2f5d7c;
+  --accent-foreground: #ffffff;
+  --success: #3f7d58;
+  --danger: #b2453a;
+  --border: #e5dccf;
+
+  --coffee-espresso: #4a2c1d;
+  --coffee-latte: #a8714a;
+  --coffee-milk: #e9d8c0;
+  --coffee-foam: #f7efe3;
+
+  --card: var(--surface);
+  --card-foreground: var(--foreground);
+  --popover: var(--surface);
+  --popover-foreground: var(--foreground);
+  --secondary: var(--surface-muted);
+  --secondary-foreground: var(--foreground);
+  --muted: var(--surface-muted);
+  --destructive: var(--danger);
+  --input: var(--border);
+  --ring: var(--accent);
+
+  --radius: 0.75rem;
 }
 
+/* Dark mode ("night roast"). */
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  --background: #14110f;
+  --surface: #1e1a17;
+  --surface-muted: #2a2420;
+  --foreground: #f3ece2;
+  --muted-foreground: #a8998b;
+  --primary: #d4a853;
+  --primary-foreground: #14110f;
+  --accent: #6fa3c7;
+  --accent-foreground: #14110f;
+  --success: #6bbf8a;
+  --danger: #e07a6f;
+  --border: #3a322c;
+
+  --coffee-espresso: #5a3624;
+  --coffee-latte: #b07c55;
+  --coffee-milk: #e2cfb4;
+  --coffee-foam: #f3ece2;
 }
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
+  html {
+    @apply font-sans;
+  }
   body {
     @apply bg-background text-foreground;
   }
-  html {
-    @apply font-sans;
+  h1,
+  h2,
+  h3,
+  h4 {
+    @apply font-heading;
+  }
+  :focus-visible {
+    @apply outline-2 outline-offset-2 outline-ring;
+  }
+}
+
+/* Landing page illustrations. Their resting state is the "finished" drink,
+   so turning animations off (reduced motion) still shows a full cup. */
+@keyframes hx-fill {
+  0%,
+  8% {
+    transform: translateY(var(--hx-fill-distance, 150px));
+  }
+  55%,
+  85% {
+    transform: translateY(0);
+  }
+  100% {
+    transform: translateY(var(--hx-fill-distance, 150px));
+  }
+}
+
+@keyframes hx-pour {
+  0%,
+  6% {
+    opacity: 0;
+  }
+  10%,
+  50% {
+    opacity: 1;
+  }
+  56%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes hx-steam {
+  0% {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  50% {
+    opacity: 0.7;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes hx-appear-1 {
+  0%,
+  8% {
+    opacity: 0;
+    transform: translateY(-14px);
+  }
+  18%,
+  92% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes hx-appear-2 {
+  0%,
+  26% {
+    opacity: 0;
+    transform: translateY(-14px);
+  }
+  36%,
+  92% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes hx-appear-3 {
+  0%,
+  44% {
+    opacity: 0;
+    transform: translateY(-14px);
+  }
+  54%,
+  92% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes hx-swirl {
+  0%,
+  62% {
+    opacity: 0;
+    transform: rotate(0deg);
+  }
+  74%,
+  90% {
+    opacity: 1;
+    transform: rotate(360deg);
+  }
+  100% {
+    opacity: 0;
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes hx-mix {
+  0%,
+  62% {
+    opacity: 0;
+  }
+  74%,
+  90% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
   }
 }

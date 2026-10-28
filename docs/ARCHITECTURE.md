@@ -55,7 +55,12 @@ flowchart LR
 ```
 src/
 ├─ app/          Routes (App Router). Pages, layouts, route handlers.
-├─ components/   React components. ui/ = shadcn primitives, <feature>/ = feature components.
+├─ components/   React components. ui/ = shadcn primitives, <feature>/ = feature components:
+│  ├─ brand/     Logo mark, wordmark, Hermes mascot (one-colour SVG, currentColor).
+│  ├─ layout/    Site header, desktop nav, mobile tab bar, footer, nav-items list.
+│  ├─ landing/   Landing page sections (hero, how it works, featured, teaser, rewards, branches).
+│  ├─ theme/     next-themes provider and the light/dark toggle.
+│  └─ sound/     Sound mute toggle (uses hooks/use-sound.ts).
 ├─ config/       site.ts: name, tagline, contacts, branches (single source of truth).
 ├─ db/           Drizzle client (index.ts), schema.ts, migrations/, seed.ts.
 ├─ lib/          Pure, framework-free business logic. Heavily unit tested (90% gate).
@@ -65,6 +70,25 @@ e2e/             Playwright browser tests.
 scripts/         Node scripts run by npm (for example db-migrate.ts).
 docs/            Plan, architecture, setup, ADRs, AI logs.
 ```
+
+## Design tokens
+
+Colours are CSS variables in `src/app/globals.css`, defined once for light (`:root`) and once for dark (`.dark`, set by next-themes). `@theme inline` turns each one into a Tailwind colour, so `bg-surface` or `text-primary` works in both themes. Components never use raw hex values.
+
+Brand tokens use the names from [`PLAN.md` §3](PLAN.md#color-palette--olympus-café): `background`, `surface`, `surface-muted`, `foreground`, `primary`, `primary-foreground`, `accent`, `accent-foreground`, `success`, `danger`, `border`. shadcn/ui primitives expect their own names, so those are aliases:
+
+| shadcn/ui name       | Points to                | Note                                         |
+| -------------------- | ------------------------ | -------------------------------------------- |
+| `card`, `popover`    | `surface`                |                                              |
+| `muted`, `secondary` | `surface-muted`          | shadcn uses `muted` as a background colour   |
+| `muted-foreground`   | PLAN's `muted` text tone | so secondary text is `text-muted-foreground` |
+| `input`              | `border`                 |                                              |
+| `destructive`        | `danger`                 |                                              |
+| `ring`               | `accent`                 | Aegean blue focus outline                    |
+
+Illustration colours (`coffee-espresso`, `coffee-latte`, `coffee-milk`, `coffee-foam`) are tokens too. Fonts: `font-sans` is Inter (body) and `font-heading` is Nunito (h1–h4), both loaded with `next/font`.
+
+Animations are CSS keyframes (`hx-*` in `globals.css`). Each illustration's resting state is the finished drink, and `prefers-reduced-motion: reduce` turns all animations off.
 
 ## Key rules
 
