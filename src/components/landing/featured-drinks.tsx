@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { LogoMark } from "@/components/brand/logo-mark";
 import { buttonVariants } from "@/components/ui/button";
-import { formatPeso } from "@/lib/format";
+import { formatPeso } from "@/lib/money";
 import { featuredDrinks } from "./featured-drinks.data";
 import { Section } from "./section";
 
