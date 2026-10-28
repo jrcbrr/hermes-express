@@ -1,12 +1,20 @@
-import { siteConfig } from "@/config/site";
+import { Branches } from "@/components/landing/branches";
+import { BuilderTeaser } from "@/components/landing/builder-teaser";
+import { FeaturedDrinks } from "@/components/landing/featured-drinks";
+import { Hero } from "@/components/landing/hero";
+import { HowItWorks } from "@/components/landing/how-it-works";
+import { RewardsTeaser } from "@/components/landing/rewards-teaser";
 
-// Placeholder home page for Stage 0. The full landing page arrives in Stage 1.
+// Landing page (docs/PLAN.md §4). The footer, section 7, comes from the root layout.
 export default function HomePage() {
   return (
-    <main className="flex flex-1 flex-col items-center justify-center gap-4 p-6 text-center">
-      <h1 className="text-4xl font-bold tracking-tight">{siteConfig.name}</h1>
-      <p className="text-lg text-muted-foreground">{siteConfig.tagline}</p>
-      <p className="text-sm text-muted-foreground">{siteConfig.demoNotice}</p>
-    </main>
+    <>
+      <Hero />
+      <HowItWorks />
+      <FeaturedDrinks />
+      <BuilderTeaser />
+      <RewardsTeaser />
+      <Branches />
+    </>
   );
 }
