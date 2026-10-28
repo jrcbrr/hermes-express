@@ -25,10 +25,28 @@ npm ci
 
 All variables are listed and explained in [`.env.example`](../.env.example).
 
-- **Easiest (project linked to Vercel):** `npx vercel env pull .env.local` downloads the development values, including the Neon `DATABASE_URL`.
-- **Manual:** copy `.env.example` to `.env.local` and fill in the values.
+- Copy `.env.example` to `.env.local` and fill in the values. For `DATABASE_URL`, use the Neon **dev** branch (see "Databases" below), never main.
 
-`.env.local` is git-ignored. Never commit it.
+`.env.local` is git-ignored. Never commit it, and never paste its values into chat, issues or PRs.
+
+> **Warning: don't run `vercel env pull` without checking first.**
+> `npx vercel env pull` writes to `.env.local` by default and **overwrites it**. That would replace your dev database with the **production** one (Vercel stores main's connection string for every environment) and delete your seed passwords and `BETTER_AUTH_SECRET`.
+> If you really need Vercel's values, pull into a separate file you delete afterwards (for example `npx vercel env pull .env.vercel.local`), copy over only what you need, and back up `.env.local` first (`cp .env.local .env.local.backup`).
+
+### Databases
+
+There are three separate Neon databases (branches of the same Neon project):
+
+| Environment           | Neon branch            | Where its URL comes from                                          | Used for                                    |
+| --------------------- | ---------------------- | ----------------------------------------------------------------- | ------------------------------------------- |
+| Local (your computer) | `dev`                  | `.env.local` (`DATABASE_URL`, `DATABASE_URL_UNPOOLED`)            | `npm run dev`, E2E tests, trying things out |
+| Preview (one per PR)  | `preview/<git-branch>` | Added by the Neon integration when each preview deployment builds | Checking a PR on its Vercel preview         |
+| Production            | `main`                 | Vercel environment variables (Production)                         | The live site. Never test against it.       |
+
+- Preview branches are copies of `main` made when a PR's first preview deploys; each deploy then runs migrations on its own branch.
+- `dev` is a copy of `main` too. To refresh it, reset it from its parent in the Neon console (Branches → `dev` → Reset from parent), then run `npm run db:migrate` and `npm run db:seed`.
+- **E2E safety check:** `e2e/global-setup.ts` asks the database which Neon branch it is and **refuses to run the tests if it is `main`** (production).
+- A backup of the previous `.env.local` (which pointed at `main`) is kept as `.env.local.backup`. It is git-ignored; delete it once you no longer need it.
 
 | Variable                                   | Needed from        | Purpose                                                     |
 | ------------------------------------------ | ------------------ | ----------------------------------------------------------- |

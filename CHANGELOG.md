@@ -30,6 +30,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - `docs/PLAN.md`, `docs/SETUP.md`: environment variables now say where each one is set. In Vercel, `BETTER_AUTH_SECRET` goes in Production and Preview, and `BETTER_AUTH_URL` in Production only; seed variables stay in `.env.local`.
 - `docs/PLAN.md`: the proxy replaces "middleware", migrations run in the Vercel build command, rate-limit details, a rule that secret values are never printed, and a new "Decisions made by the owner (Stage 2)" table.
 
+#### Databases
+
+- Three separate Neon databases: `dev` (local work and E2E), `preview/<git-branch>` (one per PR, made by the Neon integration) and `main` (production only). `docs/SETUP.md` has a new "Databases" section explaining them.
+- E2E safety check (`e2e/global-setup.ts`): Playwright refuses to run if `DATABASE_URL` points at the production branch.
+- `docs/SETUP.md` no longer suggests `vercel env pull .env.local`, and warns that it overwrites `.env.local` with production values.
+
+#### Fixed
+
+- 23 E2E test accounts that had been created in the production database (before the `dev` branch existed) were removed.
+
 #### Known gaps
 
 - CI has no database yet, so the sign up → log out → log in E2E test skips there. TODO before Stage 5: a Neon `ci` branch and a `DATABASE_URL` GitHub secret (steps in `docs/SETUP.md`).
