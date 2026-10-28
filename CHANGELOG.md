@@ -5,6 +5,29 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Stage 3: Catalog, pricing & menu (2026-10-29)
+
+#### Added
+
+- Tables `ingredient`, `product`, `branch_stock` and `promo_code` (additive migration `0001_catalog`). `ingredient.included_shots` marks espresso-based bases; a check makes each `branch_stock` row point at exactly one ingredient or product.
+- The full PLAN §6 menu as seed data (`src/db/catalog-data.ts`): 3 sizes, 3 temperatures, 15 bases, 7 milks, 10 syrups, 11 toppings, the extra shot, 6 signature drinks with recipes, 7 pastries, 3 snacks, and the promo codes `FIRSTSIP`, `HERMES10` and `OLYMPUS20`. Every liquid and topping has a colour for the Stage 4 builder.
+- Demo states: Ube Cheese Pandesal is seasonal (Oct 1 – Dec 31, 2026) and Cinnamon Roll is sold out at BGC.
+- `npm run db:seed:catalog`: seeds the menu only, needs no secrets, and inserts missing rows without changing existing ones. `npm run db:seed` runs it too.
+- `src/lib/money.ts`: `formatPeso()` plus centavo helpers (`assertCentavos`, `pesosToCentavos`, `multiplyCentavos`, `percentOfCentavos`, `sumCentavos`).
+- `src/lib/validation/drink.ts`: the shared `DrinkConfig` type and Zod schema (sizes, temperatures, ice level for iced drinks only, 1–4 shots, sweetness 0–100%, up to 3 syrups and 5 toppings with no repeats, optional name and signature).
+- `src/lib/pricing.ts`: `calculateDrinkPrice(config, catalog)` with a line-by-line breakdown, and `calculateCartTotals()` (quantity 1–20, discount capped at the subtotal, ₱49 delivery free from ₱800). It rejects unknown, inactive or wrongly used ingredients, shots on non-espresso bases, and a hot Cold Brew. 100% unit-test coverage.
+- `src/lib/catalog.ts`: menu building per branch, seasonal date windows, and sold-out rules (a signature is also sold out when a recipe ingredient is).
+- Cached catalog queries (`src/server/catalog/queries.ts`, cache tag `catalog`) and a `selectBranch` server action that remembers the branch in the `hx_branch` cookie.
+- `/menu` page: Signature Drinks, Pastries and Snacks sections with jump links, a branch picker, prices, and "Seasonal" and "Sold out at this branch" labels. "Add to cart" is visible but disabled until Stage 5; "Customize" opens `/build?drink=<slug>` (the builder arrives in Stage 4).
+- Tests: money, pricing, drink schema, catalog rules, seed data checked against PLAN §6, catalog queries and branch action, menu components and page, landing featured drinks; E2E for the menu, the branch picker and sold-out labels (database parts skip without a database).
+
+#### Changed
+
+- The landing page's featured drinks now come from the database instead of placeholder data, and link to `/build?drink=<slug>`. "Customise" is now spelled "Customize" to match the menu.
+- `formatPeso()` moved from `src/lib/format.ts` to `src/lib/money.ts`.
+- `vercel.json` build command: `npm run db:migrate && npm run db:seed:catalog && npm run build`.
+- `docs/PLAN.md` has a new "Decisions made by the owner (Stage 3)" table; `docs/ARCHITECTURE.md` and `docs/SETUP.md` describe the catalog flow, tables and seed command.
+
 ### Stage 2: Accounts, roles & protected routes (2026-10-29)
 
 #### Added

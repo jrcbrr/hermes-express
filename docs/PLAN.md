@@ -511,3 +511,13 @@ The seed stops with a clear error if any seed variable is missing or a password 
 | Migrations on Vercel | `vercel.json` build command: `npm run db:migrate && npm run build`. |
 | Barista passwords | No shared password. Each branch barista has their own variable (`SEED_BARISTA_TIPAS_PASSWORD`, `SEED_BARISTA_BGC_PASSWORD`, `SEED_BARISTA_LAKESHORE_PASSWORD`), min. 8 characters; the seed fails clearly otherwise. |
 | Secrets | All secrets and seed values live in `.env.local`. Vercel gets only `BETTER_AUTH_SECRET` (Production + Preview) and `BETTER_AUTH_URL` (Production only). Secret values are never printed in chat or docs. |
+
+### Decisions made by the owner (Stage 3)
+| Topic | Decision |
+|---|---|
+| Customized signature price | Menu price plus the price difference of the changes. An unchanged signature always costs its menu price (Olympus Latte ₱175 and Ambrosia Matcha ₱195 stay ₱5 below the sum of their parts). |
+| Espresso shots | New additive column `ingredient.included_shots` (1 for espresso-based bases, empty for others) and an ingredient of kind `shot` priced ₱40, so the admin can edit it. Cold Brew cannot be served hot. |
+| Menu data on Vercel | `npm run db:seed:catalog` (no secrets) runs in the Vercel build after migrations. It only inserts missing rows, so admin edits are never overwritten. |
+| Demo states | Ube Cheese Pandesal is seasonal (Oct 1 – Dec 31, 2026). Cinnamon Roll is sold out at BGC only. Both can be changed later. |
+| Pastries vs snacks | Snacks: Chocolate Chip Cookie, Ham & Cheese Croissant Sandwich, Chicken Pesto Panini. Everything else in §6 is a pastry. |
+| `OLYMPUS20` window | Nov 1 – Dec 31, 2026 (Manila time). |
