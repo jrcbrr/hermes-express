@@ -7,6 +7,8 @@ const baseURL = `http://localhost:${PORT}`;
 
 export default defineConfig({
   testDir: "./e2e",
+  // Refuses to run against the production database (see the file for why).
+  globalSetup: "./e2e/global-setup.ts",
   fullyParallel: true,
   // Fail the CI build if someone leaves test.only in the code.
   forbidOnly: isCI,
