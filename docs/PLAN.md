@@ -285,7 +285,9 @@ Products can be marked **seasonal** (with available-from/to dates) or **sold out
 | `barista` | Assigned to one branch. See that branch's live queue, update status, toggle sold-out |
 | `admin` | Everything: all orders, menu & ingredient prices, promos, sold-out, sales dashboard, view/edit customer profiles, adjust points, manage staff roles |
 
-Role checks run **on the server** (middleware plus every server action / route handler).
+Role checks run **on the server**: `src/proxy.ts` (Next.js 16's name for middleware) redirects signed-out visitors with a quick cookie check, and every page, server action and route handler checks the session and role with `requireUser()` / `requireRole()` (see [ADR 0002](decisions/0002-auth.md)).
+
+Staff accounts are created by the seed script: one admin, and one barista per branch (`barista.<branch-slug>@hermes-express.test`), each with their **own** password from a separate environment variable (no shared passwords).
 
 ### Loyalty points
 - Earn **1 point per ₱10** spent (after discounts, excluding the delivery fee). Points are credited when an order is `Completed`.
@@ -418,10 +420,13 @@ Badge definitions live in code (`src/lib/badges.ts`), not in the DB.
 5. Build (`npm run build`)
 6. E2E (Playwright) against the built app
 
+CI has no database yet, so E2E tests that need one (such as sign up → log out → log in) **skip themselves** when `DATABASE_URL` is missing. **TODO before Stage 5:** create a dedicated Neon `ci` branch, add `DATABASE_URL` and `BETTER_AUTH_SECRET` as GitHub repository secrets, and run migrations in CI before E2E (steps in `docs/SETUP.md`).
+
 ### CD (Vercel)
 - Every PR gets a **preview deployment** (staging) with its own **Neon preview branch** database.
 - Merging to `main` deploys to **production** automatically.
-- DB migrations run in the build step (`drizzle-kit migrate`). Migrations must be **additive** (no destructive changes without a migration plan).
+- DB migrations run in the build step: `vercel.json` sets the build command to `npm run db:migrate && npm run build`, so each deployment migrates its own database first. Migrations must be **additive** (no destructive changes without a migration plan).
+- The seed script runs **only from a developer's machine** (`npm run db:seed`), never on Vercel, so seed passwords stay out of Vercel.
 - Rollback: use "Promote previous deployment" in Vercel.
 
 ### Testing
@@ -432,19 +437,25 @@ Badge definitions live in code (`src/lib/badges.ts`), not in the DB.
 
 ### Security basics
 - Secrets only in `.env.local` / Vercel env vars. `.env*` is git-ignored except `.env.example`.
-- Passwords hashed by Better Auth. Rate limiting on auth routes.
+- Passwords hashed by Better Auth. Rate limiting on auth routes (5 attempts per minute per IP, and per email for login), stored in Postgres so it holds across serverless instances.
+- Secret values (passwords, `BETTER_AUTH_SECRET`) are never written into docs, commits, logs or chat; docs name the variable and where to get the value instead.
 - Zod validation on every input; server-side price recomputation.
 - No real payment data is ever collected.
 
 ### Environment variables
-| Name | Purpose |
-|---|---|
-| `DATABASE_URL` | Neon connection (auto-added by the Vercel integration) |
-| `BETTER_AUTH_SECRET` | Session signing secret |
-| `BETTER_AUTH_URL` | App base URL |
-| `RESEND_API_KEY` | Optional; emails are skipped if missing |
-| `EMAIL_FROM` | Sender address |
-| `SEED_ADMIN_EMAIL` / `SEED_ADMIN_PASSWORD` | First admin account |
+| Name | Purpose | Where it is set |
+|---|---|---|
+| `DATABASE_URL` | Neon connection | Auto-added by the Vercel + Neon integration; `.env.local` locally |
+| `BETTER_AUTH_SECRET` | Session signing secret | `.env.local`; Vercel **Production + Preview** (a different value from local) |
+| `BETTER_AUTH_URL` | App base URL | `.env.local` (`http://localhost:3000`); Vercel **Production only** (`https://hermes-express.vercel.app`). Previews leave it unset and use `VERCEL_URL`. |
+| `RESEND_API_KEY` | Optional; emails are skipped if missing | Stage 8 |
+| `EMAIL_FROM` | Sender address | Stage 8 |
+| `SEED_ADMIN_EMAIL` / `SEED_ADMIN_PASSWORD` | First admin account | `.env.local` only |
+| `SEED_BARISTA_TIPAS_PASSWORD` | Tipas barista password (min. 8 characters) | `.env.local` only |
+| `SEED_BARISTA_BGC_PASSWORD` | BGC barista password (min. 8 characters) | `.env.local` only |
+| `SEED_BARISTA_LAKESHORE_PASSWORD` | Taguig Lakeshore barista password (min. 8 characters) | `.env.local` only |
+
+The seed stops with a clear error if any seed variable is missing or a password is shorter than 8 characters.
 
 ---
 
@@ -492,3 +503,11 @@ Badge definitions live in code (`src/lib/badges.ts`), not in the DB.
 | Branches & Git | Branch-per-stage + PRs (needed for Vercel previews and for the Git judging criterion) |
 | "Full coverage" | 90% on business logic + E2E on key flows (100% on UI code is not practical in one week) |
 | TypeScript | Yes, strict mode |
+
+### Decisions made by the owner (Stage 2)
+| Topic | Decision |
+|---|---|
+| E2E without a database | The database E2E test skips itself in CI when `DATABASE_URL` is missing. A Neon `ci` branch + GitHub secret must be set up before Stage 5. |
+| Migrations on Vercel | `vercel.json` build command: `npm run db:migrate && npm run build`. |
+| Barista passwords | No shared password. Each branch barista has their own variable (`SEED_BARISTA_TIPAS_PASSWORD`, `SEED_BARISTA_BGC_PASSWORD`, `SEED_BARISTA_LAKESHORE_PASSWORD`), min. 8 characters; the seed fails clearly otherwise. |
+| Secrets | All secrets and seed values live in `.env.local`. Vercel gets only `BETTER_AUTH_SECRET` (Production + Preview) and `BETTER_AUTH_URL` (Production only). Secret values are never printed in chat or docs. |

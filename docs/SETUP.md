@@ -48,7 +48,21 @@ Every seed password needs at least 8 characters; the seed stops with a clear err
 node -e "console.log(require('crypto').randomBytes(18).toString('base64url'))"
 ```
 
-On Vercel, leave `BETTER_AUTH_URL` unset for **Preview**: the app then uses the preview's own URL (`VERCEL_URL`).
+Never paste secret values into chat, issues, PRs or docs. Refer to them by variable name.
+
+### Variables in Vercel
+
+Add these under Vercel → Project → Settings → Environment Variables:
+
+| Name                 | Value / where to get it                                                                | Environments        |
+| -------------------- | -------------------------------------------------------------------------------------- | ------------------- |
+| `BETTER_AUTH_SECRET` | Generate a **new** value (don't reuse your local one) with the command above, 32 bytes | Production, Preview |
+| `BETTER_AUTH_URL`    | `https://hermes-express.vercel.app`                                                    | Production only     |
+
+- `DATABASE_URL` is added automatically by the Neon integration.
+- Leave `BETTER_AUTH_URL` unset for **Preview**: the app then uses the preview's own URL (`VERCEL_URL`).
+- The `SEED_*` variables stay in `.env.local` only. The seed runs from your machine, never on Vercel.
+- After adding or changing a variable, redeploy so the deployment picks it up.
 
 ## 4. Run the app
 
