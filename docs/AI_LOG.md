@@ -46,6 +46,8 @@ Rules the AI follows are in [`../CLAUDE.md`](../CLAUDE.md). Stage prompts are in
   - **Self-referencing font variable after shadcn init:** `--font-sans: var(--font-sans)`. Fixed by naming the Geist font variable `--font-sans` in `layout.tsx`.
   - **npm peer conflict installing `@vitejs/plugin-react`** (Babel 8 vs shadcn's Babel 7): left the plugin out, because Vite compiles JSX natively. No `--force` or `--legacy-peer-deps`.
   - **E2E tested the wrong app:** another local project was running on port 3000, and Playwright reused it. Fixed by giving E2E its own port (3100).
+  - **`vercel link` / `vercel env pull` edited `.gitignore`:** both times they appended `.env*` after our `!.env.example` exception, which would make Git ignore `.env.example`. The AI caught it in `git diff` and reverted it; the existing rules already ignored `.env.local` and `.vercel/`.
+  - **Neon connected:** `vercel env pull` brought in `DATABASE_URL` and `db:migrate` reached the database. drizzle-kit warned that the serverless driver connects over websockets. Stage 2 should point migrations at `DATABASE_URL_UNPOOLED` (direct connection).
   - **3 low-severity `npm audit` warnings** in `deepmerge`, used inside the shadcn CLI (dev tooling only). The only "fix" downgrades shadcn to 1.0, so they were left and noted.
 - **What I learned:**
   - Plan first, then build: the AI's plan surfaced decisions (branch naming, placeholder page, safe `db:migrate`) before any code was written.
