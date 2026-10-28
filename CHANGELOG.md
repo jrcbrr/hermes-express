@@ -5,6 +5,28 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Stage 2: Accounts, roles & protected routes (2026-10-29)
+
+#### Added
+
+- Email + password accounts with Better Auth (Drizzle adapter on Neon). Passwords are hashed; sessions are stored in Postgres.
+- User fields `phone`, `role` (customer / barista / admin, default customer), `branchId`, `pointsBalance` and `defaultAddress`. Users cannot set their own role, branch or points.
+- `/signup` and `/login` pages with Zod validation and formal, friendly error messages. Philippine mobile numbers in any common format are saved as `+639XXXXXXXXX`.
+- `/profile` page to edit name, mobile number and default address, with shortcuts and log out (useful on phones).
+- Header account menu: Log in / Sign up when signed out; Profile, Orders, Rewards, Log out when signed in; Barista and Admin links for those roles.
+- `src/proxy.ts` sends signed-out visitors from checkout, orders, favorites, rewards, profile, `/barista` and `/admin` to login, and back afterwards.
+- `requireUser()` / `requireRole()` server helpers; `/barista` (barista or admin) and `/admin` (admin) placeholder pages use them.
+- Rate limiting on sign-up and login (5 per minute per IP, and per email for login), stored in Postgres; Better Auth's own endpoints use the same limiter.
+- Tables `branch`, `user`, `session`, `account`, `verification`, `rate_limit` (migration `0000_auth_and_branches`).
+- Seed script part 1: the 3 branches from `site.ts`, an admin from `SEED_ADMIN_EMAIL` / `SEED_ADMIN_PASSWORD`, and one barista per branch, each with their own password variable. It stops with a clear error if a variable is missing or shorter than 8 characters.
+- `vercel.json` build command runs migrations before each build.
+- Tests: roles, validation schemas, rate limiter, session helpers, auth and profile actions, proxy redirects, account menu, auth forms; E2E for protected-route redirects, form errors, and sign up → log out → log in (skips without a database).
+- ADR [0002: Authentication and authorization](docs/decisions/0002-auth.md).
+
+#### Changed
+
+- The header's "Sign in" button is now the account menu ("Log in" and "Sign up" when signed out).
+
 ### Stage 1: Design system & landing page (2026-10-29)
 
 #### Added

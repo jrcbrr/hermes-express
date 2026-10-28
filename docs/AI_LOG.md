@@ -89,3 +89,31 @@ Rules the AI follows are in [`../CLAUDE.md`](../CLAUDE.md). Stage prompts are in
   - Hydration matters: the theme icon swaps through CSS (`dark:`) so server and browser render the same HTML.
   - Screenshots catch layout bugs that tests miss.
 - **Raw log:** [docs/ai-logs/2026-10-29-stage-1.md](ai-logs/2026-10-29-stage-1.md) (exported before the merge, so the merge itself is not in the raw log)
+
+## 2026-10-29 — Stage 2: Accounts, roles & protected routes
+
+- **Goal:** Add email + password accounts, the customer / barista / admin roles, protected pages, rate-limited auth, a header account menu, a profile page, and seed the branches and staff accounts.
+- **Key prompts I gave:**
+  - The Stage 2 master prompt (Better Auth + Drizzle, user fields, `/signup` and `/login`, middleware + `requireRole()`, rate limiting, account menu, `/profile`, seed part 1, migration, tests, ADR). Plan first and wait for "go".
+  - "go", with answers to the AI's four questions: (1) the database E2E test skips without `DATABASE_URL`, plus a TODO for a Neon `ci` branch before Stage 5; (2) add the `vercel.json` build command that migrates first; (3) **changed** the proposal: no shared barista password; each barista gets their own variable, minimum 8 characters, and the seed fails clearly otherwise; (4) secrets go in `.env.local`, plus a table of what to add in Vercel.
+- **What the AI did:**
+  - Read the Next.js 16 docs bundled in `node_modules` and found that middleware is now called `proxy.ts`, and that Cache Components need session reads inside `<Suspense>`.
+  - Read Better Auth's source for its rate limiter and found that it only covers `/api/auth/*`, not server-side calls. It wrote one Postgres limiter (an atomic upsert) and used it for both our server actions and Better Auth.
+  - Wrote the schema (6 new tables), generated and applied the migration, and seeded 3 branches, 1 admin and 3 baristas on Neon.
+  - Built the forms as server actions with Zod, the profile page, staff placeholders and the account menu. Wrote unit tests (100% on the new `lib` / `server` code) and E2E tests.
+  - Ran lint, format, typecheck, coverage, build and E2E, both with the database and without it (as in CI).
+- **What I reviewed / changed / rejected and why:**
+  - Rejected one shared barista password: separate passwords per branch are safer, and losing one doesn't expose the others.
+  - _(My own reflections: what I questioned, changed or rejected, and why.)_
+- **Problems & fixes:**
+  - **E2E URL check passed too early:** `/profile$/` also matched `/signup?next=/profile`. The test now compares the exact path.
+  - **Two `alert`s on the page:** Next.js adds a hidden route announcer with `role="alert"`; the test filters by text.
+  - **Flaky E2E runs:** a dev server left over from an earlier session was still running on port 3100. After stopping it, the tests were checked against the production build, as CI does.
+  - **Our own rate limiter blocked the second E2E run:** locally every request shares one IP bucket. The test now sends a random test IP header. This also showed the limiter works.
+  - **"fetch() rejects when the prerender is complete" log on `/profile`:** the session read started during Next's prefetch prerender. Added `connection()` so session reads only happen for a real request.
+  - **APIError without a code** was rethrown as a crash. It now shows a general friendly message, while non-auth errors still surface.
+- **What I learned:**
+  - A cookie check in the proxy is only a fast first filter; the real authorization has to happen on the server for every page and action.
+  - In-memory rate limits don't work on serverless, because each instance has its own memory.
+  - With Partial Prerendering, anything per user (like the session) must sit inside `<Suspense>` so the rest of the page can still be static.
+- **Raw log:** [docs/ai-logs/2026-10-29-stage-2.md](ai-logs/2026-10-29-stage-2.md) (to be exported with `/export`)
