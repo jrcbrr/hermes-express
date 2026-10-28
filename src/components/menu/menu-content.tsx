@@ -1,3 +1,4 @@
+import { connection } from "next/server";
 import { buildMenu } from "@/lib/catalog";
 import { getSelectedBranchSlug, loadCatalog } from "@/server/catalog/queries";
 import { BranchPicker } from "./branch-picker";
@@ -9,6 +10,8 @@ import { MenuUnavailable } from "./menu-unavailable";
  * it renders per request (inside <Suspense>); the catalog itself is cached.
  */
 export async function MenuContent() {
+  // Request time from here on: seasonal checks use the current date.
+  await connection();
   const branchSlug = await getSelectedBranchSlug();
   const catalog = await loadCatalog();
 
