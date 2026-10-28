@@ -7,6 +7,12 @@ import { SiteHeader } from "./site-header";
 
 const pathname = vi.hoisted(() => ({ current: "/" }));
 vi.mock("next/navigation", () => ({ usePathname: () => pathname.current }));
+// The real slot reads the session on the server; here, show the signed-out menu.
+vi.mock("./account-slot", async () => {
+  const { AccountMenu } = await import("./account-menu");
+  return { AccountSlot: () => <AccountMenu user={null} /> };
+});
+vi.mock("@/server/auth/actions", () => ({ logOut: vi.fn() }));
 
 beforeEach(() => {
   pathname.current = "/";
@@ -75,7 +81,7 @@ describe("DesktopNav", () => {
 });
 
 describe("SiteHeader", () => {
-  it("has the logo, cart, sound and theme controls, and sign in", () => {
+  it("has the logo, cart, sound and theme controls, and log in / sign up", () => {
     render(<SiteHeader />);
     const header = within(screen.getByRole("banner"));
 
@@ -92,9 +98,13 @@ describe("SiteHeader", () => {
     expect(
       header.getByRole("button", { name: "Toggle dark mode" }),
     ).toBeInTheDocument();
-    expect(header.getByRole("link", { name: "Sign in" })).toHaveAttribute(
+    expect(header.getByRole("link", { name: "Log in" })).toHaveAttribute(
       "href",
       "/login",
+    );
+    expect(header.getByRole("link", { name: "Sign up" })).toHaveAttribute(
+      "href",
+      "/signup",
     );
   });
 });

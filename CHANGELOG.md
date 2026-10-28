@@ -5,6 +5,48 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Stage 2: Accounts, roles & protected routes (2026-10-29)
+
+#### Added
+
+- Email + password accounts with Better Auth (Drizzle adapter on Neon). Passwords are hashed; sessions are stored in Postgres.
+- User fields `phone`, `role` (customer / barista / admin, default customer), `branchId`, `pointsBalance` and `defaultAddress`. Users cannot set their own role, branch or points.
+- `/signup` and `/login` pages with Zod validation and formal, friendly error messages. Philippine mobile numbers in any common format are saved as `+639XXXXXXXXX`.
+- `/profile` page to edit name, mobile number and default address, with shortcuts and log out (useful on phones).
+- Header account menu: Log in / Sign up when signed out; Profile, Orders, Rewards, Log out when signed in; Barista and Admin links for those roles.
+- `src/proxy.ts` sends signed-out visitors from checkout, orders, favorites, rewards, profile, `/barista` and `/admin` to login, and back afterwards.
+- `requireUser()` / `requireRole()` server helpers; `/barista` (barista or admin) and `/admin` (admin) placeholder pages use them.
+- Rate limiting on sign-up and login (5 per minute per email, 30 per minute per IP so customers sharing a mobile network IP aren't locked out), stored in Postgres; Better Auth's own endpoints use the same limiter.
+- Tables `branch`, `user`, `session`, `account`, `verification`, `rate_limit` (migration `0000_auth_and_branches`).
+- Seed script part 1: the 3 branches from `site.ts`, an admin from `SEED_ADMIN_EMAIL` / `SEED_ADMIN_PASSWORD`, and one barista per branch, each with their own password variable. It stops with a clear error if a variable is missing or shorter than 8 characters. Pass `--reset-passwords` (`npm run db:seed -- --reset-passwords`) to apply changed seed passwords to existing staff accounts and sign them out; a normal run never overwrites passwords.
+- `vercel.json` build command runs migrations before each build.
+- Tests: roles, validation schemas, rate limiter, session helpers, auth and profile actions, proxy redirects, account menu, auth forms; E2E for protected-route redirects, form errors, and sign up → log out → log in (skips without a database).
+- ADR [0002: Authentication and authorization](docs/decisions/0002-auth.md).
+
+#### Changed
+
+- The header's "Sign in" button is now the account menu ("Log in" and "Sign up" when signed out).
+- New seed variables `SEED_BARISTA_TIPAS_PASSWORD`, `SEED_BARISTA_BGC_PASSWORD` and `SEED_BARISTA_LAKESHORE_PASSWORD` (placeholders in `.env.example`); there is no shared barista password.
+- `docs/PLAN.md`, `docs/SETUP.md`: environment variables now say where each one is set. In Vercel, `BETTER_AUTH_SECRET` goes in Production and Preview, and `BETTER_AUTH_URL` in Production only; seed variables stay in `.env.local`.
+- `docs/PLAN.md`: the proxy replaces "middleware", migrations run in the Vercel build command, rate-limit details, a rule that secret values are never printed, and a new "Decisions made by the owner (Stage 2)" table.
+
+#### Databases
+
+- Three separate Neon databases: `dev` (local work and E2E), `preview/<git-branch>` (one per PR, made by the Neon integration) and `main` (production only). `docs/SETUP.md` has a new "Databases" section explaining them.
+- E2E safety check (`e2e/global-setup.ts`): Playwright refuses to run if `DATABASE_URL` points at the production branch.
+- `docs/SETUP.md` no longer suggests `vercel env pull .env.local`, and warns that it overwrites `.env.local` with production values.
+
+#### Fixed
+
+- Orders, Rewards, Favorites and Checkout show a signed-in "coming soon" page instead of "page not found" (the account menu links to them).
+- Removed leftover Vercel-pulled variables (`POSTGRES_*`, `PG*`, Neon Auth and realtime) from the local `.env.local`; they pointed at the production database and nothing uses them.
+
+- 23 E2E test accounts that had been created in the production database (before the `dev` branch existed) were removed.
+
+#### Known gaps
+
+- CI has no database yet, so the sign up → log out → log in E2E test skips there. TODO before Stage 5: a Neon `ci` branch and a `DATABASE_URL` GitHub secret (steps in `docs/SETUP.md`).
+
 ### Stage 1: Design system & landing page (2026-10-29)
 
 #### Added

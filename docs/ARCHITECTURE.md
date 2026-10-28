@@ -48,7 +48,13 @@ flowchart LR
    2. validates the input with Zod
    3. uses pure functions from `src/lib` (for example `pricing.ts`) to compute the result
    4. writes to the database
-3. **Live updates:** the order tracker and barista queue poll a route handler every 10 seconds. This is simpler than websockets and works well on serverless hosting (ADR coming in a later stage).
+3. **Signing in and roles** (details in [ADR 0002](decisions/0002-auth.md)):
+   1. Login and sign-up forms call server actions in `src/server/auth/actions.ts`. Each one validates with Zod, checks the Postgres rate limiter (`src/server/rate-limit.ts`), then calls Better Auth, which sets an HTTP-only session cookie.
+   2. `src/proxy.ts` (Next.js 16's name for middleware) runs before protected pages. No session cookie → redirect to `/login?next=…`. It only looks at the cookie.
+   3. The page or action then calls `requireUser()` or `requireRole([...])` from `src/server/auth/session.ts`. These load the session from the database and check the role. This is the real security check.
+   4. Which paths need which role is defined once in `src/lib/roles.ts`.
+   5. The header reads the session inside `<Suspense>`, so the rest of every page can still be prerendered (Cache Components).
+4. **Live updates:** the order tracker and barista queue poll a route handler every 10 seconds. This is simpler than websockets and works well on serverless hosting (ADR coming in a later stage).
 
 ## Folder structure
 
@@ -60,12 +66,22 @@ src/
 │  ├─ layout/    Site header, desktop nav, mobile tab bar, footer, nav-items list.
 │  ├─ landing/   Landing page sections (hero, how it works, featured, teaser, rewards, branches).
 │  ├─ theme/     next-themes provider and the light/dark toggle.
-│  └─ sound/     Sound mute toggle (uses hooks/use-sound.ts).
+│  ├─ sound/     Sound mute toggle (uses hooks/use-sound.ts).
+│  ├─ auth/      Login and sign-up forms, labelled form field.
+│  ├─ profile/   Profile edit form.
+│  └─ staff/     Role-guarded placeholder for /barista and /admin.
 ├─ config/       site.ts: name, tagline, contacts, branches (single source of truth).
-├─ db/           Drizzle client (index.ts), schema.ts, migrations/, seed.ts.
+├─ db/           Drizzle client (index.ts), schema.ts, migrations/, seed.ts, seed-env.ts.
 ├─ lib/          Pure, framework-free business logic. Heavily unit tested (90% gate).
+│  ├─ auth.ts    Better Auth setup (created lazily on first use).
+│  ├─ roles.ts   Roles and which paths need which role.
+│  └─ validation/ Zod schemas (auth.ts: sign-up, login, profile, PH phone).
 ├─ server/       Server actions and queries grouped by feature (90% gate).
-└─ hooks/        Client-side React hooks.
+│  ├─ auth/      Session helpers (requireUser/requireRole) and auth actions.
+│  ├─ profile/   updateProfile action.
+│  └─ rate-limit.ts Postgres fixed-window rate limiter.
+├─ hooks/        Client-side React hooks.
+└─ proxy.ts      Cookie check that redirects signed-out visitors from protected pages.
 e2e/             Playwright browser tests.
 scripts/         Node scripts run by npm (for example db-migrate.ts).
 docs/            Plan, architecture, setup, ADRs, AI logs.
@@ -104,7 +120,54 @@ Animations are CSS keyframes (`hx-*` in `globals.css`). Each illustration's rest
 
 ## Data model
 
-Tables are added stage by stage (users and auth in Stage 2, catalog in Stage 3, orders in Stage 5, rewards in Stage 8). The planned model is in [`PLAN.md` §9](PLAN.md#data-model-drizzle--postgres). A Mermaid ER diagram will be added here as tables land.
+Tables are added stage by stage (users and auth in Stage 2, catalog in Stage 3, orders in Stage 5, rewards in Stage 8). The planned model is in [`PLAN.md` §9](PLAN.md#data-model-drizzle--postgres). Tables so far:
+
+```mermaid
+erDiagram
+  branch ||--o{ user : "baristas work at"
+  user ||--o{ session : has
+  user ||--o{ account : "logs in with"
+  branch {
+    text id PK
+    text slug UK
+    text name
+    text address
+    text opens_at
+    text closes_at
+    boolean is_active
+  }
+  user {
+    text id PK
+    text email UK
+    text name
+    text phone "+639XXXXXXXXX"
+    text role "customer | barista | admin"
+    text branch_id FK "baristas only"
+    int points_balance
+    text default_address
+  }
+  session {
+    text id PK
+    text token UK
+    text user_id FK
+    timestamp expires_at
+  }
+  account {
+    text id PK
+    text user_id FK
+    text provider_id "credential"
+    text password "scrypt hash"
+  }
+  verification {
+    text id PK
+    text identifier
+  }
+  rate_limit {
+    text key PK
+    int count
+    bigint window_start
+  }
+```
 
 ## Environments
 
@@ -123,3 +186,4 @@ Tables are added stage by stage (users and auth in Stage 2, catalog in Stage 3, 
 Architecture decisions are recorded in [`decisions/`](decisions/):
 
 - [0001: Tech stack](decisions/0001-tech-stack.md)
+- [0002: Authentication and authorization](decisions/0002-auth.md)

@@ -7,6 +7,7 @@ import {
   UserRound,
   type LucideIcon,
 } from "lucide-react";
+import { hasRole } from "@/lib/roles";
 
 export type NavItem = {
   href: string;
@@ -33,6 +34,25 @@ export const mobileTabItems: readonly NavItem[] = [
 
 export const CART_HREF = "/cart";
 export const SIGN_IN_HREF = "/login";
+export const SIGN_UP_HREF = "/signup";
+
+export type AccountLink = { href: string; label: string };
+
+/** Links in the signed-in account menu. Staff areas only show for their roles. */
+export function accountMenuLinks(
+  role: string | null | undefined,
+): AccountLink[] {
+  const links: AccountLink[] = [
+    { href: "/profile", label: "Profile" },
+    { href: "/orders", label: "Orders" },
+    { href: "/rewards", label: "Rewards" },
+  ];
+  if (hasRole(role, ["barista", "admin"])) {
+    links.push({ href: "/barista", label: "Barista" });
+  }
+  if (hasRole(role, ["admin"])) links.push({ href: "/admin", label: "Admin" });
+  return links;
+}
 
 /** True when `href` is the current page or a parent section of it. */
 export function isActivePath(pathname: string, href: string): boolean {

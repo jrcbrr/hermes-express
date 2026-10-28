@@ -49,7 +49,7 @@ test("shows the right navigation for the screen size", async ({
   } else {
     await expect(mainNav).toBeVisible();
     await expect(tabBar).toBeHidden();
-    await expect(page.getByRole("link", { name: "Sign in" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Log in" })).toBeVisible();
   }
 });
 
