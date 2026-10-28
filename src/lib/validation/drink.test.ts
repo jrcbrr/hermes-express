@@ -57,7 +57,8 @@ describe("drinkConfigSchema", () => {
   });
 
   it("allows shots to be left out", () => {
-    const { shots: _shots, ...withoutShots } = latte;
+    const withoutShots: Partial<DrinkConfig> = { ...latte };
+    delete withoutShots.shots;
     expect(drinkConfigSchema.safeParse(withoutShots).success).toBe(true);
   });
 
@@ -146,7 +147,8 @@ describe("drinkConfigSchema", () => {
   });
 
   it("rejects missing required fields", () => {
-    const { base: _base, ...withoutBase } = latte;
+    const withoutBase: Partial<DrinkConfig> = { ...latte };
+    delete withoutBase.base;
     expect(drinkConfigSchema.safeParse(withoutBase).success).toBe(false);
     expect(drinkConfigSchema.safeParse(null).success).toBe(false);
   });
