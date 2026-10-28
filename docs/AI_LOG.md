@@ -134,3 +134,28 @@ Rules the AI follows are in [`../CLAUDE.md`](../CLAUDE.md). Stage prompts are in
   - Each environment needs its own database; tests should never touch production, and a code-level safety check is more reliable than remembering.
   - Pulled environment files can quietly point a local machine at production.
 - **Raw log:** [docs/ai-logs/2026-10-29-stage-2.md](ai-logs/2026-10-29-stage-2.md) (exported before the merge, so the merge and production check are not in it)
+
+## 2026-10-29 — Stage 3: Catalog, pricing & menu
+
+- **Goal:** Add the catalog tables and seed the full PLAN §6 menu, build the pure pricing library (100% tested), the shared `DrinkConfig` schema, the `/menu` page with per-branch sold-out states, and replace the landing page's placeholder drinks with real ones.
+- **Key prompts I gave:**
+  - The Stage 3 master prompt (tables, seed with colours, `money.ts`, `pricing.ts`, `DrinkConfig`, `/menu` with a branch picker cookie, landing drinks, tests, closing block). Plan first and wait for "go".
+  - Answers to the AI's four questions: (1) a customized signature costs its menu price plus the changes; (2) an additive `included_shots` column plus a `shot` ingredient for the ₱40 extra shot; (3) seed the catalog in the Vercel build; (4) after asking "can I change it later on?", yes to demo seasonal and sold-out items.
+  - "Briefly summarize what this means, give me key points", then "go".
+- **What the AI did:**
+  - Spotted that two signature prices in the plan (Olympus Latte, Ambrosia Matcha) are ₱5 below the sum of their recipes, and asked how to price them once customized, instead of guessing.
+  - Added the 4 tables in one additive migration, checked that `.env.local` points at the Neon **dev** branch (not production) before applying it, then seeded and re-ran the seed to prove it adds nothing twice.
+  - Wrote `calculateDrinkPrice()` and `calculateCartTotals()` as pure functions with 66 tests (100% coverage), and a seed-data test that prices every signature with the real function.
+  - Built `/menu` with a no-JavaScript branch picker (three submit buttons, `aria-pressed`), seasonal and sold-out labels, and a polite message if the database is down.
+  - Built once without a database (as CI does) to prove the pages don't need one at build time, ran E2E against the dev database, and checked screenshots at 375px and 1280px in light and dark mode.
+- **What I reviewed / changed / rejected and why:**
+  - _(My own reflections: what I questioned, changed or rejected, and why.)_
+- **Problems & fixes:**
+  - **Placeholder data test:** the landing test counted two "₱175" prices in the old placeholder file. It moved to `featured-drinks.test.tsx`, which checks the same thing against database-shaped data, so no check was dropped.
+  - **Cache Components warning on `/menu`:** reading `new Date()` (for seasonal items) during prerendering is not allowed. Fixed with `await connection()`, so the menu part renders per request while the page shell stays prerendered.
+  - **An impossible branch in pricing:** a fallback for "Zod error with no message" can never run, so it was removed instead of writing a fake test for it.
+- **What I learned:**
+  - A seed that only inserts missing rows is safe to run on every deploy; a seed that updates rows would undo the admin's price changes.
+  - Pricing belongs in one pure function, so the live price in the browser and the real price on the server can never disagree.
+  - With Partial Prerendering, anything that depends on the request (a cookie, the current time) goes inside `<Suspense>`.
+- **Raw log:** [docs/ai-logs/2026-10-29-stage-3.md](ai-logs/2026-10-29-stage-3.md)
