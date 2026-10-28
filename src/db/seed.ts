@@ -1,8 +1,9 @@
-// Seeds branches and staff accounts. Safe to run again: existing rows are
-// updated in place and existing passwords are never overwritten, unless you
+// Seeds branches, the menu (src/db/seed-catalog.ts) and staff accounts.
+// Safe to run again: existing branches and staff are updated in place and
+// existing passwords are never overwritten, unless you
 // pass --reset-passwords (npm run db:seed -- --reset-passwords), which sets
-// staff passwords from .env.local and signs those accounts out.
-// Menu and promos are added in Stage 3 and later.
+// staff passwords from .env.local and signs those accounts out. Menu rows
+// that already exist are never changed.
 import { randomUUID } from "node:crypto";
 import { loadEnvConfig } from "@next/env";
 import { hashPassword } from "better-auth/crypto";
@@ -16,6 +17,7 @@ async function main() {
   const { getDb } = await import("./index");
   const { account, branch, session, user } = await import("./schema");
   const { parseSeedArgs, readStaffSeeds } = await import("./seed-env");
+  const { seedCatalog } = await import("./seed-catalog");
 
   // Check the arguments and every variable before touching the database.
   const options = parseSeedArgs(process.argv.slice(2));
@@ -49,6 +51,9 @@ async function main() {
     branchIds.set(b.slug, row.id);
     console.log(`  ✓ ${b.name}`);
   }
+
+  console.log("Seeding the catalog (only missing rows)…");
+  await seedCatalog(db);
 
   console.log("Seeding staff accounts…");
   for (const member of staff) {
