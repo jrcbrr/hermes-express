@@ -1,14 +1,16 @@
 import { ShoppingBag } from "lucide-react";
 import Link from "next/link";
+import { Suspense } from "react";
 import { Logo } from "@/components/brand/logo";
 import { SoundToggle } from "@/components/sound/sound-toggle";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { buttonVariants } from "@/components/ui/button";
+import { AccountSlot } from "./account-slot";
 import { DesktopNav } from "./desktop-nav";
-import { CART_HREF, SIGN_IN_HREF } from "./nav-items";
+import { CART_HREF } from "./nav-items";
 
 /**
- * Top bar. Desktop: logo, main links, cart, sound, theme, sign in.
+ * Top bar. Desktop: logo, main links, cart, sound, theme, account menu.
  * Mobile: a slim bar with logo, sound and theme (the rest is in the tab bar).
  */
 export function SiteHeader() {
@@ -31,18 +33,15 @@ export function SiteHeader() {
           </div>
           <SoundToggle />
           <ThemeToggle />
-          {/* Stands in for the account menu, which arrives with auth in Stage 2. */}
+          {/* On phones, account links live on the Profile tab instead. */}
           <div className="ml-2 hidden md:flex">
-            <Link
-              href={SIGN_IN_HREF}
-              className={buttonVariants({
-                variant: "outline",
-                size: "lg",
-                className: "px-4",
-              })}
+            {/* The session is read per request; until it arrives, an empty
+                placeholder keeps the header from shifting. */}
+            <Suspense
+              fallback={<div className="h-10 w-40" aria-hidden="true" />}
             >
-              Sign in
-            </Link>
+              <AccountSlot />
+            </Suspense>
           </div>
         </div>
       </div>
