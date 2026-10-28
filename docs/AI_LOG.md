@@ -88,4 +88,4 @@ Rules the AI follows are in [`../CLAUDE.md`](../CLAUDE.md). Stage prompts are in
   - Brand colours still need contrast checks; a "nice" palette can fail accessibility.
   - Hydration matters: the theme icon swaps through CSS (`dark:`) so server and browser render the same HTML.
   - Screenshots catch layout bugs that tests miss.
-- **Raw log:** [docs/ai-logs/2026-10-29-stage-1.md](ai-logs/2026-10-29-stage-1.md) (to export with `/export`)
+- **Raw log:** [docs/ai-logs/2026-10-29-stage-1.md](ai-logs/2026-10-29-stage-1.md) (exported before the merge, so the merge itself is not in the raw log)
