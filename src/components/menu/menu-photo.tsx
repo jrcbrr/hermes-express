@@ -9,10 +9,13 @@ import { cn } from "@/lib/utils";
 export function MenuPhoto({
   src,
   dimmed = false,
+  eager = false,
 }: {
   src: string | null;
   /** Faded for sold-out items. */
   dimmed?: boolean;
+  /** Load right away: the first photo on a page is its largest element. */
+  eager?: boolean;
 }) {
   if (!src) return null;
   return (
@@ -21,6 +24,7 @@ export function MenuPhoto({
         src={src}
         alt=""
         fill
+        loading={eager ? "eager" : "lazy"}
         // Card widths: 1 column on phones, 2 from 640px, 3 from 1024px.
         sizes="(min-width: 1024px) 360px, (min-width: 640px) 50vw, 100vw"
         className={cn(

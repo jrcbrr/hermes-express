@@ -43,7 +43,7 @@ const gridClass = "mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3";
 
 /** Signature drinks under Hot / Iced / Frappes subheadings. */
 function DrinkGroups({ items }: { items: MenuItem[] }) {
-  return groupDrinks(items).map(({ temperature, items: drinks }) => {
+  return groupDrinks(items).map(({ temperature, items: drinks }, group) => {
     const { id, title } = drinkGroupInfo[temperature ?? "other"];
     return (
       <div key={id} className="mt-8">
@@ -51,8 +51,13 @@ function DrinkGroups({ items }: { items: MenuItem[] }) {
           {title}
         </h3>
         <ul className={gridClass} aria-labelledby={id}>
-          {drinks.map((item) => (
-            <ProductCard key={item.slug} item={item} headingLevel={4} />
+          {drinks.map((item, n) => (
+            <ProductCard
+              key={item.slug}
+              item={item}
+              headingLevel={4}
+              eagerPhoto={group === 0 && n === 0}
+            />
           ))}
         </ul>
       </div>

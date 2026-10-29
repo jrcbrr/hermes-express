@@ -74,6 +74,21 @@ describe("ProductCard", () => {
     expect(renderCard(pastry).querySelector("img")).toBeNull();
   });
 
+  it("loads photos lazily, except the first card's", () => {
+    expect(renderCard(signature).querySelector("img")).toHaveAttribute(
+      "loading",
+      "lazy",
+    );
+    render(
+      <ul>
+        <ProductCard item={{ ...signature, slug: "first" }} eagerPhoto />
+      </ul>,
+    );
+    expect(
+      screen.getByTestId("product-first").querySelector("img"),
+    ).toHaveAttribute("loading", "eager");
+  });
+
   it("fades the photo of a sold-out item", () => {
     const card = renderCard({ ...signature, isSoldOut: true });
     expect(card.querySelector("img")).toHaveClass("grayscale");

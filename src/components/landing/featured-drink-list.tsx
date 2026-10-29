@@ -33,12 +33,12 @@ export async function FeaturedDrinkList() {
 
   return (
     <ul className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-      {drinks.map((drink) => (
+      {drinks.map((drink, n) => (
         <li
           key={drink.slug}
           className="flex flex-col overflow-hidden rounded-2xl border bg-surface shadow-sm"
         >
-          <MenuPhoto src={drink.imageUrl} />
+          <MenuPhoto src={drink.imageUrl} eager={n === 0} />
           <div className="flex flex-1 flex-col p-5">
             <div className="flex items-start justify-between gap-3">
               <h3 className="text-lg font-bold">{drink.name}</h3>

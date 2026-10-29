@@ -8,10 +8,13 @@ import { MenuPhoto } from "./menu-photo";
 export function ProductCard({
   item,
   headingLevel = 3,
+  eagerPhoto = false,
 }: {
   item: MenuItem;
   /** 4 when the card sits under a drink group heading (h3). */
   headingLevel?: 3 | 4;
+  /** True for the first card on the page (see MenuPhoto). */
+  eagerPhoto?: boolean;
 }) {
   const isSignature = item.type === "signature";
   const Heading = headingLevel === 4 ? "h4" : "h3";
@@ -20,7 +23,11 @@ export function ProductCard({
       className="flex flex-col overflow-hidden rounded-2xl border bg-surface shadow-sm"
       data-testid={`product-${item.slug}`}
     >
-      <MenuPhoto src={item.imageUrl} dimmed={item.isSoldOut} />
+      <MenuPhoto
+        src={item.imageUrl}
+        dimmed={item.isSoldOut}
+        eager={eagerPhoto}
+      />
       <div className="flex flex-1 flex-col p-5">
         <div className="flex items-start justify-between gap-3">
           <Heading className="text-lg font-bold">{item.name}</Heading>
