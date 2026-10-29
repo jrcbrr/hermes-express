@@ -276,18 +276,19 @@ Products can be marked **seasonal** (with available-from/to dates) or **sold out
 5. **The server recomputes every price.** It never trusts the client total.
 
 ### Receipts (Stage 5)
-Every order gets a receipt, laid out like a normal shop receipt:
+Every order gets a receipt, laid out like a **printed Philippine sales receipt** (owner decision): one monospaced column, black on white, dashed rules, uppercase labels, plain amounts ("495.00") with "PHP" only on the total. The page, the PDF and the email print the same rows:
 - **Receipt number:** `HX-<branch code>-<number>`, counting up per branch (branch codes in `src/config/site.ts`: `TIP`, `BGC`, `TLK`).
-- **Header:** shop name **Hermes Express** and logo; the **address of the branch the order was placed at** (BGC orders show the BGC address, Tipas orders the Tipas address, from `src/config/site.ts`); phone **0939 008 2560** (`siteConfig.contacts.phone`); **TIN** (stored in `src/config/site.ts`; the owner provides the number, a placeholder `000-000-000-000` is used until then).
-- **Order details:** receipt number (e.g. `HX-BGC-000123`), date and time (Manila), pickup or delivery, ASAP or scheduled time, customer name, phone, email, and delivery address if any.
-- **Items:** each line with quantity, unit price and line total; custom drinks list their choices (e.g. "16oz · Iced · Oat milk · Vanilla · Cold foam").
-- **Totals:** subtotal, promo discount (with code), delivery fee (or "Free"), total, and a **VAT line**: VATable sales and 12% VAT, both included in the total (VAT = total × 12/112).
-- **Payment:** method (e.g. "GCash (Demo)") and "Paid".
-- **Footer:** "Thank you for ordering with Hermes Express", the tagline, and **"Demo receipt. Not an official receipt."**
+- **Header:** title **SALES RECEIPT**, shop name **HERMES EXPRESS** and the logo in black; the **address of the branch the order was placed at** (BGC orders show the BGC address, Tipas orders the Tipas address, from `src/config/site.ts`); phone **Tel. 0939 008 2560** (`siteConfig.contacts.phone`); **VAT REG TIN** (stored in `src/config/site.ts`; the owner provides the number, a placeholder `000-000-000-000` is used until then).
+- **Order details:** Receipt No. (e.g. `HX-BGC-000123`), Order Code, Date/Time (`10/30/2026 09:15 AM`, Manila), Service (`PICKUP (ASAP)` or `DELIVERY (SCHEDULED …)`).
+- **Items:** QTY, DESCRIPTION (upper case) and AMOUNT; under each, the unit price and, for custom drinks, the choices (e.g. "@200.00 16oz / Iced / Oat milk / Vanilla").
+- **Totals:** SUBTOTAL, LESS: DISCOUNT (with the promo code), DELIVERY FEE (or FREE), **TOTAL AMOUNT DUE PHP …**.
+- **VAT breakdown:** VATable Sales, VAT-Exempt Sales (0.00), Zero-Rated Sales (0.00) and VAT Amount (12%), all included in the total (VAT = total × 12/112). Everything on the menu is VATable; the zero lines are printed because PH receipts list them.
+- **Payment and buyer:** `PAYMENT: GCASH (DEMO)  PAID` (or `TO BE PAID ON DELIVERY`), then SOLD TO name, phone, email, and the delivery address if any.
+- **Footer:** "Thank you for ordering with Hermes Express", the tagline, and **"DEMO RECEIPT. NOT AN OFFICIAL RECEIPT."**
 
 Where it lives:
 - A **"Receipts"** link in the desktop header and the account menu. Phones keep the five bottom tabs (§4) and reach Receipts from the Profile page (owner decision). `/receipts` lists past receipts; `/receipts/[id]` shows one. Also linked from the order page.
-- **Download PDF** button, built on the server with `@react-pdf/renderer` (`GET /api/receipts/[id]/pdf`). The PDF uses the built-in Helvetica font, which has no peso sign, so amounts read "PHP 495.00".
+- **Download PDF** button, built on the server with `@react-pdf/renderer` (`GET /api/receipts/[id]/pdf`). The PDF is an 80 mm receipt roll in the built-in Courier font.
 - **Email:** checkout has a required "Email for your receipt" field, filled in with the account email and editable. The receipt (with the PDF attached) is sent there via Resend when the order is placed. If Resend is not configured, the order still succeeds and the email is skipped.
 
 ### Order statuses
@@ -567,6 +568,7 @@ The seed stops with a clear error if any seed variable is missing or a password 
 | Receipts | Built in a follow-up PR straight after the checkout PR, to keep each PR reviewable. Checkout already asks for the receipt email and stores it on the order (`receipt_email`). |
 | Receipt numbers | Real per-branch counters (`HX-BGC-000123`) through an additive migration: `branch.receipt_seq` and `order.receipt_number`. Orders placed before it were numbered per branch, oldest first. |
 | Receipt dependencies | `@react-pdf/renderer` (server-side PDF) and `resend` (receipt email) approved. |
+| Receipt style | Formal, like a printed PH sales receipt (chosen from three mock-ups: PH sales receipt, business invoice, wording only). TIN and the VAT lines stay. |
 | Receipts on phones | No sixth bottom tab: phones keep Home · Menu · Build · Cart · Profile, and Receipts sits in the account menu and on Profile. Desktop has a Receipts header link. |
 | Saved cart | New `cart` table (one row per user, choices only, never prices). A guest's `localStorage` cart is merged into it on login; logout forgets it on the device (ADR 0003). |
 | Cash on Delivery | Offered for delivery only; pickup offers GCash (Demo) and Card (Demo). Cash orders are saved as `unpaid`, demo payments as `demo_paid`. |

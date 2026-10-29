@@ -251,6 +251,7 @@ Rules the AI follows are in [`../CLAUDE.md`](../CLAUDE.md). Stage prompts are in
   - Chose option 1: finish the receipts before starting Stage 6.
   - Asked "what do u recommend 1 2 or 3" for the three open questions, then chose real per-branch receipt numbers (an additive database change), and "yes to both" for installing `@react-pdf/renderer` and `resend` and for keeping five bottom tabs on phones.
   - Approved the written plan.
+  - After the PR and preview were up: "As for the receipts i want it to be formal." Picked the "PH sales receipt" mock-up out of three (PH sales receipt, business invoice, wording only), with the note that the TIN and VAT must stay.
 - **What the AI did:**
   - Found a contradiction in `PLAN.md` (§4 says five bottom tabs, §7 a Receipts bottom tab) and asked before choosing.
   - Added the TIN placeholder and a short receipt code per branch to `site.ts`; an additive migration with a counter per branch, numbering the 16 existing orders on the dev database per branch; and the counter update inside `placeOrder`'s existing transaction, so two orders at once can't share a number.
@@ -262,11 +263,14 @@ Rules the AI follows are in [`../CLAUDE.md`](../CLAUDE.md). Stage prompts are in
   - Chose real per-branch numbers (`HX-BGC-000123`) over reusing the order code, so receipts look like real receipts.
   - Approved the two new dependencies, since the plan already named them.
   - Kept five bottom tabs on phones rather than squeezing in a sixth; Receipts is reached from Profile.
+  - Asked for a formal receipt and chose the printed PH sales-receipt style; the AI restyled the page, PDF and email together, kept the TIN and added the VAT-exempt and zero-rated lines.
 - **Problems & fixes:**
   - **The first sample PDF was two blank pages.** The test ran in the browser-like jsdom environment, where the PDF library draws nothing. PDF tests now use Vitest's Node environment, and the shared test setup skips its browser stubs there.
   - **The PDF's built-in font (Helvetica) has no "₱" sign.** The PDF prints amounts as "PHP 495.00" through a new `formatPesoPlain()`; the page and the email keep "₱".
   - **On the sample, the shop name overlapped the address and the footer spilled onto a second page.** Fixed the heading's line height and switched from A5 to A4; a test now checks every sample receipt is one page.
   - **The phone E2E timed out once** going to the receipt page, while the dev server compiled it for the first time. That step now waits up to 15 seconds like the other first visits. One full-suite run had one such timeout; the next two runs passed 45 of 45.
+  - **The PDF library split words with hyphens** ("Lat-te") on the narrow receipt roll. Hyphenation is now off, and drink choices are separated by " / " so long lines wrap at spaces.
+  - **Screenshots of the formal page showed two flaws:** the shop name used the site's heading font instead of monospace, and on phones a scheduled time broke in the middle ("07:" / "00 AM)"). Both fixed and checked with new screenshots.
   - **A shell command with Python failed** because Python isn't installed on this PC; the AI used its file-editing tool instead.
 - **What I learned:**
   - A database migration that adds a required column also changes what older code must send: once the dev database has `receipt_number`, the code on `main` can't insert orders there, so the migration and the code ship together (Vercel migrates each deployment's own database first).

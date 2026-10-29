@@ -13,7 +13,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - `/receipts` lists the customer's receipts, newest first; `/receipts/[id]` shows one, laid out like a shop receipt: logo, shop name, the branch's address, phone and TIN; receipt number, order code, Manila date and time, pickup or delivery, ASAP or scheduled time, customer details and delivery address; items with their choices, quantity, unit price and amount; subtotal, discount (with promo code), delivery fee or "Free", total, VATable sales and 12% VAT (VAT = total × 12/112); payment method and status; thanks, tagline and "Demo receipt. Not an official receipt."
 - **Download PDF**: `GET /api/receipts/[id]/pdf` builds the receipt PDF on the server (new dependency `@react-pdf/renderer`). Signed-out visitors get 401; someone else's or a missing order gets 404.
 - **Receipt email**: after a new order is placed, the receipt (with the PDF attached) is emailed to the address given at checkout through Resend (new dependency `resend`). It runs after the response, so checkout is never slowed down, and is sent at most once per order. Without `RESEND_API_KEY` or `EMAIL_FROM` it is skipped and logged; errors are logged and never affect the order.
-- `src/lib/receipt.ts`: `buildReceipt()`, `formatReceiptNumber()`, `vatFromTotal()`, `formatReceiptDateTime()`; the page, PDF and email all render the same receipt. `formatPesoPlain()` in `src/lib/money.ts` ("PHP 495.00") for the PDF, whose built-in font has no peso sign.
+- `src/lib/receipt.ts`: `buildReceipt()`, `formatReceiptNumber()`, `vatFromTotal()`, `formatReceiptDateTime()`; the page, PDF and email all render the same receipt. `formatPesoPlain()` in `src/lib/money.ts` ("PHP 495.00") for the receipt total.
 - `siteConfig.tin` (placeholder `000-000-000-000` until the owner provides the real TIN) and a `receiptCode` per branch (`TIP`, `BGC`, `TLK`).
 - Tests: receipt numbers, the VAT split and rounding, Manila dates, the receipt view, list and details, PDF rendering (one page per receipt), the PDF route's 401/404/200, the email (sent, skipped without configuration, Resend errors, thrown errors, HTML escaping, no secrets or addresses in logs), the counter update in `placeOrder`; the checkout E2E now opens the receipt, downloads the PDF and finds it under Receipts.
 
@@ -21,6 +21,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 - The order page has a "View receipt" button.
 - Receipts is in the desktop header and the account menu (so also on the Profile page on phones). The mobile bottom tabs are unchanged.
+- **Formal receipt style** (owner request): the page, PDF and email now look like a printed Philippine sales receipt: monospaced, black on white, "SALES RECEIPT" and "VAT REG TIN" in the header, uppercase labels, plain amounts with "PHP" on TOTAL AMOUNT DUE, a VAT breakdown (VATable, VAT-exempt, zero-rated, VAT amount) and a SOLD TO block. Dates print as `10/30/2026 09:15 AM`. The PDF is an 80 mm receipt roll in Courier. New `formatAmount()` in `src/lib/money.ts`.
 - `/receipts` needs a signed-in user, like the other customer pages (`src/lib/roles.ts`, `src/proxy.ts`).
 - `getOrderForUser()` also returns the branch slug and the promo code.
 - The Vitest setup skips its browser stubs in tests that use the Node environment (needed to render PDFs).
