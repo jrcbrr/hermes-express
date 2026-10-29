@@ -9,7 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 #### Added
 
-- `/build`: build a drink in six steps: Cup (size, temperature, ice slider for iced drinks), Base (with a 1–4 espresso shots stepper), Milk (with an amount slider), Sweetener (0–100% slider and up to 3 syrups), Toppings (up to 5) and Review (name, summary, quantity). "Add to cart" and "Save to favorites" are visible but disabled until Stages 5 and 8.
+- `/build`: build a drink in six steps: Cup (size, temperature, ice slider for iced drinks), Base (with a 1–4 espresso shots stepper), Milk (with an amount slider), Sweetener (0–100% slider and any number of syrups), Toppings (any number) and Review (name, summary, quantity). "Add to cart" and "Save to favorites" are visible but disabled until Stages 5 and 8.
 - An animated SVG cup (Motion): each new liquid pours in from the top and settles as a layer, layers stack, then a swirl mixes them into one colour ("Mix again" replays it). Toppings drop in (foam, drizzle, sprinkles, pearls and jelly at the bottom), iced drinks show ice, hot drinks steam, blended drinks look thicker. With reduced motion the finished drink is shown without animation.
 - A live price bar with a tap-to-open breakdown, using `calculateDrinkPrice()`.
 - Undo (50 steps; typing a name counts once) and Reset (back to the starting drink, and undoable).
@@ -22,7 +22,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Tests: reducer, undo/reset, step navigation, price updates, random drinks (500 seeded runs), cup visuals and start drink; component tests for the builder, its animation phases and the page; E2E that builds a drink step by step, opens a signature, follows the menu link, checks reduced motion and the phone layout.
 - New dependency: `motion` (Motion), listed in PLAN §9 for the builder animations.
 
-- The finished drink fills the cup to the brim: the base pours in to about half, and once a milk is chosen the liquids rise to just under the rim, keeping their proportions (more milk or more shots take more of the cup). Foams finish at the brim, and whipped cream domes above it.
+- The finished drink fills the cup to the brim: the base pours in to about half, and once a milk is chosen the liquids rise right to the rim, keeping their proportions (more milk or more shots take more of the cup). Foams finish at the brim, and whipped cream sits on the rim, above the cup.
+- No limit on syrups or toppings: customers can add as many as they like (each once), and the counter shows how many are chosen. The syrup band at the bottom of the cup stays thin however many are added. The drink schema keeps a hidden safety cap of 30 per list, far above the number of options, to reject junk requests.
 - Toppings with depth instead of flat shapes: whipped cream is piped in soft tiers with a curled tip, foams are shaded domes with tiny bubbles (and salt flecks on sea salt cream), sauces are glossy and drape with tapered drips (drawn on as they pour), cinnamon and cocoa are a fine dusting, cookie crumble has lit crumbs, pearls are glossy and jelly and nata de coco are see-through cubes that fall one after another. Each topping is shaded from its own ingredient colour, so it works in light and dark mode.
 
 #### Changed
