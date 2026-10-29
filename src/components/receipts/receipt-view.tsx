@@ -8,7 +8,7 @@ function Row({ label, value, testId }: ReceiptRow & { testId?: string }) {
   return (
     <div className="flex justify-between gap-4">
       <dt>{label}</dt>
-      <dd className="text-right break-all" data-testid={testId}>
+      <dd className="min-w-0 text-right break-words" data-testid={testId}>
         {value}
       </dd>
     </div>
@@ -37,7 +37,8 @@ export function ReceiptView({ receipt }: { receipt: Receipt }) {
     >
       <header className="flex flex-col items-center text-center">
         <LogoMark className="mb-1 size-8" />
-        <h2 id="receipt-heading" className="text-base font-bold">
+        {/* Headings use the brand font site-wide; a receipt stays monospaced. */}
+        <h2 id="receipt-heading" className="font-mono text-base font-bold">
           {header.shopName}
         </h2>
         <p>{header.branch}</p>
