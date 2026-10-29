@@ -54,7 +54,14 @@ flowchart LR
    3. The page or action then calls `requireUser()` or `requireRole([...])` from `src/server/auth/session.ts`. These load the session from the database and check the role. This is the real security check.
    4. Which paths need which role is defined once in `src/lib/roles.ts`.
    5. The header reads the session inside `<Suspense>`, so the rest of every page can still be prerendered (Cache Components).
-4. **Live updates:** the order tracker and barista queue poll a route handler every 10 seconds. This is simpler than websockets and works well on serverless hosting (ADR coming in a later stage).
+4. **Menu and prices** (Stage 3):
+   1. `getCatalogSnapshot()` in `src/server/catalog/queries.ts` loads every ingredient, product and sold-out flag in one query batch. It is cached (`"use cache"`, tag `catalog`, up to an hour); admin edits in Stage 7 will refresh it with `updateTag("catalog")`.
+   2. Pure functions in `src/lib/catalog.ts` turn the snapshot into the menu for one branch: hide inactive or out-of-season items, group by type, and mark items sold out. A signature drink is also sold out when an ingredient in its recipe is.
+   3. The page sends every branch's sold-out list with the menu (`soldOutSlugsByBranch()`). The client component `MenuBrowser` swaps the "Sold out" labels the moment a branch is tapped, with no network request, and saves the choice in the `hx_menu_branch` cookie so the server renders the same branch after a reload. Before JavaScript loads, the buttons submit to the `selectBranch` server action instead (validated with Zod).
+   4. Product photos live in `public/images/menu/<slug>.jpg`, are referenced by `product.image_url`, and are served through Next.js `<Image>`. Photographer credits are in `src/config/photo-credits.ts` and shown on `/credits`.
+   5. `/menu` and the landing page read the database only at request time, inside `<Suspense>` after `connection()`. The page shell is still prerendered, and a build with no database (CI) works. If the database can't be reached, a polite message replaces the cards.
+   6. `calculateDrinkPrice(config, catalog)` in `src/lib/pricing.ts` is the only price calculation. A drink built from scratch costs the sum of its parts. A customized signature costs its menu price plus the difference made by the changes, so an unchanged signature always costs its menu price. `calculateCartTotals()` adds lines, caps the discount and applies the ₱49 delivery fee (free from ₱800).
+5. **Live updates:** the order tracker and barista queue poll a route handler every 10 seconds. This is simpler than websockets and works well on serverless hosting (ADR coming in a later stage).
 
 ## Folder structure
 
@@ -65,25 +72,31 @@ src/
 │  ├─ brand/     Logo mark, wordmark, Hermes mascot (one-colour SVG, currentColor).
 │  ├─ layout/    Site header, desktop nav, mobile tab bar, footer, nav-items list.
 │  ├─ landing/   Landing page sections (hero, how it works, featured, teaser, rewards, branches).
+│  ├─ menu/      /menu: product cards, branch picker, sections, unavailable message.
 │  ├─ theme/     next-themes provider and the light/dark toggle.
 │  ├─ sound/     Sound mute toggle (uses hooks/use-sound.ts).
 │  ├─ auth/      Login and sign-up forms, labelled form field.
 │  ├─ profile/   Profile edit form.
 │  └─ staff/     Role-guarded placeholder for /barista and /admin.
 ├─ config/       site.ts: name, tagline, contacts, branches (single source of truth).
-├─ db/           Drizzle client (index.ts), schema.ts, migrations/, seed.ts, seed-env.ts.
+├─ db/           Drizzle client (index.ts), schema.ts, migrations/, seed.ts, seed-env.ts,
+│                catalog-data.ts (the PLAN §6 menu) and seed-catalog.ts (inserts missing rows only).
 ├─ lib/          Pure, framework-free business logic. Heavily unit tested (90% gate).
 │  ├─ auth.ts    Better Auth setup (created lazily on first use).
 │  ├─ roles.ts   Roles and which paths need which role.
-│  └─ validation/ Zod schemas (auth.ts: sign-up, login, profile, PH phone).
+│  ├─ money.ts   formatPeso() and centavo helpers.
+│  ├─ pricing.ts calculateDrinkPrice() and calculateCartTotals() (100% tested).
+│  ├─ catalog.ts Menu building, seasonal availability, sold-out rules.
+│  └─ validation/ Zod schemas (auth.ts: sign-up, login, profile, PH phone; drink.ts: DrinkConfig).
 ├─ server/       Server actions and queries grouped by feature (90% gate).
 │  ├─ auth/      Session helpers (requireUser/requireRole) and auth actions.
+│  ├─ catalog/   Cached catalog queries and the selectBranch action.
 │  ├─ profile/   updateProfile action.
 │  └─ rate-limit.ts Postgres fixed-window rate limiter.
 ├─ hooks/        Client-side React hooks.
 └─ proxy.ts      Cookie check that redirects signed-out visitors from protected pages.
 e2e/             Playwright browser tests.
-scripts/         Node scripts run by npm (for example db-migrate.ts).
+scripts/         Node scripts run by npm (db-migrate.ts, db-seed-catalog.ts).
 docs/            Plan, architecture, setup, ADRs, AI logs.
 ```
 
@@ -166,6 +179,46 @@ erDiagram
     text key PK
     int count
     bigint window_start
+  }
+  branch ||--o{ branch_stock : "sold-out flags"
+  ingredient ||--o{ branch_stock : "flagged in"
+  product ||--o{ branch_stock : "flagged in"
+  ingredient {
+    text id PK
+    text kind "size | temperature | base | milk | syrup | topping | shot"
+    text slug UK
+    int price_centavos
+    text color "#RRGGBB, builder layer"
+    int included_shots "espresso bases only"
+    boolean is_active
+  }
+  product {
+    text id PK
+    text type "signature | pastry | snack"
+    text slug UK
+    int price_centavos
+    jsonb recipe "DrinkConfig, signatures only"
+    boolean is_seasonal
+    timestamp available_from
+    timestamp available_to
+  }
+  branch_stock {
+    text id PK
+    text branch_id FK
+    text ingredient_id FK "exactly one of these two"
+    text product_id FK
+    boolean is_sold_out
+  }
+  promo_code {
+    text id PK
+    text code UK
+    text type "percent | fixed"
+    int value
+    int max_discount_centavos
+    int min_subtotal_centavos
+    boolean first_order_only
+    timestamp starts_at
+    timestamp ends_at
   }
 ```
 

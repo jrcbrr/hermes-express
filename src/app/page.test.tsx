@@ -1,8 +1,14 @@
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
-import { featuredDrinks } from "@/components/landing/featured-drinks.data";
+import { describe, expect, it, vi } from "vitest";
 import { siteConfig } from "@/config/site";
-import HomePage from "./page";
+
+// The database-backed drink cards have their own tests
+// (src/components/landing/featured-drinks.test.tsx).
+vi.mock("@/components/landing/featured-drink-list", () => ({
+  FeaturedDrinkList: () => <p>Featured drink cards</p>,
+}));
+
+const { default: HomePage } = await import("./page");
 
 describe("HomePage", () => {
   it("uses the tagline as the main heading, with both calls to action", () => {
@@ -37,17 +43,12 @@ describe("HomePage", () => {
     }
   });
 
-  it("shows 4 to 6 featured drinks with peso prices", () => {
+  it("shows the featured drinks inside their section", () => {
     render(<HomePage />);
-
-    expect(featuredDrinks.length).toBeGreaterThanOrEqual(4);
-    expect(featuredDrinks.length).toBeLessThanOrEqual(6);
-    for (const drink of featuredDrinks) {
-      expect(
-        screen.getByRole("heading", { level: 3, name: drink.name }),
-      ).toBeInTheDocument();
-    }
-    expect(screen.getAllByText("₱175")).toHaveLength(2);
+    expect(screen.getByText("Featured drink cards")).toBeInTheDocument();
+    expect(
+      screen.getByText("Prices shown are for a 12oz cup."),
+    ).toBeInTheDocument();
   });
 
   it("lists every branch", () => {

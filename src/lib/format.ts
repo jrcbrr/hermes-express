@@ -1,30 +1,7 @@
 /**
- * Display formatting. Money is stored as integer centavos everywhere and only
- * turned into text here, in the UI layer.
+ * Display formatting for dates and times. Money formatting (formatPeso) lives
+ * in ./money.ts.
  */
-
-const pesoWhole = new Intl.NumberFormat("en-PH", {
-  style: "currency",
-  currency: "PHP",
-  minimumFractionDigits: 0,
-  maximumFractionDigits: 0,
-});
-
-const pesoCents = new Intl.NumberFormat("en-PH", {
-  style: "currency",
-  currency: "PHP",
-  minimumFractionDigits: 2,
-  maximumFractionDigits: 2,
-});
-
-/** 15000 -> "₱150", 15050 -> "₱150.50". */
-export function formatPeso(centavos: number): string {
-  if (!Number.isSafeInteger(centavos)) {
-    throw new TypeError(`Money must be integer centavos, got ${centavos}`);
-  }
-  const formatter = centavos % 100 === 0 ? pesoWhole : pesoCents;
-  return formatter.format(centavos / 100);
-}
 
 /** 24-hour "HH:MM" -> "7:00 AM" / "10:00 PM". */
 export function formatTime(time: string): string {

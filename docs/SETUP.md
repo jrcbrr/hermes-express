@@ -98,7 +98,8 @@ The database is Neon Postgres, accessed through Drizzle ORM.
 | -------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `npm run db:generate`                  | After editing `src/db/schema.ts`. Creates a SQL migration in `src/db/migrations/`. Commit it.                                                                                      |
 | `npm run db:migrate`                   | Applies pending migrations to the database in `DATABASE_URL`. Skips if `DATABASE_URL` is not set.                                                                                  |
-| `npm run db:seed`                      | Adds the 3 branches from `site.ts`, the admin and one barista per branch. Safe to re-run: it never overwrites passwords. Menu and promos arrive in Stage 3+.                       |
+| `npm run db:seed`                      | Adds the 3 branches from `site.ts`, the menu and promo codes (via `db:seed:catalog`), the admin and one barista per branch. Safe to re-run: it never overwrites passwords.         |
+| `npm run db:seed:catalog`              | Adds only the menu: ingredients, products, promo codes and demo sold-out flags. Needs no secrets. Inserts missing rows only, so it never undoes admin edits.                       |
 | `npm run db:seed -- --reset-passwords` | Same as above, but also sets existing staff passwords to the current `.env.local` values and signs those accounts out everywhere. Use it after changing a `SEED_*_PASSWORD` value. |
 | `npx drizzle-kit studio`               | Opens a browser UI to look at the data.                                                                                                                                            |
 
@@ -136,7 +137,7 @@ Locally, all requests share one rate-limit bucket (there is no client IP), so th
 - Hosting is **Vercel**, connected to the GitHub repo.
 - Every pull request gets a **preview deployment** with its own Neon preview database branch.
 - Merging into `main` deploys to **production** automatically.
-- `vercel.json` sets the build command to `npm run db:migrate && npm run build`, so each deployment applies new migrations to its own database before building.
+- `vercel.json` sets the build command to `npm run db:migrate && npm run db:seed:catalog && npm run build`, so each deployment applies new migrations to its own database and adds any missing menu rows before building. The catalog seed never changes rows that already exist.
 - To roll back, open the Vercel dashboard, go to Deployments, choose a previous deployment and select **Promote to Production**.
 
 ## Troubleshooting

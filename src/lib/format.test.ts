@@ -1,26 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatPeso, formatTime } from "./format";
-
-describe("formatPeso", () => {
-  it("shows whole pesos without decimals", () => {
-    expect(formatPeso(15000)).toBe("₱150");
-    expect(formatPeso(0)).toBe("₱0");
-  });
-
-  it("adds thousands separators", () => {
-    expect(formatPeso(125000)).toBe("₱1,250");
-  });
-
-  it("shows centavos when there are any", () => {
-    expect(formatPeso(15050)).toBe("₱150.50");
-    expect(formatPeso(5)).toBe("₱0.05");
-  });
-
-  it("rejects values that are not integer centavos", () => {
-    expect(() => formatPeso(150.5)).toThrow(TypeError);
-    expect(() => formatPeso(Number.NaN)).toThrow(TypeError);
-  });
-});
+import { formatTime } from "./format";
 
 describe("formatTime", () => {
   it.each([
