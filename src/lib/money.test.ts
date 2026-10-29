@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  formatAmount,
   formatPesoPlain,
   assertCentavos,
   formatPeso,
@@ -125,5 +126,18 @@ describe("formatPesoPlain", () => {
 
   it("refuses amounts that are not whole centavos", () => {
     expect(() => formatPesoPlain(1.5)).toThrow(TypeError);
+  });
+});
+
+describe("formatAmount", () => {
+  it("writes the amount alone, with two decimals", () => {
+    expect(formatAmount(49500)).toBe("495.00");
+    expect(formatAmount(0)).toBe("0.00");
+    expect(formatAmount(123456789)).toBe("1,234,567.89");
+    expect(formatAmount(-5000)).toBe("-50.00");
+  });
+
+  it("refuses amounts that are not whole centavos", () => {
+    expect(() => formatAmount(0.5)).toThrow(TypeError);
   });
 });
