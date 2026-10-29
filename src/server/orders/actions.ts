@@ -1,7 +1,7 @@
 "use server";
 
 import { randomInt, randomUUID } from "node:crypto";
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { getDb } from "@/db";
 import { branch, order, orderItem, orderStatusEvent } from "@/db/schema";
 import { siteConfig } from "@/config/site";
@@ -153,7 +153,14 @@ export async function placeOrder(input: unknown): Promise<PlaceOrderResult> {
   for (let attempt = 1; attempt <= CODE_ATTEMPTS; attempt++) {
     const code = generateOrderCode((max) => randomInt(max));
     try {
+      // One transaction: the branch's receipt counter goes up by 1 and the
+      // order takes the new value. The update locks the branch row until the
+      // batch ends, so two orders at once never share a receipt number.
       await db.batch([
+        db
+          .update(branch)
+          .set({ receiptSeq: sql`${branch.receiptSeq} + 1` })
+          .where(eq(branch.id, branchRow.id)),
         db.insert(order).values({
           id: orderId,
           code,
@@ -174,6 +181,7 @@ export async function placeOrder(input: unknown): Promise<PlaceOrderResult> {
           paymentMethod: data.paymentMethod,
           paymentStatus: paymentStatusFor(data.paymentMethod),
           clientRequestId: data.clientRequestId,
+          receiptNumber: sql`(select ${branch.receiptSeq} from ${branch} where ${branch.id} = ${branchRow.id})`,
         }),
         db.insert(orderItem).values(
           draft.lines.map((line, index) => ({

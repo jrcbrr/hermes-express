@@ -43,6 +43,8 @@ export const branch = pgTable("branch", {
   opensAt: text("opens_at").notNull(),
   closesAt: text("closes_at").notNull(),
   isActive: boolean("is_active").notNull().default(true),
+  /** The branch's last receipt number. placeOrder adds 1 for each new order. */
+  receiptSeq: integer("receipt_seq").notNull().default(0),
   ...timestamps,
 });
 
@@ -296,10 +298,16 @@ export const order = pgTable(
     paymentStatus: text("payment_status").$type<PaymentStatus>().notNull(),
     /** Sent by the browser once per checkout, so a double tap orders once. */
     clientRequestId: text("client_request_id").notNull().unique(),
+    /** Counts up per branch: 123 at BGC is receipt "HX-BGC-000123". */
+    receiptNumber: integer("receipt_number").notNull(),
     ...timestamps,
   },
   (t) => [
     index("order_user_id_idx").on(t.userId),
+    uniqueIndex("order_branch_receipt_number_uq").on(
+      t.branchId,
+      t.receiptNumber,
+    ),
     index("order_branch_status_idx").on(t.branchId, t.status),
     check(
       "order_amounts_not_negative",

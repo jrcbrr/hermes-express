@@ -1,5 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { order, orderItem, orderStatusEvent } from "@/db/schema";
+import type { SQL } from "drizzle-orm";
+import { PgDialect } from "drizzle-orm/pg-core";
+import { branch, order, orderItem, orderStatusEvent } from "@/db/schema";
 import type { CartItem } from "@/lib/cart";
 import type { CatalogSnapshot } from "@/lib/catalog";
 import type { CheckoutInput } from "@/lib/validation/checkout";
@@ -30,6 +32,9 @@ const mocks = vi.hoisted(() => {
     }),
     insert: vi.fn((table: unknown) => ({
       values: (values: unknown) => ({ table, values }),
+    })),
+    update: vi.fn((table: unknown) => ({
+      set: (values: unknown) => ({ where: () => ({ table, values }) }),
     })),
     batch: vi.fn(async (queries: Insert[]) => {
       const error = state.batchErrors.shift();
@@ -189,6 +194,21 @@ describe("placeOrder", () => {
       status: "received",
       changedByUserId: "u1",
     });
+  });
+
+  it("raises the branch's receipt counter in the same batch, before the order", async () => {
+    await placeOrder(input);
+    const batch = mocks.state.batches.at(-1)!;
+    expect(batch[0]).toMatchObject({ table: branch });
+    expect(mocks.db.update).toHaveBeenCalledWith(branch);
+    // The order reads the new counter value inside the same transaction.
+    const dialect = new PgDialect();
+    const receiptNumber = saved().order.receiptNumber as SQL;
+    const query = dialect.sqlToQuery(receiptNumber);
+    expect(query.sql).toBe(
+      '(select "branch"."receipt_seq" from "branch" where "branch"."id" = $1)',
+    );
+    expect(query.params).toEqual(["branch-bgc"]);
   });
 
   it("ignores prices and totals sent by the browser", async () => {
