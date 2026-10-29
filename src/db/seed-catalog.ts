@@ -1,12 +1,14 @@
 // Seeds branches, ingredients, products, promo codes and demo stock flags.
 // Needs no secrets, so it also runs in the Vercel build (vercel.json) on every
 // deploy. It only INSERTS rows that are missing (matched by slug or code) and
-// never updates existing ones, so menu changes made by the admin are kept.
+// never updates existing ones, so menu changes made by the admin are kept. The
+// one exception: a product with no photo yet gets its default photo.
 import { randomUUID } from "node:crypto";
-import { inArray } from "drizzle-orm";
+import { and, eq, inArray, isNull } from "drizzle-orm";
 import { siteConfig } from "@/config/site";
 import {
   ingredientSeeds,
+  productImageUrl,
   productSeeds,
   promoSeeds,
   stockSeeds,
@@ -75,6 +77,7 @@ export async function seedCatalog(
         name: p.name,
         description: p.description,
         priceCentavos: p.priceCentavos,
+        imageUrl: productImageUrl(p.slug),
         recipe: p.recipe ?? null,
         isSeasonal: p.isSeasonal ?? false,
         availableFrom: p.availableFrom ?? null,
@@ -85,6 +88,19 @@ export async function seedCatalog(
     .onConflictDoNothing({ target: product.slug })
     .returning({ id: product.id });
   log(`  ✓ products: ${products.length} added`);
+
+  // Products seeded before photos existed have no image yet. Fill only empty
+  // ones, so a photo the admin chose is never replaced.
+  const photos = await Promise.all(
+    productSeeds.map((p) =>
+      db
+        .update(product)
+        .set({ imageUrl: productImageUrl(p.slug) })
+        .where(and(eq(product.slug, p.slug), isNull(product.imageUrl)))
+        .returning({ id: product.id }),
+    ),
+  );
+  log(`  ✓ product photos: ${photos.flat().length} filled`);
 
   const promos = await db
     .insert(promoCode)

@@ -27,6 +27,14 @@ export type ProductSeed = {
   availableTo?: Date;
 };
 
+/**
+ * Every product has a photo at public/images/menu/<slug>.jpg (credits in
+ * src/config/photo-credits.ts). The admin may point a product elsewhere later.
+ */
+export function productImageUrl(slug: string): string {
+  return `/images/menu/${slug}.jpg`;
+}
+
 export type PromoSeed = {
   code: string;
   type: PromoType;
@@ -507,6 +515,107 @@ export const productSeeds: readonly ProductSeed[] = [
       shots: 2,
       milk: "none",
       sweetness: 0,
+    }),
+  },
+  // Frappes, cold brews and hot brews (owner decision, Stage 3). Each costs
+  // exactly the sum of its parts.
+  {
+    type: "signature",
+    slug: "pegasus-caramel-frappe",
+    name: "Pegasus Caramel Frappe",
+    description:
+      "Blended coffee with salted caramel, whipped cream and caramel drizzle.",
+    priceCentavos: peso(205),
+    recipe: recipe({
+      base: "latte",
+      temperature: "blended",
+      shots: 1,
+      milk: "whole",
+      syrups: ["salted-caramel"],
+      toppings: ["whipped-cream", "caramel-drizzle"],
+    }),
+  },
+  {
+    type: "signature",
+    slug: "titan-chocolate-frappe",
+    name: "Titan Chocolate Frappe",
+    description: "Blended mocha with whipped cream and chocolate drizzle.",
+    priceCentavos: peso(205),
+    recipe: recipe({
+      base: "mocha",
+      temperature: "blended",
+      shots: 1,
+      milk: "whole",
+      toppings: ["whipped-cream", "chocolate-drizzle"],
+    }),
+  },
+  {
+    type: "signature",
+    slug: "elysian-matcha-frappe",
+    name: "Elysian Matcha Frappe",
+    description: "Blended matcha with vanilla and whipped cream.",
+    priceCentavos: peso(210),
+    recipe: recipe({
+      base: "matcha",
+      temperature: "blended",
+      milk: "whole",
+      syrups: ["vanilla"],
+      toppings: ["whipped-cream"],
+    }),
+  },
+  {
+    type: "signature",
+    slug: "nyx-black-cold-brew",
+    name: "Nyx Black Cold Brew",
+    description: "Cold brew served black over ice, smooth and strong.",
+    priceCentavos: peso(140),
+    recipe: recipe({
+      base: "cold-brew",
+      temperature: "iced",
+      iceLevel: "regular",
+      milk: "none",
+      sweetness: 0,
+    }),
+  },
+  {
+    type: "signature",
+    slug: "zephyr-foam-cold-brew",
+    name: "Zephyr Foam Cold Brew",
+    description: "Cold brew with vanilla under a cloud of cold foam.",
+    priceCentavos: peso(190),
+    recipe: recipe({
+      base: "cold-brew",
+      temperature: "iced",
+      iceLevel: "regular",
+      milk: "none",
+      syrups: ["vanilla"],
+      toppings: ["cold-foam"],
+    }),
+  },
+  {
+    type: "signature",
+    slug: "hestia-hearth-brew",
+    name: "Hestia Hearth Brew",
+    description: "Freshly brewed drip coffee, served black.",
+    priceCentavos: peso(100),
+    recipe: recipe({
+      base: "drip-coffee",
+      temperature: "hot",
+      milk: "none",
+      sweetness: 0,
+    }),
+  },
+  {
+    type: "signature",
+    slug: "apollo-morning-brew",
+    name: "Apollo Morning Brew",
+    description: "Drip coffee with whole milk and a touch of honey.",
+    priceCentavos: peso(120),
+    recipe: recipe({
+      base: "drip-coffee",
+      temperature: "hot",
+      milk: "whole",
+      syrups: ["honey"],
     }),
   },
 

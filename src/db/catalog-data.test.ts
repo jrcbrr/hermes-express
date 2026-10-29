@@ -1,8 +1,12 @@
+import { existsSync } from "node:fs";
+import path from "node:path";
 import { describe, expect, it } from "vitest";
+import { menuPhotoCredits } from "@/config/photo-credits";
 import { calculateDrinkPrice, type PricingCatalog } from "@/lib/pricing";
 import { drinkConfigSchema } from "@/lib/validation/drink";
 import {
   ingredientSeeds,
+  productImageUrl,
   productSeeds,
   promoSeeds,
   stockSeeds,
@@ -42,7 +46,7 @@ describe("catalog seed data (docs/PLAN.md §6)", () => {
     expect(count("syrup")).toBe(10);
     expect(count("topping")).toBe(11);
     expect(count("shot")).toBe(1);
-    expect(signatures).toHaveLength(6);
+    expect(signatures).toHaveLength(13);
     expect(productSeeds.filter((p) => p.type === "pastry")).toHaveLength(7);
     expect(productSeeds.filter((p) => p.type === "snack")).toHaveLength(3);
     expect(promoSeeds.map((p) => p.code)).toEqual([
@@ -128,7 +132,34 @@ describe("catalog seed data (docs/PLAN.md §6)", () => {
       "ambrosia-matcha": 500,
       "golden-sandal": 0,
       "messenger-americano": 0,
+      "pegasus-caramel-frappe": 0,
+      "titan-chocolate-frappe": 0,
+      "elysian-matcha-frappe": 0,
+      "nyx-black-cold-brew": 0,
+      "zephyr-foam-cold-brew": 0,
+      "hestia-hearth-brew": 0,
+      "apollo-morning-brew": 0,
     });
+  });
+
+  it("offers hot drinks, iced drinks and frappes", () => {
+    const byTemperature = (t: string) =>
+      signatures.filter((s) => s.recipe!.temperature === t).length;
+    expect(byTemperature("hot")).toBe(5);
+    expect(byTemperature("iced")).toBe(5);
+    expect(byTemperature("blended")).toBe(3);
+  });
+
+  it("has a photo file and a photo credit for every product", () => {
+    for (const p of productSeeds) {
+      const file = path.join(process.cwd(), "public", productImageUrl(p.slug));
+      expect(existsSync(file), file).toBe(true);
+      expect(menuPhotoCredits[p.slug], p.slug).toBeDefined();
+    }
+    // No credits for photos we do not use.
+    expect(Object.keys(menuPhotoCredits).sort()).toEqual(
+      productSeeds.map((p) => p.slug).sort(),
+    );
   });
 
   it("gives seasonal items a date window", () => {
