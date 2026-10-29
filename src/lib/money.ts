@@ -33,6 +33,21 @@ export function formatPeso(centavos: number): string {
   return formatter.format(centavos / 100);
 }
 
+const plainAmount = new Intl.NumberFormat("en-PH", {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+});
+
+/**
+ * 49500 -> "PHP 495.00", -5000 -> "-PHP 50.00". For the receipt PDF, whose
+ * built-in font has no "₱" sign.
+ */
+export function formatPesoPlain(centavos: number): string {
+  assertCentavos(centavos);
+  const sign = centavos < 0 ? "-" : "";
+  return `${sign}PHP ${plainAmount.format(Math.abs(centavos) / 100)}`;
+}
+
 /** 150 -> 15000, 49.5 -> 4950. Rounds to the nearest centavo. */
 export function pesosToCentavos(pesos: number): number {
   if (!Number.isFinite(pesos)) {

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  formatPesoPlain,
   assertCentavos,
   formatPeso,
   multiplyCentavos,
@@ -111,5 +112,18 @@ describe("sumCentavos", () => {
 
   it("rejects any amount that is not centavos", () => {
     expect(() => sumCentavos([100, 0.5])).toThrow(TypeError);
+  });
+});
+
+describe("formatPesoPlain", () => {
+  it("writes PHP with two decimals and thousands separators", () => {
+    expect(formatPesoPlain(49500)).toBe("PHP 495.00");
+    expect(formatPesoPlain(5)).toBe("PHP 0.05");
+    expect(formatPesoPlain(123456789)).toBe("PHP 1,234,567.89");
+    expect(formatPesoPlain(-5000)).toBe("-PHP 50.00");
+  });
+
+  it("refuses amounts that are not whole centavos", () => {
+    expect(() => formatPesoPlain(1.5)).toThrow(TypeError);
   });
 });
