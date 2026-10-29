@@ -337,6 +337,36 @@ describe("BuilderCup animation", () => {
     expect(screen.queryByRole("button", { name: "Mix again" })).toBeNull();
   });
 
+  it("fills a finished drink to the brim, leaving room for foam", async () => {
+    // 12oz cup: 172 × 0.82 tall inside, bottom at y = 236 (builder-cup.tsx).
+    const cupHeight = 172 * 0.82;
+    const liquid = () => {
+      const rect = screen.getByTestId("mixed-layer");
+      return {
+        top: parseFloat(rect.getAttribute("y")!),
+        height: parseFloat(rect.getAttribute("height")!),
+      };
+    };
+    renderBuilder({ start: { ...EMPTY_DRAFT, base: "latte", shots: 1 } });
+    // Still building (no milk yet): about half full.
+    expect(liquid().height).toBeCloseTo(0.4 * cupHeight, 0);
+
+    fireEvent.click(screen.getByRole("button", { name: /^Milk/ }));
+    fireEvent.click(option(/Whole milk/));
+    // Motion applies the new height on the next animation frame.
+    await waitFor(() =>
+      expect(liquid().height).toBeCloseTo(0.97 * cupHeight, 0),
+    );
+    expect(liquid().top).toBeCloseTo(236 - 0.97 * cupHeight, 0);
+
+    // A foam takes the last part of the cup, so the liquid sits lower.
+    fireEvent.click(screen.getByRole("button", { name: /^Toppings/ }));
+    fireEvent.click(chip(/Cold Foam/));
+    await waitFor(() =>
+      expect(liquid().height).toBeCloseTo(0.97 * cupHeight - 12, 0),
+    );
+  });
+
   it("shows the finished drink at once with reduced motion", () => {
     renderBuilder({
       start: { ...EMPTY_DRAFT, base: "latte", shots: 1 },

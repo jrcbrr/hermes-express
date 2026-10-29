@@ -14,9 +14,11 @@ import { CupToppings } from "./builder-toppings";
 import type { BuilderCatalog } from "@/lib/builder/catalog";
 import type { BuilderDraft } from "@/lib/builder/state";
 import {
+  BRIM_SHARE,
   cupLayers,
   cupScale,
   describeDrink,
+  foamReserve,
   iceCubeCount,
   mixColor,
   stackLayers,
@@ -80,7 +82,15 @@ export function BuilderCup({
   const clipId = useId();
   const textureId = useId();
 
-  const layers = cupLayers(draft, catalog);
+  const scale = cupScale(draft.size);
+  const height = MAX_HEIGHT * scale;
+  const toppings = toppingVisuals(draft.toppings, catalog);
+  // A finished drink ends at the brim; foams take the last part of the cup.
+  const layers = cupLayers(
+    draft,
+    catalog,
+    BRIM_SHARE - foamReserve(toppings, height),
+  );
   const signature = signatureOf(layers);
   const [previous, setPrevious] = useState({ signature, layers });
   const [phase, setPhase] = useState<Phase>("mixed");
@@ -119,9 +129,7 @@ export function BuilderCup({
     return () => clearTimeout(timer);
   }, [phase, canMix, play, pour?.id]);
 
-  const scale = cupScale(draft.size);
   const shape = glass(scale);
-  const height = MAX_HEIGHT * scale;
   const total = layers.reduce((sum, l) => sum + l.share, 0);
   const surface = BOTTOM - total * height;
   const mixed = mixColor(layers);
@@ -135,8 +143,6 @@ export function BuilderCup({
     slotBottom: BOTTOM - below * height,
     h: layer.share * height,
   }));
-
-  const toppings = toppingVisuals(draft.toppings, catalog);
 
   return (
     <div className="flex items-center justify-center gap-3 md:flex-col">

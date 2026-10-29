@@ -12,9 +12,12 @@ export type LiquidLayer = {
   slug: string;
   name: string;
   color: string;
-  /** Share of the cup's height, 0–1. All layers together stay under 0.9. */
+  /** Share of the cup's height, 0–1. A finished drink totals BRIM_SHARE. */
   share: number;
 };
+
+/** A finished drink fills the cup to just under the rim. */
+export const BRIM_SHARE = 0.97;
 
 /** Used when an ingredient has no colour set (e.g. a new admin-added one). */
 export const FALLBACK_LIQUID_COLOR = "#B88A5E";
@@ -30,12 +33,17 @@ const MILK_SHARE: Record<AmountLevel, number> = {
 };
 
 /**
- * Bottom to top: syrups (heavy, they sink), the base, then milk. Without
- * milk the base fills more of the cup, so a black coffee looks full.
+ * Bottom to top: syrups (heavy, they sink), the base, then milk.
+ *
+ * While the drink is being built, the base pours in to about half the cup.
+ * Once a milk is chosen (including "No milk") the drink is complete and its
+ * liquids are scaled, keeping their proportions, to finish at `top`: the
+ * brim, or lower when foam toppings take the last part of the cup.
  */
 export function cupLayers(
   draft: BuilderDraft,
   catalog: BuilderCatalog,
+  top: number = BRIM_SHARE,
 ): LiquidLayer[] {
   if (draft.base === null) return [];
   const index = optionIndex(catalog);
@@ -57,7 +65,7 @@ export function cupLayers(
   );
   const hasMilk = draft.milk !== null && draft.milk !== "none";
 
-  return [
+  const layers = [
     ...draft.syrups.map((slug) => layer(`syrup:${slug}`, slug, SYRUP_SHARE)),
     layer(
       "base",
@@ -69,6 +77,22 @@ export function cupLayers(
       ? [layer("milk", draft.milk!, MILK_SHARE[draft.milkAmount])]
       : []),
   ];
+  if (draft.milk === null) return layers;
+
+  const total = layers.reduce((sum, l) => sum + l.share, 0);
+  return layers.map((l) => ({ ...l, share: (l.share * top) / total }));
+}
+
+/**
+ * The share of the cup taken by foam toppings (Cold Foam, Sea Salt Cream),
+ * so the liquid sits lower and the foam finishes at the brim.
+ */
+export function foamReserve(
+  toppings: readonly ToppingVisual[],
+  cupHeight: number,
+): number {
+  const foams = toppings.filter((t) => t.style === "foam").length;
+  return (foams * FOAM_THICKNESS) / cupHeight;
 }
 
 /** Each layer with the share of the cup filled below it. */

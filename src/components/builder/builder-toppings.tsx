@@ -139,6 +139,12 @@ function Dollop({ topping, uid, layout, reduce }: PieceProps) {
   const base = layout.foamTop;
   const fill = `${uid}-fill`;
   const shadow = shade(topping.color, -0.35);
+  // A faint edge keeps white cream readable above the rim on a light page.
+  const outline = {
+    stroke: shade(topping.color, -0.3),
+    strokeOpacity: 0.45,
+    strokeWidth: 0.9,
+  };
   const tiers: [number, number, number][] = [
     [52, base, 13],
     [39, base - 10, 12],
@@ -168,7 +174,11 @@ function Dollop({ topping, uid, layout, reduce }: PieceProps) {
       />
       {tiers.map(([halfWidth, y, height], i) => (
         <g key={i}>
-          <path d={tier(halfWidth, y, height)} fill={`url(#${fill})`} />
+          <path
+            d={tier(halfWidth, y, height)}
+            fill={`url(#${fill})`}
+            {...outline}
+          />
           {/* A soft shadow where this tier tucks into the one below. */}
           {i > 0 ? (
             <path
@@ -192,6 +202,7 @@ function Dollop({ topping, uid, layout, reduce }: PieceProps) {
       <path
         d={`M90 ${base - 29} C91 ${base - 38} 100 ${base - 41} 108 ${base - 46} C109 ${base - 40} 114 ${base - 35} 111 ${base - 29} Q100 ${base - 26} 90 ${base - 29} Z`}
         fill={`url(#${fill})`}
+        {...outline}
       />
     </motion.g>
   );

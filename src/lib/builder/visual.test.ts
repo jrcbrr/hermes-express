@@ -3,10 +3,12 @@ import { FIXTURE_NOW, seedSnapshot } from "@/test/catalog-fixture";
 import { toBuilderCatalog } from "./catalog";
 import { EMPTY_DRAFT, type BuilderDraft } from "./state";
 import {
+  BRIM_SHARE,
   cupLayers,
   cupScale,
   describeDrink,
   FALLBACK_LIQUID_COLOR,
+  foamReserve,
   iceCubeCount,
   mixColor,
   scatter,
@@ -42,34 +44,52 @@ describe("cupLayers", () => {
       "base",
       "milk",
     ]);
-    expect(layers[2]).toEqual({
+    expect(layers[2]).toMatchObject({
       key: "base",
       slug: "latte",
       name: "Latte",
       color: "#5A3825",
-      share: 0.4,
     });
     expect(layers[3]!.color).toBe("#E9D7B5");
-    expect(layers.reduce((s, l) => s + l.share, 0)).toBeLessThan(0.9);
   });
 
-  it("makes the base taller for extra shots and when there is no milk", () => {
-    const base = (draft: BuilderDraft) =>
-      cupLayers(draft, catalog).find((l) => l.key === "base")!.share;
-    expect(base({ ...latte, shots: 3 })).toBeCloseTo(0.48);
-    expect(base({ ...latte, milk: "none" })).toBeCloseTo(0.72);
-    expect(base({ ...latte, milk: null })).toBeCloseTo(0.4);
-    expect(base({ ...EMPTY_DRAFT, base: "matcha", milk: "none" })).toBeCloseTo(
-      0.72,
-    );
+  const total = (layers: LiquidLayer[]) =>
+    layers.reduce((sum, l) => sum + l.share, 0);
+  const share = (draft: BuilderDraft, key: string) =>
+    cupLayers(draft, catalog).find((l) => l.key === key)!.share;
+
+  it("pours the base to about half the cup while the drink is being built", () => {
+    expect(share({ ...latte, milk: null }, "base")).toBeCloseTo(0.4);
+    expect(share({ ...latte, milk: null, shots: 3 }, "base")).toBeCloseTo(0.48);
   });
 
-  it("follows the milk amount", () => {
+  it("fills a finished drink to the brim, whatever it contains", () => {
+    for (const draft of [
+      latte,
+      { ...latte, syrups: ["vanilla", "honey", "caramel"] },
+      { ...latte, milk: "none" },
+      { ...latte, milkAmount: "extra" as const, shots: 4 },
+      { ...EMPTY_DRAFT, base: "cold-brew", milk: "none" },
+    ]) {
+      expect(total(cupLayers(draft, catalog))).toBeCloseTo(BRIM_SHARE);
+    }
+    expect(cupLayers({ ...latte, milk: "none" }, catalog)).toHaveLength(1);
+  });
+
+  it("stops lower when told to, leaving room for foam", () => {
+    expect(total(cupLayers(latte, catalog, 0.8))).toBeCloseTo(0.8);
+  });
+
+  it("keeps the proportions: more milk, or more shots, take more of the cup", () => {
     const milk = (amount: BuilderDraft["milkAmount"]) =>
-      cupLayers({ ...latte, milkAmount: amount }, catalog).at(-1)!.share;
-    expect([milk("light"), milk("regular"), milk("extra")]).toEqual([
-      0.2, 0.3, 0.38,
-    ]);
+      share({ ...latte, milkAmount: amount }, "milk");
+    expect(milk("light")).toBeLessThan(milk("regular"));
+    expect(milk("regular")).toBeLessThan(milk("extra"));
+    expect(share({ ...latte, shots: 3 }, "base")).toBeGreaterThan(
+      share(latte, "base"),
+    );
+    // Latte with regular milk: 0.4 coffee to 0.3 milk.
+    expect(share(latte, "base") / share(latte, "milk")).toBeCloseTo(0.4 / 0.3);
   });
 
   it("uses a fallback colour and the slug for unknown ingredients", () => {
@@ -86,9 +106,10 @@ describe("stackLayers", () => {
     const below = stackLayers(
       cupLayers({ ...latte, syrups: ["vanilla"] }, catalog),
     ).map((s) => s.below);
+    const scale = BRIM_SHARE / (0.03 + 0.4 + 0.3);
     expect(below[0]).toBe(0);
-    expect(below[1]).toBeCloseTo(0.03);
-    expect(below[2]).toBeCloseTo(0.43);
+    expect(below[1]).toBeCloseTo(0.03 * scale);
+    expect(below[2]).toBeCloseTo(0.43 * scale);
   });
 });
 
@@ -136,6 +157,19 @@ describe("toppingVisuals", () => {
     expect(toppingVisuals(["stardust"], catalog)).toEqual([
       { slug: "stardust", style: "dust", color: FALLBACK_LIQUID_COLOR },
     ]);
+  });
+});
+
+describe("foamReserve", () => {
+  it("saves room at the top for each foam", () => {
+    const visuals = (slugs: string[]) => toppingVisuals(slugs, catalog);
+    expect(foamReserve(visuals(["whipped-cream", "cocoa-powder"]), 120)).toBe(
+      0,
+    );
+    expect(foamReserve(visuals(["cold-foam"]), 120)).toBeCloseTo(0.1);
+    expect(
+      foamReserve(visuals(["cold-foam", "sea-salt-cream"]), 120),
+    ).toBeCloseTo(0.2);
   });
 });
 
