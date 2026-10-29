@@ -13,6 +13,9 @@ Rules the AI follows are in [`../CLAUDE.md`](../CLAUDE.md). Stage prompts are in
 - **What the AI did:**
 - **What I reviewed / changed / rejected and why:**
 - **Problems & fixes:**
+  - **Slow branch picker:** each click posted a form and waited for the server to rebuild the page. Now the browser switches on its own. The old cookie was HTTP-only, which the browser can't overwrite, so it was renamed to `hx_menu_branch`; otherwise anyone who had used the old picker would see their choice "forgotten".
+  - **Photo sources:** Unsplash and Pexels block automated downloads, so the photos come from Wikimedia Commons, which has an official API and clear licences.
+  - **Existing products had no photos:** the seed only inserts new rows, so it now also fills a photo where a product has none, without ever replacing one.
 - **What I learned:**
 - **Raw log:** docs/ai-logs/<file>.md
 ```
@@ -142,12 +145,17 @@ Rules the AI follows are in [`../CLAUDE.md`](../CLAUDE.md). Stage prompts are in
   - The Stage 3 master prompt (tables, seed with colours, `money.ts`, `pricing.ts`, `DrinkConfig`, `/menu` with a branch picker cookie, landing drinks, tests, closing block). Plan first and wait for "go".
   - Answers to the AI's four questions: (1) a customized signature costs its menu price plus the changes; (2) an additive `included_shots` column plus a `shot` ingredient for the ₱40 extra shot; (3) seed the catalog in the Vercel build; (4) after asking "can I change it later on?", yes to demo seasonal and sold-out items.
   - "Briefly summarize what this means, give me key points", then "go".
+  - Follow-ups after the PR opened: add a fitting photo to every drink, pastry and snack (I chose real photos over drawn illustrations); add frappes, cold brews and hot brews with photos; fix the delay when switching branches; plan a receipt (shop name, branch address, phone, TIN, VAT line, its own tab, PDF download, emailed to an address entered at checkout).
 - **What the AI did:**
   - Spotted that two signature prices in the plan (Olympus Latte, Ambrosia Matcha) are ₱5 below the sum of their recipes, and asked how to price them once customized, instead of guessing.
   - Added the 4 tables in one additive migration, checked that `.env.local` points at the Neon **dev** branch (not production) before applying it, then seeded and re-ran the seed to prove it adds nothing twice.
   - Wrote `calculateDrinkPrice()` and `calculateCartTotals()` as pure functions with 66 tests (100% coverage), and a seed-data test that prices every signature with the real function.
   - Built `/menu` with a no-JavaScript branch picker (three submit buttons, `aria-pressed`), seasonal and sold-out labels, and a polite message if the database is down.
   - Built once without a database (as CI does) to prove the pages don't need one at build time, ran E2E against the dev database, and checked screenshots at 375px and 1280px in light and dark mode.
+  - Found 23 free-licence photos on Wikimedia Commons, looked at every candidate on contact sheets, and rejected ones that didn't match (an ensaymada without cheese, a mocha without whipped cream) or that showed another brand's logo. Cropped one photo to a single drink, and credited every photographer on a new `/credits` page.
+  - Proposed seven new drinks built only from existing ingredients and priced at the sum of their parts, and grouped the menu into Hot drinks, Iced drinks and Frappes.
+  - Made branch switching instant: the page now carries every branch's sold-out list, so a click changes the labels in the browser with no server request (an E2E test checks that no request is made).
+  - Explained that receipts need orders (Stage 5), so wrote the receipt spec into PLAN §7 and moved receipts and their email into Stage 5 instead of building a receipt with no data.
 - **What I reviewed / changed / rejected and why:**
   - _(My own reflections: what I questioned, changed or rejected, and why.)_
 - **Problems & fixes:**
@@ -158,4 +166,6 @@ Rules the AI follows are in [`../CLAUDE.md`](../CLAUDE.md). Stage prompts are in
   - A seed that only inserts missing rows is safe to run on every deploy; a seed that updates rows would undo the admin's price changes.
   - Pricing belongs in one pure function, so the live price in the browser and the real price on the server can never disagree.
   - With Partial Prerendering, anything that depends on the request (a cookie, the current time) goes inside `<Suspense>`.
+  - "Free" photos still have rules: some licences require crediting the photographer.
+  - Sending a little extra data with the page (three short sold-out lists) can remove a server round trip and make a button feel instant.
 - **Raw log:** [docs/ai-logs/2026-10-29-stage-3.md](ai-logs/2026-10-29-stage-3.md)

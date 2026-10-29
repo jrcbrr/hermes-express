@@ -102,6 +102,8 @@ Contact details live in one config file (`src/config/site.ts`) so they're easy t
 | `/checkout` | Customer | Details, pickup/delivery, schedule, promo, points, demo payment |
 | `/orders` | Customer | Order history |
 | `/orders/[id]` | Customer | Live animated tracker, receipt, rating |
+| `/receipts` | Customer | "Receipts" tab: every past receipt, newest first |
+| `/receipts/[id]` | Customer | One receipt, with "Download PDF" |
 | `/favorites` | Customer | Saved drinks, one-tap reorder |
 | `/rewards` | Customer | Points balance, redeemable drinks, badges |
 | `/profile` | Customer | Name, phone, default address, password |
@@ -214,8 +216,17 @@ All prices are stored as **integer centavos** in the database and shown as `₱1
 | Ambrosia Matcha | Matcha, oat milk, vanilla | ₱195 |
 | Golden Sandal | Spanish latte, brown sugar, coffee jelly | ₱190 |
 | Messenger Americano | Americano, extra shot | ₱150 |
+| Pegasus Caramel Frappe | Latte blended, whole milk, salted caramel, whipped cream, caramel drizzle | ₱205 |
+| Titan Chocolate Frappe | Mocha blended, whole milk, whipped cream, chocolate drizzle | ₱205 |
+| Elysian Matcha Frappe | Matcha blended, whole milk, vanilla, whipped cream | ₱210 |
+| Nyx Black Cold Brew | Cold brew over ice, black, unsweetened | ₱140 |
+| Zephyr Foam Cold Brew | Cold brew, vanilla, cold foam | ₱190 |
+| Hestia Hearth Brew | Drip coffee, hot, black, unsweetened | ₱100 |
+| Apollo Morning Brew | Drip coffee, hot, whole milk, honey | ₱120 |
 
-Signature drinks can be added as-is or opened in the builder to customise.
+Signature drinks can be added as-is or opened in the builder to customise. On `/menu` they are grouped into **Hot drinks**, **Iced drinks** and **Frappes** (from each recipe's temperature).
+
+Every product has a photo (`public/images/menu/<slug>.jpg`, free-licence photos from Wikimedia Commons). Photographers are credited on `/credits`, linked from the footer.
 
 ### Pastries & snacks
 | Item | Price |
@@ -264,6 +275,20 @@ Products can be marked **seasonal** (with available-from/to dates) or **sold out
 4. Delivery fee: flat **₱49**, waived for orders ₱800+. Delivery is limited to Taguig/BGC (checked with a simple city/barangay field, no maps API).
 5. **The server recomputes every price.** It never trusts the client total.
 
+### Receipts (Stage 5)
+Every order gets a receipt, laid out like a normal shop receipt:
+- **Header:** shop name **Hermes Express** and logo; the **address of the branch the order was placed at** (BGC orders show the BGC address, Tipas orders the Tipas address, from `src/config/site.ts`); phone **0939 008 2560** (`siteConfig.contacts.phone`); **TIN** (stored in `src/config/site.ts`; the owner provides the number, a placeholder `000-000-000-000` is used until then).
+- **Order details:** receipt number (e.g. `HX-BGC-000123`), date and time (Manila), pickup or delivery, ASAP or scheduled time, customer name, phone, email, and delivery address if any.
+- **Items:** each line with quantity, unit price and line total; custom drinks list their choices (e.g. "16oz · Iced · Oat milk · Vanilla · Cold foam").
+- **Totals:** subtotal, promo discount (with code), delivery fee (or "Free"), total, and a **VAT line**: VATable sales and 12% VAT, both included in the total (VAT = total × 12/112).
+- **Payment:** method (e.g. "GCash (Demo)") and "Paid".
+- **Footer:** "Thank you for ordering with Hermes Express", the tagline, and **"Demo receipt. Not an official receipt."**
+
+Where it lives:
+- Its own **"Receipts"** tab (bottom tab bar on phones, header on desktop): `/receipts` lists past receipts; `/receipts/[id]` shows one. Also linked from the order tracker.
+- **Download PDF** button, built on the server (new dependency `@react-pdf/renderer`, to be confirmed when Stage 5 starts).
+- **Email:** checkout has a required "Email for your receipt" field, filled in with the account email and editable. The receipt (with the PDF attached) is sent there via Resend when the order is placed. If Resend is not configured, the order still succeeds and the email is skipped.
+
 ### Order statuses
 `Received → Brewing → Ready for pickup | Out for delivery → Completed` (and `Cancelled`)
 
@@ -271,7 +296,7 @@ Products can be marked **seasonal** (with available-from/to dates) or **sold out
 - Animated progress: the Hermes mascot moves along the steps, the cup fills as it brews, and wings flap on "Out for delivery".
 - Updates by polling every 10 seconds (no websockets; this keeps it serverless-friendly on Vercel).
 - A "ding" plays on status change if sound is on.
-- Receipt shown on screen, and emailed when the order is placed.
+- Receipt shown on screen, and emailed when the order is placed (see Receipts below).
 - After `Completed`: rate each drink 1–5 stars with an optional comment.
 
 ---
@@ -448,8 +473,8 @@ CI has no database yet, so E2E tests that need one (such as sign up → log out 
 | `DATABASE_URL` | Neon connection | Auto-added by the Vercel + Neon integration; `.env.local` locally |
 | `BETTER_AUTH_SECRET` | Session signing secret | `.env.local`; Vercel **Production + Preview** (a different value from local) |
 | `BETTER_AUTH_URL` | App base URL | `.env.local` (`http://localhost:3000`); Vercel **Production only** (`https://hermes-express.vercel.app`). Previews leave it unset and use `VERCEL_URL`. |
-| `RESEND_API_KEY` | Optional; emails are skipped if missing | Stage 8 |
-| `EMAIL_FROM` | Sender address | Stage 8 |
+| `RESEND_API_KEY` | Optional; emails are skipped if missing | Stage 5 (receipts) |
+| `EMAIL_FROM` | Sender address | Stage 5 (receipts) |
 | `SEED_ADMIN_EMAIL` / `SEED_ADMIN_PASSWORD` | First admin account | `.env.local` only |
 | `SEED_BARISTA_TIPAS_PASSWORD` | Tipas barista password (min. 8 characters) | `.env.local` only |
 | `SEED_BARISTA_BGC_PASSWORD` | BGC barista password (min. 8 characters) | `.env.local` only |
@@ -484,10 +509,10 @@ The seed stops with a clear error if any seed variable is missing or a password 
 | 2 | `stage-2-auth` | Better Auth, roles, protected routes, seed admin/baristas | P0 |
 | 3 | `stage-3-catalog` | Schema + seed for ingredients/products/branches, `/menu`, pricing lib | P0 |
 | 4 | `stage-4-builder` | Coffee builder with pour/stack/mix, live price, undo/reset | P0 |
-| 5 | `stage-5-checkout` | Cart, checkout, demo payment, order creation | P0 |
+| 5 | `stage-5-checkout` | Cart, checkout, demo payment, order creation, receipts (tab, PDF download, email) | P0 |
 | 6 | `stage-6-tracking` | Tracker, barista queue, status updates, sold-out | P0 |
 | 7 | `stage-7-admin` | Admin menu/ingredients/prices, orders, customers | P0/P2 |
-| 8 | `stage-8-rewards` | Favorites, history, points, promos, ratings, badges, scheduling, emails, sounds, surprise me | P1 |
+| 8 | `stage-8-rewards` | Favorites, history, points, promos, ratings, badges, scheduling, other emails, sounds, surprise me | P1 |
 | 9 | `stage-9-polish` | Mini-game, sales charts, a11y/perf pass, full E2E, final docs | P2 |
 
 ---
@@ -521,3 +546,7 @@ The seed stops with a clear error if any seed variable is missing or a password 
 | Demo states | Ube Cheese Pandesal is seasonal (Oct 1 – Dec 31, 2026). Cinnamon Roll is sold out at BGC only. Both can be changed later. |
 | Pastries vs snacks | Snacks: Chocolate Chip Cookie, Ham & Cheese Croissant Sandwich, Chicken Pesto Panini. Everything else in §6 is a pastry. |
 | `OLYMPUS20` window | Nov 1 – Dec 31, 2026 (Manila time). |
+| More drinks | Seven more signatures: three frappes, two cold brews and two hot brews (§6), each priced at exactly the sum of its parts. `/menu` groups drinks into Hot, Iced and Frappes. |
+| Menu photos | Real, free-licence photos from Wikimedia Commons, one per product, checked by eye to match the item. No photos showing other brands' logos. Credits on `/credits`. The seed fills a photo only where a product has none. |
+| Branch picker | Switching branches is instant: the page carries every branch's sold-out list, and the browser saves the choice in the `hx_menu_branch` cookie (not HTTP-only; it holds only a branch name). |
+| Receipts | Built in Stage 5 with checkout (moved from Stage 8): own tab, PDF download, emailed to an address entered at checkout. Shows branch address, phone, TIN and a VAT line (§7). |

@@ -17,14 +17,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - `src/lib/validation/drink.ts`: the shared `DrinkConfig` type and Zod schema (sizes, temperatures, ice level for iced drinks only, 1–4 shots, sweetness 0–100%, up to 3 syrups and 5 toppings with no repeats, optional name and signature).
 - `src/lib/pricing.ts`: `calculateDrinkPrice(config, catalog)` with a line-by-line breakdown, and `calculateCartTotals()` (quantity 1–20, discount capped at the subtotal, ₱49 delivery free from ₱800). It rejects unknown, inactive or wrongly used ingredients, shots on non-espresso bases, and a hot Cold Brew. 100% unit-test coverage.
 - `src/lib/catalog.ts`: menu building per branch, seasonal date windows, and sold-out rules (a signature is also sold out when a recipe ingredient is).
-- Cached catalog queries (`src/server/catalog/queries.ts`, cache tag `catalog`) and a `selectBranch` server action that remembers the branch in the `hx_branch` cookie.
+- Cached catalog queries (`src/server/catalog/queries.ts`, cache tag `catalog`) and a `selectBranch` server action that remembers the branch in the `hx_menu_branch` cookie.
 - `/menu` page: Signature Drinks, Pastries and Snacks sections with jump links, a branch picker, prices, and "Seasonal" and "Sold out at this branch" labels. "Add to cart" is visible but disabled until Stage 5; "Customize" opens `/build?drink=<slug>` (the builder arrives in Stage 4).
-- Tests: money, pricing, drink schema, catalog rules, seed data checked against PLAN §6, catalog queries and branch action, menu components and page, landing featured drinks; E2E for the menu, the branch picker and sold-out labels (database parts skip without a database).
+- Seven more signature drinks: Pegasus Caramel Frappe, Titan Chocolate Frappe, Elysian Matcha Frappe, Nyx Black Cold Brew, Zephyr Foam Cold Brew, Hestia Hearth Brew and Apollo Morning Brew, each priced at the sum of its recipe. `/menu` groups signature drinks into Hot drinks, Iced drinks and Frappes, with jump links.
+- A photo for every menu item (`public/images/menu/`, free-licence photos from Wikimedia Commons, checked to match each item) on `/menu` cards and the landing page's featured drinks. Sold-out items show a faded photo. Served through Next.js `<Image>`, so phones get smaller files.
+- `/credits` page crediting each photographer and licence, linked from the footer.
+- Tests: money, pricing, drink schema, catalog rules, seed data checked against PLAN §6 (including a photo file and credit for every product), catalog queries and branch action, menu components and page, landing featured drinks, credits page; E2E for the menu, drink groups, photos, the branch picker and sold-out labels (database parts skip without a database).
+
+#### Fixed
+
+- Switching branches on `/menu` is now instant. The page carries the sold-out list of every branch, so a click only re-labels the cards in the browser, with no trip to the server. The browser saves the choice in the `hx_menu_branch` cookie (no longer HTTP-only; it holds only a branch name). Before JavaScript loads, the buttons still work through the server action.
 
 #### Changed
 
 - The landing page's featured drinks now come from the database instead of placeholder data, and link to `/build?drink=<slug>`. "Customise" is now spelled "Customize" to match the menu.
 - `formatPeso()` moved from `src/lib/format.ts` to `src/lib/money.ts`.
+- The seed also fills a product's photo when it has none (it never replaces one that is set).
 - `vercel.json` build command: `npm run db:migrate && npm run db:seed:catalog && npm run build`.
 - `docs/PLAN.md` has a new "Decisions made by the owner (Stage 3)" table; `docs/ARCHITECTURE.md` and `docs/SETUP.md` describe the catalog flow, tables and seed command.
 
