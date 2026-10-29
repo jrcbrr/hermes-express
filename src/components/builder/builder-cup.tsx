@@ -3,10 +3,11 @@
 import {
   AnimatePresence,
   motion,
+  useReducedMotion,
   useReducedMotionConfig,
   type Transition,
 } from "motion/react";
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useState, useSyncExternalStore } from "react";
 import { Button } from "@/components/ui/button";
 import { useSound } from "@/hooks/use-sound";
 import type { BuilderCatalog } from "@/lib/builder/catalog";
@@ -48,6 +49,10 @@ function glass(scale: number) {
   };
 }
 
+const noSubscribe = () => () => {};
+const isClient = () => true;
+const isServer = () => false;
+
 const signatureOf = (layers: readonly LiquidLayer[]) =>
   layers.map((l) => `${l.key}:${l.slug}`).join("|");
 
@@ -64,7 +69,13 @@ export function BuilderCup({
   draft: BuilderDraft;
   catalog: BuilderCatalog;
 }) {
-  const reduce = useReducedMotionConfig() ?? false;
+  // The device setting, or a <MotionConfig reducedMotion="always"> above us.
+  // The server can't know the setting, so the first browser render matches
+  // the server's (motion on) and switches right after hydration.
+  const hydrated = useSyncExternalStore(noSubscribe, isClient, isServer);
+  const prefersReduced = useReducedMotion();
+  const configReduced = useReducedMotionConfig();
+  const reduce = hydrated && Boolean(prefersReduced || configReduced);
   const { play } = useSound();
   const clipId = useId();
   const textureId = useId();
