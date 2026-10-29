@@ -11,12 +11,11 @@ const choose = (page: Page, name: RegExp) =>
 const next = (page: Page) => page.getByRole("button", { name: /^Next/ });
 const onPath = (path: string) => (url: URL) => url.pathname === path;
 
-test("an empty cart invites the customer to the menu", async ({ page }) => {
+test("the cart page opens for guests", async ({ page }) => {
   await page.goto("/cart");
   await expect(
     page.getByRole("heading", { level: 1, name: "Your cart" }),
   ).toBeVisible();
-  await expect(page.getByText("Your cart is empty.")).toBeVisible();
 });
 
 test("checkout asks signed-out visitors to log in", async ({ page }) => {
@@ -27,6 +26,16 @@ test("checkout asks signed-out visitors to log in", async ({ page }) => {
 test.describe("with a seeded database", () => {
   // TODO: CI has no database yet, so this skips there (docs/SETUP.md, "CI database").
   test.skip(!hasDatabase, "DATABASE_URL is not set");
+
+  // Without a database the cart can't load the menu, so it shows
+  // "Our menu is unavailable" instead of the empty-cart message.
+  test("an empty cart invites the customer to the menu", async ({ page }) => {
+    await page.goto("/cart");
+    await expect(page.getByText("Your cart is empty.")).toBeVisible();
+    await expect(
+      page.getByRole("link", { name: "View the menu" }),
+    ).toHaveAttribute("href", "/menu");
+  });
 
   test("build → cart → checkout → order created", async ({
     page,

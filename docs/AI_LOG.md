@@ -217,6 +217,7 @@ Rules the AI follows are in [`../CLAUDE.md`](../CLAUDE.md). Stage prompts are in
   - **Zod skips the delivery and payment rules while a basic field is invalid**, so the barangay error appears only after the phone is fixed. Kept as is (each error still shows), and the test was split into two cases.
   - **Tests that expected the Stage 4 "disabled" Add to cart** were updated to check the working buttons; the behaviour changed on purpose.
   - **The checkout's "Your order" box followed the scroll on laptops** (reported by me after testing): it was pinned with `md:sticky md:top-24`. Removed on checkout and, for consistency, on the cart's "Order summary".
+  - **CI failed on the PR:** a new E2E expected "Your cart is empty." without a database, but CI has none, so `/cart` showed "Our menu is unavailable". It only passed locally because the dev database was connected. The no-database test now checks only the page heading, and the empty-cart check moved into the database-only group. Checked both ways locally (with and without `DATABASE_URL`).
   - **One existing E2E flaked once** when the dev server was still compiling `/build` under parallel load; it passed 8 out of 8 runs on its own. CI uses the production build, with retries.
 - **What I learned:**
   - Store what the customer chose, not what it cost: prices are recomputed everywhere from one function, so a stale or tampered price never matters.
