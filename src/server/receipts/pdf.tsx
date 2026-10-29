@@ -1,7 +1,9 @@
 // The receipt as a PDF, built on the server with @react-pdf/renderer. It
-// renders the same Receipt as the receipt page (src/lib/receipt.ts).
+// prints the same Receipt as the receipt page (src/lib/receipt.ts), on an
+// 80 mm receipt roll in the built-in Courier font.
 import {
   Document,
+  Font,
   Page,
   Path,
   StyleSheet,
@@ -11,202 +13,156 @@ import {
   renderToBuffer,
 } from "@react-pdf/renderer";
 import { LOGO_MARK_PATHS } from "@/components/brand/logo-mark";
-import { formatPesoPlain } from "@/lib/money";
-import type { Receipt } from "@/lib/receipt";
+import { formatAmount, formatPesoPlain } from "@/lib/money";
+import type { Receipt, ReceiptAmountRow, ReceiptRow } from "@/lib/receipt";
 
-// Raw colours are needed here: the PDF is drawn outside the page, so the CSS
-// theme variables don't exist. Values match globals.css (light theme).
-const GOLD = "#B8892E";
-const ESPRESSO = "#2B1E17";
-const MUTED = "#7A6A5D";
-const RULE = "#E5DCCF";
+// Wrap long lines between words only, never with a hyphen inside a word
+// ("Lat-te") as the default does.
+Font.registerHyphenationCallback((word) => [word]);
+
+/** 80 mm, the usual receipt-printer roll, in PDF points. */
+const ROLL_WIDTH = 227;
+
+// A printed receipt is black on white. A raw colour is needed here: the PDF
+// is drawn outside the page, so the CSS theme variables don't exist.
+const INK = "#000000";
 
 const styles = StyleSheet.create({
   page: {
-    paddingVertical: 48,
-    paddingHorizontal: 72,
-    fontFamily: "Helvetica",
-    fontSize: 10,
-    color: ESPRESSO,
-    lineHeight: 1.4,
+    paddingVertical: 16,
+    paddingHorizontal: 12,
+    fontFamily: "Courier",
+    fontSize: 8,
+    lineHeight: 1.35,
+    color: INK,
   },
   center: { alignItems: "center", textAlign: "center" },
-  shopName: {
-    fontFamily: "Helvetica-Bold",
-    fontSize: 16,
-    lineHeight: 1.2,
-    marginVertical: 4,
-  },
+  bold: { fontFamily: "Courier-Bold" },
+  shopName: { fontFamily: "Courier-Bold", fontSize: 10, marginTop: 2 },
+  title: { fontFamily: "Courier-Bold", letterSpacing: 2, marginTop: 6 },
   section: {
-    borderBottomWidth: 1,
-    borderBottomColor: RULE,
-    borderBottomStyle: "dashed",
-    paddingVertical: 10,
+    borderTopWidth: 0.75,
+    borderTopColor: INK,
+    borderTopStyle: "dashed",
+    paddingVertical: 5,
+    marginTop: 5,
   },
-  row: { flexDirection: "row", justifyContent: "space-between", gap: 12 },
-  label: { fontFamily: "Helvetica-Bold", width: 90 },
-  value: { flex: 1 },
-  muted: { color: MUTED },
-  bold: { fontFamily: "Helvetica-Bold" },
-  itemName: { flex: 1 },
-  qty: { width: 30, textAlign: "right" },
-  money: { width: 80, textAlign: "right" },
-  total: { fontFamily: "Helvetica-Bold", fontSize: 12, marginVertical: 4 },
-  notice: {
-    fontFamily: "Helvetica-Bold",
-    fontSize: 8,
-    letterSpacing: 0.5,
-    marginTop: 8,
-    textTransform: "uppercase",
-  },
+  row: { flexDirection: "row", justifyContent: "space-between", gap: 8 },
+  value: { flex: 1, textAlign: "right" },
+  qty: { width: 18 },
+  description: { flex: 1 },
+  amount: { width: 52, textAlign: "right" },
 });
 
-function Detail({ label, value }: { label: string; value: string }) {
+function Row({ label, value }: ReceiptRow) {
   return (
     <View style={styles.row}>
-      <Text style={styles.label}>{label}</Text>
+      <Text>{label}</Text>
       <Text style={styles.value}>{value}</Text>
     </View>
   );
 }
 
-function Amount({
-  label,
-  value,
-  style,
-}: {
-  label: string;
-  value: string;
-  style?: typeof styles.total | typeof styles.muted;
-}) {
+function AmountRow(row: ReceiptAmountRow) {
   return (
-    <View style={[styles.row, style ?? {}]}>
-      <Text>{label}</Text>
-      <Text style={styles.money}>{value}</Text>
-    </View>
+    <Row
+      label={row.label}
+      value={"text" in row ? row.text : formatAmount(row.centavos)}
+    />
   );
 }
 
 export function ReceiptDocument({ receipt }: { receipt: Receipt }) {
-  const { shop, customer, totals, payment, footer } = receipt;
+  const { header, total, payment, footer } = receipt;
   return (
     <Document
-      title={`${shop.name} receipt ${receipt.number}`}
-      author={shop.name}
+      title={`${header.shopName} ${header.title} ${receipt.number}`}
+      author={header.shopName}
     >
-      <Page size="A4" style={styles.page}>
-        <View style={[styles.section, styles.center]}>
-          <Svg viewBox="0 0 48 48" width={36} height={36}>
+      <Page size={{ width: ROLL_WIDTH }} style={styles.page}>
+        <View style={styles.center}>
+          <Svg viewBox="0 0 48 48" width={22} height={22}>
             {LOGO_MARK_PATHS.map((d) => (
               <Path
                 key={d}
                 d={d}
                 fill="none"
-                stroke={GOLD}
+                stroke={INK}
                 strokeWidth={2.5}
                 strokeLinecap="round"
                 strokeLinejoin="round"
               />
             ))}
           </Svg>
-          <Text style={styles.shopName}>{shop.name}</Text>
-          <Text>
-            {shop.branchName} · {shop.address}
-          </Text>
-          <Text>Phone {shop.phone}</Text>
-          <Text>TIN {shop.tin}</Text>
+          <Text style={styles.shopName}>{header.shopName}</Text>
+          <Text>{header.branch}</Text>
+          <Text>{header.phone}</Text>
+          <Text>{header.tin}</Text>
+          <Text style={styles.title}>{header.title}</Text>
         </View>
 
         <View style={styles.section}>
-          <Detail label="Receipt no." value={receipt.number} />
-          <Detail label="Order code" value={receipt.orderCode} />
-          <Detail label="Date" value={receipt.issuedAt} />
-          <Detail label={receipt.fulfillment} value={receipt.timing} />
-          <Detail label="Customer" value={customer.name} />
-          <Detail label="Phone" value={customer.phone} />
-          <Detail label="Email" value={customer.email} />
-          {customer.address ? (
-            <Detail label="Deliver to" value={customer.address} />
-          ) : null}
+          {receipt.details.map((row) => (
+            <Row key={row.label} {...row} />
+          ))}
         </View>
 
         <View style={styles.section}>
-          <View style={[styles.row, styles.muted]}>
-            <Text style={styles.itemName}>Item</Text>
-            <Text style={styles.qty}>Qty</Text>
-            <Text style={styles.money}>Price</Text>
-            <Text style={styles.money}>Amount</Text>
+          <View style={styles.row}>
+            <Text style={styles.qty}>QTY</Text>
+            <Text style={styles.description}>DESCRIPTION</Text>
+            <Text style={styles.amount}>AMOUNT</Text>
           </View>
           {receipt.lines.map((line) => (
             <View
               key={line.id}
-              style={[styles.row, { marginTop: 4 }]}
+              style={[styles.row, { marginTop: 2 }]}
               wrap={false}
             >
-              <View style={styles.itemName}>
-                <Text style={styles.bold}>{line.name}</Text>
-                {line.details ? (
-                  <Text style={styles.muted}>{line.details}</Text>
-                ) : null}
-              </View>
               <Text style={styles.qty}>{line.quantity}</Text>
-              <Text style={styles.money}>
-                {formatPesoPlain(line.unitPriceCentavos)}
-              </Text>
-              <Text style={styles.money}>
-                {formatPesoPlain(line.lineTotalCentavos)}
+              <View style={styles.description}>
+                <Text>{line.description}</Text>
+                <Text>
+                  @{formatAmount(line.unitPriceCentavos)}
+                  {line.details ? ` ${line.details}` : ""}
+                </Text>
+              </View>
+              <Text style={styles.amount}>
+                {formatAmount(line.lineTotalCentavos)}
               </Text>
             </View>
           ))}
         </View>
 
         <View style={styles.section}>
-          <Amount
-            label="Subtotal"
-            value={formatPesoPlain(totals.subtotalCentavos)}
-          />
-          {totals.discountCentavos > 0 ? (
-            <Amount
-              label={`Discount${totals.promoCode ? ` (${totals.promoCode})` : ""}`}
-              value={formatPesoPlain(-totals.discountCentavos)}
-            />
-          ) : null}
-          {totals.deliveryFeeCentavos !== null ? (
-            <Amount
-              label="Delivery fee"
-              value={
-                totals.deliveryFeeCentavos === 0
-                  ? "Free"
-                  : formatPesoPlain(totals.deliveryFeeCentavos)
-              }
-            />
-          ) : null}
-          <Amount
-            label="Total"
-            value={formatPesoPlain(totals.totalCentavos)}
-            style={styles.total}
-          />
-          <Amount
-            label="VATable sales"
-            value={formatPesoPlain(totals.vatableSalesCentavos)}
-            style={styles.muted}
-          />
-          <Amount
-            label="VAT (12%)"
-            value={formatPesoPlain(totals.vatCentavos)}
-            style={styles.muted}
-          />
+          {receipt.amounts.map((row) => (
+            <AmountRow key={row.label} {...row} />
+          ))}
+          <View style={[styles.row, styles.bold, { marginTop: 2 }]}>
+            <Text>{total.label}</Text>
+            <Text style={styles.value}>{formatPesoPlain(total.centavos)}</Text>
+          </View>
         </View>
 
         <View style={styles.section}>
-          <Detail label="Payment" value={payment.method} />
-          <Detail label="Status" value={payment.status} />
+          {receipt.vat.map((row) => (
+            <AmountRow key={row.label} {...row} />
+          ))}
         </View>
 
-        <View style={[styles.center, { paddingTop: 10 }]}>
-          <Text style={styles.bold}>{footer.thanks}</Text>
-          <Text style={styles.muted}>{footer.tagline}</Text>
-          <Text style={styles.notice}>{footer.notice}</Text>
+        <View style={styles.section}>
+          <Row {...payment} />
+          <View style={{ marginTop: 4 }}>
+            {receipt.soldTo.map((row) => (
+              <Row key={row.label} {...row} />
+            ))}
+          </View>
+        </View>
+
+        <View style={[styles.section, styles.center]}>
+          <Text>{footer.thanks}</Text>
+          <Text>{footer.tagline}</Text>
+          <Text style={[styles.bold, { marginTop: 4 }]}>{footer.notice}</Text>
         </View>
       </Page>
     </Document>

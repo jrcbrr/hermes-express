@@ -33,54 +33,72 @@ beforeEach(() => {
 });
 
 describe("ReceiptView", () => {
-  it("shows the header, details, items, totals with VAT, payment and footer", () => {
+  it("prints the header, details, items, totals, VAT breakdown, buyer and footer", () => {
     render(<ReceiptView receipt={buildReceipt(pickupOrder)} />);
     expect(
-      screen.getByRole("heading", { name: "Hermes Express" }),
+      screen.getByRole("heading", { name: "HERMES EXPRESS" }),
     ).toBeVisible();
     expect(
       screen.getByText("BGC · High Street Kiosk, Bonifacio Global City"),
     ).toBeVisible();
-    expect(screen.getByText("Phone 0939 008 2560")).toBeVisible();
-    expect(screen.getByText("TIN 000-000-000-000")).toBeVisible();
+    expect(screen.getByText("Tel. 0939 008 2560")).toBeVisible();
+    expect(screen.getByText("VAT REG TIN 000-000-000-000")).toBeVisible();
+    expect(screen.getByText("SALES RECEIPT")).toBeVisible();
+
+    const details = screen.getByTestId("receipt-details");
+    expect(details).toHaveTextContent(
+      "Receipt No.HX-BGC-000123Order CodeHX-7K2PDate/Time10/30/2026 09:15 AMServicePICKUP (ASAP)",
+    );
     expect(screen.getByTestId("receipt-number")).toHaveTextContent(
       "HX-BGC-000123",
     );
-    expect(screen.getByText("Oct 30, 2026, 9:15 AM")).toBeVisible();
-    expect(screen.getByText("As soon as possible")).toBeVisible();
-    expect(screen.getByText("0917 123 4567")).toBeVisible();
 
     const rows = within(screen.getByRole("table")).getAllByRole("row");
     expect(rows).toHaveLength(3);
+    expect(rows[0]).toHaveTextContent("QTYDESCRIPTIONAMOUNT");
     expect(rows[1]).toHaveTextContent(
-      "Custom Latte16oz · Iced · Latte · Oat milk2₱200₱400",
+      "2CUSTOM LATTE@200.00 16oz / Iced / Latte / Oat milk400.00",
     );
-    expect(rows[2]).toHaveTextContent("Butter Croissant1₱95₱95");
+    expect(rows[2]).toHaveTextContent("1BUTTER CROISSANT@95.0095.00");
 
-    expect(screen.getByTestId("receipt-total")).toHaveTextContent("₱495");
-    expect(screen.getByText("₱441.96")).toBeVisible();
-    expect(screen.getByText("₱53.04")).toBeVisible();
-    expect(screen.getByText("GCash (Demo)")).toBeVisible();
-    expect(screen.getByText("Paid")).toBeVisible();
-    expect(screen.queryByText("Delivery fee")).toBeNull();
-    expect(screen.queryByText("Deliver to")).toBeNull();
+    expect(screen.getByText("SUBTOTAL").nextSibling).toHaveTextContent(
+      "495.00",
+    );
+    expect(screen.getByTestId("receipt-total")).toHaveTextContent("PHP 495.00");
+    expect(screen.getByTestId("receipt-vat")).toHaveTextContent(
+      "VATable Sales441.96VAT-Exempt Sales0.00Zero-Rated Sales0.00VAT Amount (12%)53.04",
+    );
+    expect(screen.getByText("PAYMENT: GCASH (DEMO)")).toBeVisible();
+    expect(screen.getByText("PAID")).toBeVisible();
+    expect(screen.getByText("SOLD TO").nextSibling).toHaveTextContent(
+      "Maria Santos",
+    );
+    expect(screen.getByText("0917 123 4567")).toBeVisible();
+    expect(screen.queryByText("DELIVERY FEE")).toBeNull();
+    expect(screen.queryByText("Address")).toBeNull();
     expect(
-      screen.getByText("Demo receipt. Not an official receipt."),
+      screen.getByText("DEMO RECEIPT. NOT AN OFFICIAL RECEIPT."),
     ).toBeVisible();
   });
 
-  it("shows the delivery address, fee and promo discount", () => {
+  it("prints the delivery address, fee and promo discount", () => {
     render(<ReceiptView receipt={buildReceipt(deliveryOrder)} />);
+    expect(screen.getByText("Service").nextSibling).toHaveTextContent(
+      "DELIVERY (SCHEDULED 10/31/2026 09:00 AM)",
+    );
     expect(
-      screen.getByText("Unit 5, 26th St, Wawa, Taguig City"),
-    ).toBeVisible();
-    expect(screen.getByText("Discount (FIRSTSIP)")).toBeVisible();
-    expect(screen.getByText("−₱50")).toBeVisible();
-    expect(screen.getByText("₱49")).toBeVisible();
-    expect(screen.getByText("To be paid on delivery")).toBeVisible();
+      screen.getByText("LESS: DISCOUNT (FIRSTSIP)").nextSibling,
+    ).toHaveTextContent("-50.00");
+    expect(screen.getByText("DELIVERY FEE").nextSibling).toHaveTextContent(
+      "49.00",
+    );
+    expect(screen.getByText("Address").nextSibling).toHaveTextContent(
+      "Unit 5, 26th St, Wawa, Taguig City",
+    );
+    expect(screen.getByText("TO BE PAID ON DELIVERY")).toBeVisible();
   });
 
-  it("shows free delivery and a discount without a code", () => {
+  it("prints FREE delivery and a discount without a code", () => {
     render(
       <ReceiptView
         receipt={buildReceipt({
@@ -90,8 +108,8 @@ describe("ReceiptView", () => {
         })}
       />,
     );
-    expect(screen.getByText("Free")).toBeVisible();
-    expect(screen.getByText("Discount")).toBeVisible();
+    expect(screen.getByText("FREE")).toBeVisible();
+    expect(screen.getByText("LESS: DISCOUNT")).toBeVisible();
   });
 });
 
@@ -139,7 +157,7 @@ describe("ReceiptList", () => {
     expect(mocks.listReceiptsForUser).toHaveBeenCalledWith("u1");
     const link = screen.getByRole("link", { name: /HX-BGC-000123/ });
     expect(link).toHaveAttribute("href", `/receipts/${ORDER_ID}`);
-    expect(link).toHaveTextContent("Oct 30, 2026, 9:15 AM · BGC · Pickup");
+    expect(link).toHaveTextContent("10/30/2026 09:15 AM · BGC · Pickup");
     expect(link).toHaveTextContent("₱495");
   });
 

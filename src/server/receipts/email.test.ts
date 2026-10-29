@@ -60,7 +60,7 @@ describe("sendReceiptEmail", () => {
       {
         from: "Hermes Express <orders@example.com>",
         to: "maria@example.com",
-        subject: "Your Hermes Express receipt HX-BGC-000123",
+        subject: "Your Hermes Express sales receipt HX-BGC-000123",
         html: receiptEmailHtml(buildReceipt(pickupOrder)),
         attachments: [{ filename: "HX-BGC-000123.pdf", content: PDF }],
       },
@@ -107,39 +107,54 @@ describe("sendReceiptEmail", () => {
 });
 
 describe("receiptEmailHtml", () => {
-  it("shows the receipt's details, items, totals and notice", () => {
-    const html = receiptEmailHtml(buildReceipt(pickupOrder));
-    for (const text of [
-      "HX-BGC-000123",
-      "TIN 000-000-000-000",
-      "2 × Custom Latte",
-      "16oz · Iced · Latte · Oat milk",
-      "₱495",
-      "VAT (12%)",
-      "₱53.04",
-      "GCash (Demo) · Paid",
-      "Demo receipt. Not an official receipt.",
+  /** The email's visible text, one space between pieces. */
+  const text = (html: string) =>
+    html
+      .replace(/<[^>]+>/g, " ")
+      .replace(/&amp;/g, "&")
+      .replace(/\s+/g, " ");
+
+  it("prints the sales receipt: header, details, items, totals, VAT, buyer and notice", () => {
+    const shown = text(receiptEmailHtml(buildReceipt(pickupOrder)));
+    for (const piece of [
+      "HERMES EXPRESS",
+      "VAT REG TIN 000-000-000-000",
+      "SALES RECEIPT",
+      "Receipt No. HX-BGC-000123",
+      "Date/Time 10/30/2026 09:15 AM",
+      "Service PICKUP (ASAP)",
+      "QTY DESCRIPTION AMOUNT",
+      "2 CUSTOM LATTE @200.00 16oz / Iced / Latte / Oat milk 400.00",
+      "1 BUTTER CROISSANT @95.00 95.00",
+      "SUBTOTAL 495.00",
+      "TOTAL AMOUNT DUE PHP 495.00",
+      "VATable Sales 441.96 VAT-Exempt Sales 0.00 Zero-Rated Sales 0.00 VAT Amount (12%) 53.04",
+      "PAYMENT: GCASH (DEMO) PAID",
+      "SOLD TO Maria Santos",
+      "DEMO RECEIPT. NOT AN OFFICIAL RECEIPT.",
     ]) {
-      expect(html).toContain(text);
+      expect(shown).toContain(piece);
     }
-    expect(html).not.toContain("Delivery fee");
-    expect(html).not.toContain("Deliver to");
+    expect(shown).not.toContain("DELIVERY FEE");
+    expect(shown).not.toContain("Address");
   });
 
-  it("shows delivery details, a promo discount and free delivery", () => {
-    const html = receiptEmailHtml(buildReceipt(deliveryOrder));
-    expect(html).toContain("Deliver to");
-    expect(html).toContain("Discount (FIRSTSIP)");
-    expect(html).toContain("₱49");
-    const free = receiptEmailHtml(
-      buildReceipt({
-        ...deliveryOrder,
-        promoCode: null,
-        deliveryFeeCentavos: 0,
-      }),
+  it("prints delivery details, a promo discount and FREE delivery", () => {
+    const shown = text(receiptEmailHtml(buildReceipt(deliveryOrder)));
+    expect(shown).toContain("LESS: DISCOUNT (FIRSTSIP) -50.00");
+    expect(shown).toContain("DELIVERY FEE 49.00");
+    expect(shown).toContain("Address Unit 5, 26th St, Wawa, Taguig City");
+    const free = text(
+      receiptEmailHtml(
+        buildReceipt({
+          ...deliveryOrder,
+          promoCode: null,
+          deliveryFeeCentavos: 0,
+        }),
+      ),
     );
-    expect(free).toContain("Free");
-    expect(free).toContain(">Discount<");
+    expect(free).toContain("DELIVERY FEE FREE");
+    expect(free).toContain("LESS: DISCOUNT -50.00");
   });
 
   it("escapes text the customer typed", () => {

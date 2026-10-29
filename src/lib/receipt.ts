@@ -1,13 +1,14 @@
 /**
- * Receipts (docs/PLAN.md §7, "Receipts"). Pure functions that turn a saved
- * order into what a receipt shows. The receipt page, the PDF and the email
- * all render the same `Receipt`, so the three always match. Amounts stay in
- * centavos here; each renderer formats them with formatPeso().
+ * Receipts (docs/PLAN.md §7, "Receipts"), laid out like a Philippine sales
+ * receipt. Pure functions that turn a saved order into the rows a receipt
+ * prints, top to bottom. The receipt page, the PDF and the email all render
+ * the same `Receipt`, so the three always match. Amounts stay in centavos
+ * here; each renderer formats them (formatAmount, formatPesoPlain).
  */
 import { siteConfig, type BranchService } from "@/config/site";
 import { formatPhPhone } from "./format";
 import { assertCentavos } from "./money";
-import { MANILA_TIME_ZONE, formatSlotTime } from "./schedule";
+import { MANILA_TIME_ZONE } from "./schedule";
 import {
   PAYMENT_METHOD_LABELS,
   type PaymentMethod,
@@ -52,13 +53,21 @@ export type ReceiptSource = {
   }[];
 };
 
+/** A label and its value, e.g. "Receipt No." / "HX-BGC-000123". */
+export type ReceiptRow = { label: string; value: string };
+
+/** A label and an amount, or a word instead of an amount (e.g. "FREE"). */
+export type ReceiptAmountRow =
+  { label: string; centavos: number } | { label: string; text: string };
+
 export type ReceiptLine = {
   id: string;
   quantity: number;
-  name: string;
-  /** The drink's choices, e.g. "16oz · Iced · Oat milk". Empty for plain items. */
-  details: string;
+  /** Upper case, e.g. "CUSTOM LATTE". */
+  description: string;
   unitPriceCentavos: number;
+  /** The drink's choices, e.g. "16oz / Iced / Oat milk". Empty for plain items. */
+  details: string;
   lineTotalCentavos: number;
 };
 
@@ -66,39 +75,28 @@ export type Receipt = {
   orderId: string;
   /** e.g. "HX-BGC-000123". */
   number: string;
-  /** The short order code, e.g. "HX-7K2P". */
-  orderCode: string;
-  shop: {
-    name: string;
-    branchName: string;
-    address: string;
+  header: {
+    /** Upper case, e.g. "HERMES EXPRESS". */
+    shopName: string;
+    /** e.g. "BGC · High Street Kiosk, Bonifacio Global City". */
+    branch: string;
+    /** e.g. "Tel. 0939 008 2560". */
     phone: string;
+    /** e.g. "VAT REG TIN 000-000-000-000". */
     tin: string;
+    title: "SALES RECEIPT";
   };
-  /** e.g. "Oct 30, 2026, 9:15 AM" (Manila). */
-  issuedAt: string;
-  fulfillment: "Pickup" | "Delivery";
-  /** "As soon as possible" or e.g. "Scheduled: Oct 31, 2026, 9:00 AM". */
-  timing: string;
-  customer: {
-    name: string;
-    phone: string;
-    email: string;
-    /** Delivery only. */
-    address: string | null;
-  };
+  /** Receipt No., Order Code, Date/Time, Service. */
+  details: ReceiptRow[];
   lines: ReceiptLine[];
-  totals: {
-    subtotalCentavos: number;
-    discountCentavos: number;
-    promoCode: string | null;
-    /** Null for pickup orders; 0 means free delivery. */
-    deliveryFeeCentavos: number | null;
-    totalCentavos: number;
-    vatableSalesCentavos: number;
-    vatCentavos: number;
-  };
-  payment: { method: string; status: string };
+  /** Subtotal, then a discount and delivery fee when they apply. */
+  amounts: ReceiptAmountRow[];
+  total: { label: "TOTAL AMOUNT DUE"; centavos: number };
+  /** VATable, VAT-exempt and zero-rated sales, and the VAT amount. */
+  vat: ReceiptAmountRow[];
+  payment: ReceiptRow;
+  /** Sold to, phone, email, and the delivery address if any. */
+  soldTo: ReceiptRow[];
   footer: { thanks: string; tagline: string; notice: string };
 };
 
@@ -142,70 +140,113 @@ export function vatFromTotal(totalCentavos: number): {
   return { vatableSalesCentavos: totalCentavos - vatCentavos, vatCentavos };
 }
 
-const dateFormat = new Intl.DateTimeFormat("en-US", {
+const dateTimeFormat = new Intl.DateTimeFormat("en-US", {
   timeZone: MANILA_TIME_ZONE,
-  month: "short",
-  day: "numeric",
+  month: "2-digit",
+  day: "2-digit",
   year: "numeric",
+  hour: "2-digit",
+  minute: "2-digit",
+  hour12: true,
 });
 
-/** "Oct 30, 2026, 9:15 AM", in Manila time. */
+/** "10/30/2026 09:15 AM", in Manila time, as printed on receipts. */
 export function formatReceiptDateTime(date: Date): string {
-  return `${dateFormat.format(date)}, ${formatSlotTime(date)}`;
+  const part = (type: Intl.DateTimeFormatPartTypes) =>
+    dateTimeFormat.formatToParts(date).find((p) => p.type === type)?.value ??
+    "";
+  const period = part("dayPeriod").toUpperCase();
+  return `${part("month")}/${part("day")}/${part("year")} ${part("hour")}:${part("minute")} ${period}`;
 }
 
-/** Everything a receipt shows, ready to render. */
+/** Everything a receipt prints, ready to render. */
 export function buildReceipt(order: ReceiptSource): Receipt {
   const branch = siteConfig.branches.find((b) => b.slug === order.branchSlug);
+  const timing =
+    order.scheduledFor === null
+      ? "ASAP"
+      : `SCHEDULED ${formatReceiptDateTime(order.scheduledFor)}`;
+  const { vatableSalesCentavos, vatCentavos } = vatFromTotal(
+    order.totalCentavos,
+  );
+
+  const amounts: ReceiptAmountRow[] = [
+    { label: "SUBTOTAL", centavos: order.subtotalCentavos },
+  ];
+  if (order.discountCentavos > 0) {
+    amounts.push({
+      label: order.promoCode
+        ? `LESS: DISCOUNT (${order.promoCode})`
+        : "LESS: DISCOUNT",
+      centavos: -order.discountCentavos,
+    });
+  }
+  if (order.fulfillment === "delivery") {
+    amounts.push(
+      order.deliveryFeeCentavos === 0
+        ? { label: "DELIVERY FEE", text: "FREE" }
+        : { label: "DELIVERY FEE", centavos: order.deliveryFeeCentavos },
+    );
+  }
+
+  const soldTo: ReceiptRow[] = [
+    { label: "SOLD TO", value: order.contactName },
+    { label: "Phone", value: formatPhPhone(order.phone) },
+    { label: "Email", value: order.receiptEmail },
+  ];
+  if (order.fulfillment === "delivery" && order.address) {
+    soldTo.push({ label: "Address", value: order.address });
+  }
+
   return {
     orderId: order.id,
     number: formatReceiptNumber(order.branchSlug, order.receiptNumber),
-    orderCode: order.code,
-    shop: {
-      name: siteConfig.name,
-      branchName: order.branchName,
-      address: branch?.address ?? order.branchAddress,
-      phone: siteConfig.contacts.phone.display,
-      tin: siteConfig.tin,
+    header: {
+      shopName: siteConfig.name.toUpperCase(),
+      branch: `${order.branchName} · ${branch?.address ?? order.branchAddress}`,
+      phone: `Tel. ${siteConfig.contacts.phone.display}`,
+      tin: `VAT REG TIN ${siteConfig.tin}`,
+      title: "SALES RECEIPT",
     },
-    issuedAt: formatReceiptDateTime(order.createdAt),
-    fulfillment: order.fulfillment === "pickup" ? "Pickup" : "Delivery",
-    timing:
-      order.scheduledFor === null
-        ? "As soon as possible"
-        : `Scheduled: ${formatReceiptDateTime(order.scheduledFor)}`,
-    customer: {
-      name: order.contactName,
-      phone: formatPhPhone(order.phone),
-      email: order.receiptEmail,
-      address: order.fulfillment === "delivery" ? order.address : null,
-    },
+    details: [
+      {
+        label: "Receipt No.",
+        value: formatReceiptNumber(order.branchSlug, order.receiptNumber),
+      },
+      { label: "Order Code", value: order.code },
+      { label: "Date/Time", value: formatReceiptDateTime(order.createdAt) },
+      {
+        label: "Service",
+        value: `${order.fulfillment.toUpperCase()} (${timing})`,
+      },
+    ],
     lines: order.items.map((item) => ({
       id: item.id,
       quantity: item.quantity,
-      name: item.name,
-      details: item.config.details.join(" · "),
+      description: item.name.toUpperCase(),
       unitPriceCentavos: item.unitPriceCentavos,
+      details: item.config.details.join(" / "),
       lineTotalCentavos: item.lineTotalCentavos,
     })),
-    totals: {
-      subtotalCentavos: order.subtotalCentavos,
-      discountCentavos: order.discountCentavos,
-      promoCode: order.promoCode,
-      deliveryFeeCentavos:
-        order.fulfillment === "delivery" ? order.deliveryFeeCentavos : null,
-      totalCentavos: order.totalCentavos,
-      ...vatFromTotal(order.totalCentavos),
-    },
+    amounts,
+    total: { label: "TOTAL AMOUNT DUE", centavos: order.totalCentavos },
+    vat: [
+      { label: "VATable Sales", centavos: vatableSalesCentavos },
+      // Everything on the menu is VATable; PH receipts still list these lines.
+      { label: "VAT-Exempt Sales", centavos: 0 },
+      { label: "Zero-Rated Sales", centavos: 0 },
+      { label: `VAT Amount (${VAT_RATE_PERCENT}%)`, centavos: vatCentavos },
+    ],
     payment: {
-      method: PAYMENT_METHOD_LABELS[order.paymentMethod],
-      status:
-        order.paymentStatus === "demo_paid" ? "Paid" : "To be paid on delivery",
+      label: `PAYMENT: ${PAYMENT_METHOD_LABELS[order.paymentMethod].toUpperCase()}`,
+      value:
+        order.paymentStatus === "demo_paid" ? "PAID" : "TO BE PAID ON DELIVERY",
     },
+    soldTo,
     footer: {
       thanks: `Thank you for ordering with ${siteConfig.name}`,
       tagline: siteConfig.tagline,
-      notice: "Demo receipt. Not an official receipt.",
+      notice: "DEMO RECEIPT. NOT AN OFFICIAL RECEIPT.",
     },
   };
 }

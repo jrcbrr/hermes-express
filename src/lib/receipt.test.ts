@@ -59,90 +59,113 @@ describe("vatFromTotal", () => {
 });
 
 describe("formatReceiptDateTime", () => {
-  it("shows the date and time in Manila", () => {
+  it("prints MM/DD/YYYY and a two-digit hour, in Manila time", () => {
     expect(formatReceiptDateTime(new Date("2026-10-30T01:15:00.000Z"))).toBe(
-      "Oct 30, 2026, 9:15 AM",
+      "10/30/2026 09:15 AM",
     );
     // 11:30 PM on Oct 30 in UTC is already Oct 31 in Manila.
     expect(formatReceiptDateTime(new Date("2026-10-30T23:30:00.000Z"))).toBe(
-      "Oct 31, 2026, 7:30 AM",
+      "10/31/2026 07:30 AM",
+    );
+    expect(formatReceiptDateTime(new Date("2026-12-31T16:05:00.000Z"))).toBe(
+      "01/01/2027 12:05 AM",
+    );
+    expect(formatReceiptDateTime(new Date("2026-10-30T10:45:00.000Z"))).toBe(
+      "10/30/2026 06:45 PM",
     );
   });
 });
 
 describe("buildReceipt", () => {
-  it("builds a pickup receipt", () => {
+  it("builds a pickup sales receipt", () => {
     expect(buildReceipt(pickupOrder)).toEqual({
       orderId: pickupOrder.id,
       number: "HX-BGC-000123",
-      orderCode: "HX-7K2P",
-      shop: {
-        name: "Hermes Express",
-        branchName: "BGC",
-        address: "High Street Kiosk, Bonifacio Global City",
-        phone: "0939 008 2560",
-        tin: "000-000-000-000",
+      header: {
+        shopName: "HERMES EXPRESS",
+        branch: "BGC · High Street Kiosk, Bonifacio Global City",
+        phone: "Tel. 0939 008 2560",
+        tin: "VAT REG TIN 000-000-000-000",
+        title: "SALES RECEIPT",
       },
-      issuedAt: "Oct 30, 2026, 9:15 AM",
-      fulfillment: "Pickup",
-      timing: "As soon as possible",
-      customer: {
-        name: "Maria Santos",
-        phone: "0917 123 4567",
-        email: "maria@example.com",
-        address: null,
-      },
+      details: [
+        { label: "Receipt No.", value: "HX-BGC-000123" },
+        { label: "Order Code", value: "HX-7K2P" },
+        { label: "Date/Time", value: "10/30/2026 09:15 AM" },
+        { label: "Service", value: "PICKUP (ASAP)" },
+      ],
       lines: [
         {
           id: "i1",
           quantity: 2,
-          name: "Custom Latte",
-          details: "16oz · Iced · Latte · Oat milk",
+          description: "CUSTOM LATTE",
           unitPriceCentavos: 20000,
+          details: "16oz / Iced / Latte / Oat milk",
           lineTotalCentavos: 40000,
         },
         {
           id: "i2",
           quantity: 1,
-          name: "Butter Croissant",
-          details: "",
+          description: "BUTTER CROISSANT",
           unitPriceCentavos: 9500,
+          details: "",
           lineTotalCentavos: 9500,
         },
       ],
-      totals: {
-        subtotalCentavos: 49500,
-        discountCentavos: 0,
-        promoCode: null,
-        deliveryFeeCentavos: null,
-        totalCentavos: 49500,
-        vatableSalesCentavos: 44196,
-        vatCentavos: 5304,
-      },
-      payment: { method: "GCash (Demo)", status: "Paid" },
+      amounts: [{ label: "SUBTOTAL", centavos: 49500 }],
+      total: { label: "TOTAL AMOUNT DUE", centavos: 49500 },
+      vat: [
+        { label: "VATable Sales", centavos: 44196 },
+        { label: "VAT-Exempt Sales", centavos: 0 },
+        { label: "Zero-Rated Sales", centavos: 0 },
+        { label: "VAT Amount (12%)", centavos: 5304 },
+      ],
+      payment: { label: "PAYMENT: GCASH (DEMO)", value: "PAID" },
+      soldTo: [
+        { label: "SOLD TO", value: "Maria Santos" },
+        { label: "Phone", value: "0917 123 4567" },
+        { label: "Email", value: "maria@example.com" },
+      ],
       footer: {
         thanks: "Thank you for ordering with Hermes Express",
         tagline: "Brewed by you. Delivered by Hermes.",
-        notice: "Demo receipt. Not an official receipt.",
+        notice: "DEMO RECEIPT. NOT AN OFFICIAL RECEIPT.",
       },
     });
   });
 
   it("builds a scheduled cash delivery receipt with a promo", () => {
     const receipt = buildReceipt(deliveryOrder);
-    expect(receipt.fulfillment).toBe("Delivery");
-    expect(receipt.timing).toBe("Scheduled: Oct 31, 2026, 9:00 AM");
-    expect(receipt.customer.address).toBe("Unit 5, 26th St, Wawa, Taguig City");
-    expect(receipt.totals).toMatchObject({
-      discountCentavos: 5000,
-      promoCode: "FIRSTSIP",
-      deliveryFeeCentavos: 4900,
-      totalCentavos: 49400,
+    expect(receipt.details[3]).toEqual({
+      label: "Service",
+      value: "DELIVERY (SCHEDULED 10/31/2026 09:00 AM)",
     });
+    expect(receipt.amounts).toEqual([
+      { label: "SUBTOTAL", centavos: 49500 },
+      { label: "LESS: DISCOUNT (FIRSTSIP)", centavos: -5000 },
+      { label: "DELIVERY FEE", centavos: 4900 },
+    ]);
+    expect(receipt.total.centavos).toBe(49400);
     expect(receipt.payment).toEqual({
-      method: "Cash on Delivery",
-      status: "To be paid on delivery",
+      label: "PAYMENT: CASH ON DELIVERY",
+      value: "TO BE PAID ON DELIVERY",
     });
+    expect(receipt.soldTo.at(-1)).toEqual({
+      label: "Address",
+      value: "Unit 5, 26th St, Wawa, Taguig City",
+    });
+  });
+
+  it("prints FREE delivery and a discount without a code", () => {
+    const receipt = buildReceipt({
+      ...deliveryOrder,
+      promoCode: null,
+      deliveryFeeCentavos: 0,
+    });
+    expect(receipt.amounts.slice(1)).toEqual([
+      { label: "LESS: DISCOUNT", centavos: -5000 },
+      { label: "DELIVERY FEE", text: "FREE" },
+    ]);
   });
 
   it("uses the address saved in the database for a branch not in the site config", () => {
@@ -151,7 +174,7 @@ describe("buildReceipt", () => {
       branchSlug: "new-branch",
       branchAddress: "Somewhere, Taguig",
     });
-    expect(receipt.shop.address).toBe("Somewhere, Taguig");
+    expect(receipt.header.branch).toBe("BGC · Somewhere, Taguig");
     expect(receipt.number).toBe("HX-NEW-000123");
   });
 });
