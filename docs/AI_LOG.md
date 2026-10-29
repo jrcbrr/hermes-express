@@ -216,6 +216,7 @@ Rules the AI follows are in [`../CLAUDE.md`](../CLAUDE.md). Stage prompts are in
   - **Cart state leaked between unit tests:** the store kept its parsed cart in memory while tests cleared `localStorage`. The store now re-reads whenever the stored text changes, which also makes it more robust in the app.
   - **Zod skips the delivery and payment rules while a basic field is invalid**, so the barangay error appears only after the phone is fixed. Kept as is (each error still shows), and the test was split into two cases.
   - **Tests that expected the Stage 4 "disabled" Add to cart** were updated to check the working buttons; the behaviour changed on purpose.
+  - **The checkout's "Your order" box followed the scroll on laptops** (reported by me after testing): it was pinned with `md:sticky md:top-24`. Removed on checkout and, for consistency, on the cart's "Order summary".
   - **One existing E2E flaked once** when the dev server was still compiling `/build` under parallel load; it passed 8 out of 8 runs on its own. CI uses the production build, with retries.
 - **What I learned:**
   - Store what the customer chose, not what it cost: prices are recomputed everywhere from one function, so a stale or tampered price never matters.

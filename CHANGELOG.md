@@ -25,6 +25,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 - The menu's "Online ordering opens soon" note and the builder's disabled "Add to cart" are gone; their tests now check the working buttons.
 - The desktop nav and mobile tab bar read the current URL inside a small `<Suspense>` per link, so pages with an id in the URL (such as `/orders/[id]`) can still be prerendered with Cache Components.
+- The cart's "Order summary" and the checkout's "Your order" box now scroll with the page on laptop screens instead of staying pinned beside the form (owner request).
 - `personNameSchema`, `emailSchema` and `phoneSchema` are now exported from `src/lib/validation/auth.ts` for reuse at checkout.
 
 #### Not in this stage
