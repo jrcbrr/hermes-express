@@ -62,7 +62,7 @@ export async function FeaturedDrinkList() {
                 Add
               </Link>
               <Link
-                href={`/build?drink=${drink.slug}`}
+                href={`/build?from=${drink.slug}`}
                 aria-label={`Customize ${drink.name}`}
                 className={buttonVariants({
                   variant: "outline",

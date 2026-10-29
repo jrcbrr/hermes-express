@@ -109,7 +109,7 @@ describe("ProductCard", () => {
     const card = renderCard(signature);
     expect(
       within(card).getByRole("link", { name: "Customize Olympus Latte" }),
-    ).toHaveAttribute("href", "/build?drink=olympus-latte");
+    ).toHaveAttribute("href", "/build?from=olympus-latte");
     expect(
       within(card).getByRole("button", { name: "Add Olympus Latte to cart" }),
     ).toBeDisabled();
