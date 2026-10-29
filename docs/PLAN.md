@@ -102,7 +102,7 @@ Contact details live in one config file (`src/config/site.ts`) so they're easy t
 | `/checkout` | Customer | Details, pickup/delivery, schedule, promo, points, demo payment |
 | `/orders` | Customer | Order history |
 | `/orders/[id]` | Customer | Live animated tracker, receipt, rating |
-| `/receipts` | Customer | "Receipts" tab: every past receipt, newest first |
+| `/receipts` | Customer | Every past receipt, newest first (header link on desktop; account menu and Profile on phones) |
 | `/receipts/[id]` | Customer | One receipt, with "Download PDF" |
 | `/favorites` | Customer | Saved drinks, one-tap reorder |
 | `/rewards` | Customer | Points balance, redeemable drinks, badges |
@@ -277,6 +277,7 @@ Products can be marked **seasonal** (with available-from/to dates) or **sold out
 
 ### Receipts (Stage 5)
 Every order gets a receipt, laid out like a normal shop receipt:
+- **Receipt number:** `HX-<branch code>-<number>`, counting up per branch (branch codes in `src/config/site.ts`: `TIP`, `BGC`, `TLK`).
 - **Header:** shop name **Hermes Express** and logo; the **address of the branch the order was placed at** (BGC orders show the BGC address, Tipas orders the Tipas address, from `src/config/site.ts`); phone **0939 008 2560** (`siteConfig.contacts.phone`); **TIN** (stored in `src/config/site.ts`; the owner provides the number, a placeholder `000-000-000-000` is used until then).
 - **Order details:** receipt number (e.g. `HX-BGC-000123`), date and time (Manila), pickup or delivery, ASAP or scheduled time, customer name, phone, email, and delivery address if any.
 - **Items:** each line with quantity, unit price and line total; custom drinks list their choices (e.g. "16oz · Iced · Oat milk · Vanilla · Cold foam").
@@ -285,8 +286,8 @@ Every order gets a receipt, laid out like a normal shop receipt:
 - **Footer:** "Thank you for ordering with Hermes Express", the tagline, and **"Demo receipt. Not an official receipt."**
 
 Where it lives:
-- Its own **"Receipts"** tab (bottom tab bar on phones, header on desktop): `/receipts` lists past receipts; `/receipts/[id]` shows one. Also linked from the order tracker.
-- **Download PDF** button, built on the server (new dependency `@react-pdf/renderer`, to be confirmed when Stage 5 starts).
+- A **"Receipts"** link in the desktop header and the account menu. Phones keep the five bottom tabs (§4) and reach Receipts from the Profile page (owner decision). `/receipts` lists past receipts; `/receipts/[id]` shows one. Also linked from the order page.
+- **Download PDF** button, built on the server with `@react-pdf/renderer` (`GET /api/receipts/[id]/pdf`). The PDF uses the built-in Helvetica font, which has no peso sign, so amounts read "PHP 495.00".
 - **Email:** checkout has a required "Email for your receipt" field, filled in with the account email and editable. The receipt (with the PDF attached) is sent there via Resend when the order is placed. If Resend is not configured, the order still succeeds and the email is skipped.
 
 ### Order statuses
@@ -564,6 +565,9 @@ The seed stops with a clear error if any seed variable is missing or a password 
 | Topic | Decision |
 |---|---|
 | Receipts | Built in a follow-up PR straight after the checkout PR, to keep each PR reviewable. Checkout already asks for the receipt email and stores it on the order (`receipt_email`). |
+| Receipt numbers | Real per-branch counters (`HX-BGC-000123`) through an additive migration: `branch.receipt_seq` and `order.receipt_number`. Orders placed before it were numbered per branch, oldest first. |
+| Receipt dependencies | `@react-pdf/renderer` (server-side PDF) and `resend` (receipt email) approved. |
+| Receipts on phones | No sixth bottom tab: phones keep Home · Menu · Build · Cart · Profile, and Receipts sits in the account menu and on Profile. Desktop has a Receipts header link. |
 | Saved cart | New `cart` table (one row per user, choices only, never prices). A guest's `localStorage` cart is merged into it on login; logout forgets it on the device (ADR 0003). |
 | Cash on Delivery | Offered for delivery only; pickup offers GCash (Demo) and Card (Demo). Cash orders are saved as `unpaid`, demo payments as `demo_paid`. |
 | Scheduling | Slots every 15 minutes from opening time to 15 minutes before closing, today and the next 2 days, at least 20 minutes from now. ASAP only while the branch is open and not in its last 15 minutes. Manila time. |

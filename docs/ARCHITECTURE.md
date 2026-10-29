@@ -13,7 +13,7 @@ flowchart LR
   subgraph Vercel["Vercel (Next.js 16)"]
     RSC["Server Components<br/>(pages, data reads)"]
     SA["Server actions<br/>src/server/&lt;feature&gt;"]
-    API["Route handlers<br/>src/app/api (auth, polling)"]
+    API["Route handlers<br/>src/app/api (auth, receipt PDF, polling)"]
     LIB["Pure business logic<br/>src/lib (pricing, points,<br/>promos, order-status)"]
     AUTH["Better Auth<br/>(sessions, roles)"]
   end
@@ -73,9 +73,14 @@ flowchart LR
    2. `CartSessionSlot` (in the root layout, inside `<Suspense>`) tells the browser who is signed in. `CartAccountSync` then calls the `syncCart` server action: a guest's cart is merged into the account's saved cart (`cart` table, `mergeCarts()`), and a signed-in customer's later changes are saved with `saveCart` (debounced). After logging out, the account's cart is forgotten on that device.
    3. Prices are never stored: `priceCartItems()` (`src/lib/cart.ts`) prices every item at the chosen branch from the catalog with `calculateDrinkPrice()`, and flags items that are sold out, off the menu or no longer valid. `/cart`, `/checkout` and `placeOrder` all use it.
    4. `/checkout` (`CheckoutContent` → `CheckoutForm`) loads the catalog, the profile and each branch's ASAP status and slots (`src/lib/schedule.ts`, Manila time). The form checks itself with the same Zod schema as the server (`src/lib/validation/checkout.ts`), shows a demo payment screen, and calls `placeOrder`.
-   5. `placeOrder` (`src/server/orders/actions.ts`): `requireUser()` → Zod → same checkout sent before? return that order → branch active and offering pickup or delivery → ASAP or slot valid now → `priceCartItems()` and `draftOrder()` (`src/lib/orders.ts`) recompute every price and refuse sold-out items → one `db.batch()` saves `order`, `order_item` snapshots and the first `order_status_event` together (the Neon HTTP driver runs a batch as one transaction). A taken order code is retried with a new one.
+   5. `placeOrder` (`src/server/orders/actions.ts`): `requireUser()` → Zod → same checkout sent before? return that order → branch active and offering pickup or delivery → ASAP or slot valid now → `priceCartItems()` and `draftOrder()` (`src/lib/orders.ts`) recompute every price and refuse sold-out items → one `db.batch()` raises the branch's receipt counter (`branch.receipt_seq`) and saves `order` (with that counter as its `receipt_number`), `order_item` snapshots and the first `order_status_event` together (the Neon HTTP driver runs a batch as one transaction, and the counter update locks the branch row until it ends, so two orders never share a receipt number). A taken order code is retried with a new one. After the response, `after()` emails the receipt (see 7).
    6. `/orders/[id]` reads the order with `getOrderForUser()` (`src/server/orders/queries.ts`), which returns it only to its customer, a barista of its branch, or an admin. Status changes from Stage 6 on must pass `canTransition()` in `src/lib/order-status.ts`.
-7. **Live updates:** the order tracker and barista queue poll a route handler every 10 seconds. This is simpler than websockets and works well on serverless hosting (ADR coming in a later stage).
+7. **Receipts** (Stage 5 follow-up, spec in PLAN §7 "Receipts"):
+   1. `buildReceipt()` (`src/lib/receipt.ts`) turns a loaded order into one `Receipt`: header from `siteConfig` (branch address, phone, TIN), the receipt number (`HX-BGC-000123`: branch `receiptCode` plus the order's `receipt_number`), Manila date and time, lines, totals and the VAT split (`vatFromTotal()`: VAT = total × 12/112, both parts in centavos). The page, the PDF and the email all render this same object.
+   2. `/receipts` lists the user's receipts (`listReceiptsForUser()`); `/receipts/[id]` shows one through `getOrderForUser()`, so the same people can see an order and its receipt.
+   3. `GET /api/receipts/[id]/pdf` (`src/app/api/receipts/[id]/pdf/route.ts`) checks the session (401) and `getOrderForUser()` (404), then renders the PDF with `@react-pdf/renderer` (`src/server/receipts/pdf.tsx`). The PDF uses the built-in Helvetica font, which has no "₱", so it shows amounts with `formatPesoPlain()` ("PHP 495.00").
+   4. `sendReceiptEmail()` (`src/server/receipts/email.ts`) runs in `after()` once per new order: it sends the HTML receipt with the PDF attached through Resend, to the checkout's receipt email, with an idempotency key per order. Without `RESEND_API_KEY` or `EMAIL_FROM` it is skipped; any error is logged (never the key or the address) and never affects the order.
+8. **Live updates:** the order tracker and barista queue poll a route handler every 10 seconds. This is simpler than websockets and works well on serverless hosting (ADR coming in a later stage).
 
 ## Folder structure
 
@@ -91,6 +96,7 @@ src/
 │  ├─ cart/      Browser cart store, account sync, header/tab badge, /cart view, Add to cart button.
 │  ├─ checkout/  /checkout: form, choice cards, order summary, demo payment screen.
 │  ├─ orders/    /orders/[id]: order details.
+│  ├─ receipts/  /receipts and /receipts/[id]: receipt list, details and the receipt layout.
 │  ├─ theme/     next-themes provider and the light/dark toggle.
 │  ├─ sound/     Sound mute toggle (uses hooks/use-sound.ts).
 │  ├─ auth/      Login and sign-up forms, labelled form field.
@@ -103,12 +109,13 @@ src/
 ├─ lib/          Pure, framework-free business logic. Heavily unit tested (90% gate).
 │  ├─ auth.ts    Better Auth setup (created lazily on first use).
 │  ├─ roles.ts   Roles and which paths need which role.
-│  ├─ money.ts   formatPeso() and centavo helpers.
+│  ├─ money.ts   formatPeso(), formatPesoPlain() (PDF) and centavo helpers.
 │  ├─ pricing.ts calculateDrinkPrice() and calculateCartTotals() (100% tested).
 │  ├─ catalog.ts Menu building, seasonal availability, sold-out rules.
 │  ├─ cart.ts    Cart changes, guest/account merge, pricing a cart at a branch.
 │  ├─ orders.ts  Order lines and totals from a priced cart; HX- order codes.
 │  ├─ order-status.ts Order statuses and allowed transitions.
+│  ├─ receipt.ts Receipt numbers, the VAT split and the Receipt shared by page, PDF and email.
 │  ├─ schedule.ts ASAP and 15-minute slots within branch hours (Manila time).
 │  ├─ builder/   Builder state machine (state.ts), start drink, random drink, cup visuals.
 │  └─ validation/ Zod schemas (auth.ts: sign-up, login, profile, PH phone; drink.ts: DrinkConfig;
@@ -117,11 +124,13 @@ src/
 │  ├─ auth/      Session helpers (requireUser/requireRole) and auth actions.
 │  ├─ catalog/   Cached catalog queries and the selectBranch action.
 │  ├─ cart/      syncCart and saveCart (the signed-in customer's saved cart).
-│  ├─ orders/    placeOrder action and order queries.
+│  ├─ orders/    placeOrder action and order queries (including the receipts list).
+│  ├─ receipts/  Receipt PDF (pdf.tsx) and receipt email (email.ts).
 │  ├─ profile/   updateProfile action.
 │  └─ rate-limit.ts Postgres fixed-window rate limiter.
 ├─ hooks/        Client-side React hooks.
-├─ test/         Test helpers (catalog-fixture.ts: the seed menu as a catalog snapshot).
+├─ test/         Test helpers (catalog-fixture.ts: the seed menu as a catalog snapshot;
+│                order-fixture.ts: loaded orders for receipt and order tests).
 └─ proxy.ts      Cookie check that redirects signed-out visitors from protected pages.
 e2e/             Playwright browser tests.
 scripts/         Node scripts run by npm (db-migrate.ts, db-seed-catalog.ts).
@@ -130,7 +139,7 @@ docs/            Plan, architecture, setup, ADRs, AI logs.
 
 ## Design tokens
 
-Colours are CSS variables in `src/app/globals.css`, defined once for light (`:root`) and once for dark (`.dark`, set by next-themes). `@theme inline` turns each one into a Tailwind colour, so `bg-surface` or `text-primary` works in both themes. Components never use raw hex values.
+Colours are CSS variables in `src/app/globals.css`, defined once for light (`:root`) and once for dark (`.dark`, set by next-themes). `@theme inline` turns each one into a Tailwind colour, so `bg-surface` or `text-primary` works in both themes. Components never use raw hex values. The only exceptions are things drawn outside the page, where CSS variables do not exist: the apple icon, the receipt PDF and the receipt email. They copy the light-theme values from globals.css, with a comment saying so.
 
 Brand tokens use the names from [`PLAN.md` §3](PLAN.md#color-palette--olympus-café): `background`, `surface`, `surface-muted`, `foreground`, `primary`, `primary-foreground`, `accent`, `accent-foreground`, `success`, `danger`, `border`. shadcn/ui primitives expect their own names, so those are aliases:
 
