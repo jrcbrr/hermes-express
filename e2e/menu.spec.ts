@@ -41,13 +41,52 @@ test.describe("with a seeded database", () => {
     ).toBeDisabled();
   });
 
-  test("sold-out labels follow the chosen branch, which is remembered", async ({
+  test("groups drinks and shows a loaded photo on every card", async ({
+    page,
+  }) => {
+    await page.goto("/menu");
+    const drinks = page.getByRole("region", { name: "Signature Drinks" });
+    for (const name of ["Hot drinks", "Iced drinks", "Frappes"]) {
+      await expect(
+        drinks.getByRole("heading", { level: 3, name }),
+      ).toBeVisible();
+    }
+    await expect(
+      page
+        .getByRole("list", { name: "Frappes" })
+        .getByRole("heading", { level: 4, name: "Pegasus Caramel Frappe" }),
+    ).toBeVisible();
+
+    const photo = page.getByTestId("product-ensaymada").locator("img");
+    await photo.scrollIntoViewIfNeeded();
+    await expect
+      .poll(() => photo.evaluate((img: HTMLImageElement) => img.naturalWidth))
+      .toBeGreaterThan(0);
+    const cards = await page.locator("[data-testid^=product-]").count();
+    await expect(page.locator("[data-testid^=product-] img")).toHaveCount(
+      cards,
+    );
+  });
+
+  test("sold-out labels follow the chosen branch instantly, and it is remembered", async ({
     page,
   }) => {
     await page.goto("/menu");
     const roll = page.getByTestId("product-cinnamon-roll");
+    // Wait until the picker is interactive (JavaScript loaded).
+    await page.waitForLoadState("networkidle");
 
+    // Switching must not wait for the server: no request is made at all.
+    const requests: string[] = [];
+    page.on("request", (r) => {
+      if (r.method() === "POST" || r.url().includes("/menu"))
+        requests.push(r.url());
+    });
     await page.getByRole("button", { name: "BGC" }).click();
+    await expect(roll).toContainText("Sold out at this branch", {
+      timeout: 500,
+    });
+    expect(requests).toEqual([]);
     await expect(page.getByRole("button", { name: "BGC" })).toHaveAttribute(
       "aria-pressed",
       "true",
@@ -60,6 +99,7 @@ test.describe("with a seeded database", () => {
       "true",
     );
 
+    await page.waitForLoadState("networkidle");
     await page.getByRole("button", { name: "Tipas" }).click();
     await expect(page.getByRole("button", { name: "Tipas" })).toHaveAttribute(
       "aria-pressed",
