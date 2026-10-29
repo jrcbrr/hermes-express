@@ -73,7 +73,7 @@ describe("DesktopNav", () => {
       within(nav)
         .getAllByRole("link")
         .map((link) => link.textContent),
-    ).toEqual(["Home", "Menu", "Build Your Drink", "Rewards"]);
+    ).toEqual(["Home", "Menu", "Build Your Drink", "Rewards", "Receipts"]);
     expect(
       within(nav).getByRole("link", { name: "Build Your Drink" }),
     ).toHaveAttribute("aria-current", "page");
