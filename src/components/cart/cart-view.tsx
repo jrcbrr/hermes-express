@@ -64,7 +64,7 @@ export function CartView({
 
       <section
         aria-labelledby="cart-summary-heading"
-        className="flex h-fit flex-col gap-4 rounded-2xl border bg-surface p-5 md:sticky md:top-24"
+        className="flex h-fit flex-col gap-4 rounded-2xl border bg-surface p-5"
       >
         <h2
           id="cart-summary-heading"

@@ -16,7 +16,7 @@ export function OrderSummary({
   return (
     <section
       aria-labelledby="order-summary-heading"
-      className="flex h-fit flex-col gap-4 rounded-2xl border bg-surface p-5 md:sticky md:top-24"
+      className="flex h-fit flex-col gap-4 rounded-2xl border bg-surface p-5"
     >
       <div className="flex items-baseline justify-between gap-2">
         <h2
