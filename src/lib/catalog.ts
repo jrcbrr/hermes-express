@@ -4,7 +4,9 @@
  */
 import { siteConfig } from "@/config/site";
 import type { PricingCatalog } from "./pricing";
-import type { DrinkConfig } from "./validation/drink";
+// Type-only: this file also runs in the browser (menu), and the drink schema
+// module would pull Zod into the page bundle.
+import type { DrinkConfig, DrinkTemperature } from "./validation/drink";
 
 export const INGREDIENT_KINDS = [
   "size",
@@ -24,8 +26,25 @@ export type ProductType = (typeof PRODUCT_TYPES)[number];
 export const PROMO_TYPES = ["percent", "fixed"] as const;
 export type PromoType = (typeof PROMO_TYPES)[number];
 
-/** Cookie holding the slug of the branch the customer is browsing. */
-export const BRANCH_COOKIE = "hx_branch";
+/**
+ * Cookie holding the slug of the branch the customer is browsing. The browser
+ * writes it directly (no trip to the server), so it is not HTTP-only; it holds
+ * nothing private. Renamed from "hx_branch", an HTTP-only cookie the browser
+ * could not overwrite.
+ */
+export const BRANCH_COOKIE = "hx_menu_branch";
+export const BRANCH_COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 365;
+
+/** The document.cookie string that remembers a branch for a year. */
+export function branchCookieString(slug: string, secure: boolean): string {
+  return [
+    `${BRANCH_COOKIE}=${encodeURIComponent(slug)}`,
+    "path=/",
+    `max-age=${BRANCH_COOKIE_MAX_AGE_SECONDS}`,
+    "samesite=lax",
+    ...(secure ? ["secure"] : []),
+  ].join("; ");
+}
 
 export type CatalogIngredient = {
   id: string;
@@ -75,6 +94,9 @@ export type MenuItem = {
   name: string;
   description: string;
   priceCentavos: number;
+  imageUrl: string | null;
+  /** Hot, iced or blended, from the recipe. Null for pastries and snacks. */
+  temperature: DrinkTemperature | null;
   isSeasonal: boolean;
   isSoldOut: boolean;
 };
@@ -154,10 +176,46 @@ export function buildMenu(
         name: p.name,
         description: p.description,
         priceCentavos: p.priceCentavos,
+        imageUrl: p.imageUrl,
+        temperature: p.recipe?.temperature ?? null,
         isSeasonal: p.isSeasonal,
         isSoldOut: isSoldOut(p),
       })),
   }));
+}
+
+/**
+ * For every branch, the slugs of the products sold out there. Sent to the
+ * menu page once, so switching branches needs no trip to the server.
+ */
+export function soldOutSlugsByBranch(
+  snapshot: CatalogSnapshot,
+  now: Date,
+): Record<string, string[]> {
+  return Object.fromEntries(
+    siteConfig.branches.map((b) => [
+      b.slug,
+      buildMenu(snapshot, b.slug, now).flatMap((section) =>
+        section.items.filter((i) => i.isSoldOut).map((i) => i.slug),
+      ),
+    ]),
+  );
+}
+
+export type DrinkGroup = {
+  /** Null holds drinks without a recipe (should not happen; never hidden). */
+  temperature: DrinkTemperature | null;
+  items: MenuItem[];
+};
+
+/** Signature drinks split into hot, iced and blended (frappes), skipping empty groups. */
+export function groupDrinks(items: MenuItem[]): DrinkGroup[] {
+  const order: (DrinkTemperature | null)[] = ["hot", "iced", "blended", null];
+  const groups: DrinkGroup[] = order.map((temperature) => ({
+    temperature,
+    items: items.filter((i) => i.temperature === temperature),
+  }));
+  return groups.filter((g) => g.items.length > 0);
 }
 
 /** The catalog in the shape calculateDrinkPrice() expects. */

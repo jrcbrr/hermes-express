@@ -1,14 +1,18 @@
 import { describe, expect, it } from "vitest";
 import { siteConfig } from "@/config/site";
 import {
+  branchCookieString,
   buildMenu,
+  groupDrinks,
   isAvailableNow,
   recipeSlugs,
   resolveBranchSlug,
+  soldOutSlugsByBranch,
   toPricingCatalog,
   type CatalogIngredient,
   type CatalogProduct,
   type CatalogSnapshot,
+  type MenuItem,
 } from "./catalog";
 import type { DrinkConfig } from "./validation/drink";
 
@@ -83,6 +87,7 @@ const snapshot: CatalogSnapshot = {
     product("olympus-latte", {
       type: "signature",
       priceCentavos: 17500,
+      imageUrl: "/images/menu/olympus-latte.jpg",
       recipe: latteRecipe,
     }),
     product("pandesal", {
@@ -111,6 +116,18 @@ describe("resolveBranchSlug", () => {
       expect(resolveBranchSlug(value)).toBe(siteConfig.branches[0].slug);
     },
   );
+});
+
+describe("branchCookieString", () => {
+  it("remembers the branch for a year on every page", () => {
+    expect(branchCookieString("bgc", false)).toBe(
+      "hx_menu_branch=bgc; path=/; max-age=31536000; samesite=lax",
+    );
+  });
+
+  it("marks the cookie secure on HTTPS", () => {
+    expect(branchCookieString("tipas", true)).toMatch(/; secure$/);
+  });
 });
 
 describe("isAvailableNow", () => {
@@ -228,9 +245,79 @@ describe("buildMenu", () => {
       name: "olympus-latte",
       description: "About olympus-latte",
       priceCentavos: 17500,
+      imageUrl: "/images/menu/olympus-latte.jpg",
+      temperature: "hot",
       isSeasonal: false,
       isSoldOut: false,
     });
+  });
+
+  it("gives pastries and snacks no temperature", () => {
+    const [, pastries, snacks] = buildMenu(snapshot, "tipas", NOW);
+    for (const item of [...pastries!.items, ...snacks!.items]) {
+      expect(item.temperature).toBeNull();
+      expect(item.imageUrl).toBeNull();
+    }
+  });
+});
+
+describe("soldOutSlugsByBranch", () => {
+  it("lists the sold-out products of every branch", () => {
+    expect(soldOutSlugsByBranch(snapshot, NOW)).toEqual({
+      tipas: [],
+      bgc: ["croissant"],
+      "taguig-lakeshore": [],
+    });
+  });
+
+  it("includes drinks whose recipe uses a sold-out ingredient", () => {
+    const withOatOut: CatalogSnapshot = {
+      ...snapshot,
+      soldOut: [
+        { branchSlug: "tipas", ingredientId: "i-oat", productId: null },
+      ],
+    };
+    expect(soldOutSlugsByBranch(withOatOut, NOW).tipas).toEqual([
+      "olympus-latte",
+    ]);
+  });
+});
+
+describe("groupDrinks", () => {
+  const drink = (
+    slug: string,
+    temperature: MenuItem["temperature"],
+  ): MenuItem => ({
+    type: "signature",
+    slug,
+    name: slug,
+    description: "",
+    priceCentavos: 0,
+    imageUrl: null,
+    temperature,
+    isSeasonal: false,
+    isSoldOut: false,
+  });
+
+  it("splits drinks into hot, iced and frappes, in that order", () => {
+    const groups = groupDrinks([
+      drink("frappe", "blended"),
+      drink("latte", "hot"),
+      drink("cold-brew", "iced"),
+      drink("americano", "hot"),
+    ]);
+    expect(
+      groups.map((g) => [g.temperature, g.items.map((i) => i.slug)]),
+    ).toEqual([
+      ["hot", ["latte", "americano"]],
+      ["iced", ["cold-brew"]],
+      ["blended", ["frappe"]],
+    ]);
+  });
+
+  it("skips empty groups and never hides a drink without a temperature", () => {
+    const groups = groupDrinks([drink("odd", null), drink("latte", "hot")]);
+    expect(groups.map((g) => g.temperature)).toEqual(["hot", null]);
   });
 });
 

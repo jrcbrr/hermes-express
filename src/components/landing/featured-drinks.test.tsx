@@ -39,7 +39,10 @@ function signature(
 }
 
 const products: CatalogProduct[] = [
-  signature("olympus-latte", "Olympus Latte", 17500, { sortOrder: 10 }),
+  signature("olympus-latte", "Olympus Latte", 17500, {
+    sortOrder: 10,
+    imageUrl: "/images/menu/olympus-latte.jpg",
+  }),
   signature("winged-mocha", "Winged Mocha", 18500, { sortOrder: 20 }),
   signature("caduceus-cold-brew", "Caduceus Cold Brew", 17500, {
     sortOrder: 30,
@@ -79,6 +82,18 @@ describe("FeaturedDrinkList", () => {
     expect(
       within(card).getByRole("link", { name: "Customize Winged Mocha" }),
     ).toHaveAttribute("href", "/build?drink=winged-mocha");
+  });
+
+  it("shows each drink's photo when it has one", async () => {
+    render(await FeaturedDrinkList());
+    const card = (name: string) =>
+      screen.getByRole("heading", { name }).closest("li")!;
+    expect(
+      decodeURIComponent(
+        card("Olympus Latte").querySelector("img")!.getAttribute("src")!,
+      ),
+    ).toContain("/images/menu/olympus-latte.jpg");
+    expect(card("Winged Mocha").querySelector("img")).toBeNull();
   });
 
   it("shows at most 6 drinks", async () => {

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { connection } from "next/server";
+import { MenuPhoto } from "@/components/menu/menu-photo";
 import { buttonVariants } from "@/components/ui/button";
 import { siteConfig } from "@/config/site";
 import { buildMenu } from "@/lib/catalog";
@@ -35,40 +36,43 @@ export async function FeaturedDrinkList() {
       {drinks.map((drink) => (
         <li
           key={drink.slug}
-          className="flex flex-col rounded-2xl border bg-surface p-5 shadow-sm"
+          className="flex flex-col overflow-hidden rounded-2xl border bg-surface shadow-sm"
         >
-          <div className="flex items-start justify-between gap-3">
-            <h3 className="text-lg font-bold">{drink.name}</h3>
-            <p className="shrink-0 font-semibold">
-              {formatPeso(drink.priceCentavos)}
+          <MenuPhoto src={drink.imageUrl} />
+          <div className="flex flex-1 flex-col p-5">
+            <div className="flex items-start justify-between gap-3">
+              <h3 className="text-lg font-bold">{drink.name}</h3>
+              <p className="shrink-0 font-semibold">
+                {formatPeso(drink.priceCentavos)}
+              </p>
+            </div>
+            <p className="mt-2 flex-1 text-sm text-muted-foreground">
+              {drink.description}
             </p>
-          </div>
-          <p className="mt-2 flex-1 text-sm text-muted-foreground">
-            {drink.description}
-          </p>
-          <div className="mt-5 flex gap-2">
-            {/* Add to cart arrives in Stage 5; until then, Add opens the menu. */}
-            <Link
-              href="/menu#signature-drinks"
-              aria-label={`Add ${drink.name}`}
-              className={buttonVariants({
-                size: "lg",
-                className: "flex-1 font-semibold",
-              })}
-            >
-              Add
-            </Link>
-            <Link
-              href={`/build?drink=${drink.slug}`}
-              aria-label={`Customize ${drink.name}`}
-              className={buttonVariants({
-                variant: "outline",
-                size: "lg",
-                className: "flex-1 font-semibold",
-              })}
-            >
-              Customize
-            </Link>
+            <div className="mt-5 flex gap-2">
+              {/* Add to cart arrives in Stage 5; until then, Add opens the menu. */}
+              <Link
+                href="/menu#signature-drinks"
+                aria-label={`Add ${drink.name}`}
+                className={buttonVariants({
+                  size: "lg",
+                  className: "flex-1 font-semibold",
+                })}
+              >
+                Add
+              </Link>
+              <Link
+                href={`/build?drink=${drink.slug}`}
+                aria-label={`Customize ${drink.name}`}
+                className={buttonVariants({
+                  variant: "outline",
+                  size: "lg",
+                  className: "flex-1 font-semibold",
+                })}
+              >
+                Customize
+              </Link>
+            </div>
           </div>
         </li>
       ))}
