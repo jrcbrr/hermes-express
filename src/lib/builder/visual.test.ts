@@ -76,6 +76,16 @@ describe("cupLayers", () => {
     expect(cupLayers({ ...latte, milk: "none" }, catalog)).toHaveLength(1);
   });
 
+  it("keeps the syrups a thin band, however many are chosen", () => {
+    const syrupTotal = (syrups: string[]) =>
+      cupLayers({ ...latte, milk: null, syrups }, catalog)
+        .filter((l) => l.key.startsWith("syrup:"))
+        .reduce((sum, l) => sum + l.share, 0);
+    expect(syrupTotal(["vanilla"])).toBeCloseTo(0.03);
+    expect(syrupTotal(["vanilla", "caramel", "honey"])).toBeCloseTo(0.09);
+    expect(syrupTotal(catalog.syrups.map((s) => s.slug))).toBeCloseTo(0.09);
+  });
+
   it("stops lower when told to, leaving room for foam", () => {
     expect(total(cupLayers(latte, catalog, 0.8))).toBeCloseTo(0.8);
   });
@@ -177,23 +187,40 @@ describe("toppingLayout", () => {
   const visuals = (slugs: string[]) => toppingVisuals(slugs, catalog);
 
   it("puts drizzles straight on the drink when there is nothing else", () => {
-    expect(toppingLayout(visuals(["caramel-drizzle"]), 120)).toEqual({
+    expect(toppingLayout(visuals(["caramel-drizzle"]), 120, 60)).toEqual({
       foamTop: 120,
+      dollopBase: null,
       dollopTop: null,
       crown: 120,
       crownSpan: [46, 154],
     });
   });
 
-  it("stacks foams, then whipped cream, and crowns the top", () => {
+  it("stacks foams, and rests whipped cream on a drink that isn't full", () => {
     const layout = toppingLayout(
       visuals(["cold-foam", "sea-salt-cream", "whipped-cream"]),
       120,
+      60,
     );
     expect(layout.foamTop).toBe(96);
+    expect(layout.dollopBase).toBe(96);
     expect(layout.dollopTop).toBe(50);
     expect(layout.crown).toBe(70);
     expect(layout.crownSpan).toEqual([72, 128]);
+  });
+
+  it("sits whipped cream on the rim of a full drink", () => {
+    // The drink's top is 4 units under the glass top (y 95): a full cup.
+    const layout = toppingLayout(
+      visuals(["whipped-cream", "chocolate-drizzle"]),
+      99,
+      95,
+    );
+    expect(layout.foamTop).toBe(99);
+    // On the rim line, which is drawn 2 units above the glass top.
+    expect(layout.dollopBase).toBe(93);
+    expect(layout.dollopTop).toBe(93 - 46);
+    expect(layout.crown).toBe(93 - 26);
   });
 });
 

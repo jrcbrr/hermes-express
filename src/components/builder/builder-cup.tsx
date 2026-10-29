@@ -281,6 +281,7 @@ export function BuilderCup({
           <CupToppings
             toppings={toppings}
             surface={surface}
+            rim={shape.top}
             reduce={reduce}
             layer="inside"
           />
@@ -290,6 +291,7 @@ export function BuilderCup({
         <CupToppings
           toppings={toppings}
           surface={surface}
+          rim={shape.top}
           reduce={reduce}
           layer="above"
         />

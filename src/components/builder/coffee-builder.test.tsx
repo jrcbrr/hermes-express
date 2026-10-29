@@ -20,6 +20,8 @@ vi.mock("@/server/catalog/actions", () => ({ selectBranch: vi.fn() }));
 
 const { CoffeeBuilder } = await import("./coffee-builder");
 
+const LONG_TEST_MS = 15_000;
+
 const catalog = toBuilderCatalog(seedSnapshot(), FIXTURE_NOW);
 const olympus = catalog.signatures.find((s) => s.slug === "olympus-latte")!;
 
@@ -64,88 +66,95 @@ afterEach(() => {
 });
 
 describe("CoffeeBuilder", () => {
-  it("builds a drink step by step with a live price", () => {
-    renderBuilder();
-    expect(stepHeading()).toBe("Cup");
-    expect(screen.getByText("Choose a base to see the price.")).toBeVisible();
+  // Clicks through the whole builder, so it gets more than the default 5s.
+  it(
+    "builds a drink step by step with a live price",
+    { timeout: LONG_TEST_MS },
+    () => {
+      renderBuilder();
+      expect(stepHeading()).toBe("Cup");
+      expect(screen.getByText("Choose a base to see the price.")).toBeVisible();
 
-    fireEvent.click(option(/16oz/));
-    fireEvent.click(option(/Iced/));
-    expect(screen.getByRole("slider", { name: "Ice" })).toHaveAttribute(
-      "aria-valuetext",
-      "Regular",
-    );
-    fireEvent.change(screen.getByRole("slider", { name: "Ice" }), {
-      target: { value: "2" },
-    });
-    expect(screen.getByRole("slider", { name: "Ice" })).toHaveAttribute(
-      "aria-valuetext",
-      "Extra",
-    );
+      fireEvent.click(option(/16oz/));
+      fireEvent.click(option(/Iced/));
+      expect(screen.getByRole("slider", { name: "Ice" })).toHaveAttribute(
+        "aria-valuetext",
+        "Regular",
+      );
+      fireEvent.change(screen.getByRole("slider", { name: "Ice" }), {
+        target: { value: "2" },
+      });
+      expect(screen.getByRole("slider", { name: "Ice" })).toHaveAttribute(
+        "aria-valuetext",
+        "Extra",
+      );
 
-    fireEvent.click(next());
-    expect(stepHeading()).toBe("Base");
-    expect(document.activeElement).toBe(
-      screen.getByRole("heading", { level: 2 }),
-    );
-    expect(next()).toBeDisabled();
-    expect(screen.getByText("Choose a base to continue.")).toBeVisible();
+      fireEvent.click(next());
+      expect(stepHeading()).toBe("Base");
+      expect(document.activeElement).toBe(
+        screen.getByRole("heading", { level: 2 }),
+      );
+      expect(next()).toBeDisabled();
+      expect(screen.getByText("Choose a base to continue.")).toBeVisible();
 
-    fireEvent.click(option(/^Latte/));
-    expect(livePrice()).toBe("₱150");
-    fireEvent.click(screen.getByRole("button", { name: "Add a shot" }));
-    expect(livePrice()).toBe("₱190");
+      fireEvent.click(option(/^Latte/));
+      expect(livePrice()).toBe("₱150");
+      fireEvent.click(screen.getByRole("button", { name: "Add a shot" }));
+      expect(livePrice()).toBe("₱190");
 
-    fireEvent.click(next());
-    expect(next()).toBeDisabled();
-    fireEvent.click(option(/Oat milk/));
-    expect(livePrice()).toBe("₱220");
-    fireEvent.change(screen.getByRole("slider", { name: "Milk amount" }), {
-      target: { value: "0" },
-    });
+      fireEvent.click(next());
+      expect(next()).toBeDisabled();
+      fireEvent.click(option(/Oat milk/));
+      expect(livePrice()).toBe("₱220");
+      fireEvent.change(screen.getByRole("slider", { name: "Milk amount" }), {
+        target: { value: "0" },
+      });
 
-    fireEvent.click(next());
-    expect(stepHeading()).toBe("Sweetener");
-    fireEvent.change(screen.getByRole("slider", { name: "Sweetness" }), {
-      target: { value: "4" },
-    });
-    expect(screen.getByRole("slider", { name: "Sweetness" })).toHaveAttribute(
-      "aria-valuetext",
-      "100%",
-    );
-    fireEvent.click(chip(/Vanilla/));
+      fireEvent.click(next());
+      expect(stepHeading()).toBe("Sweetener");
+      fireEvent.change(screen.getByRole("slider", { name: "Sweetness" }), {
+        target: { value: "4" },
+      });
+      expect(screen.getByRole("slider", { name: "Sweetness" })).toHaveAttribute(
+        "aria-valuetext",
+        "100%",
+      );
+      fireEvent.click(chip(/Vanilla/));
 
-    fireEvent.click(next());
-    fireEvent.click(chip(/Cold Foam/));
-    expect(livePrice()).toBe("₱270");
+      fireEvent.click(next());
+      fireEvent.click(chip(/Cold Foam/));
+      expect(livePrice()).toBe("₱270");
 
-    fireEvent.click(next());
-    expect(stepHeading()).toBe("Review");
-    expect(screen.queryByRole("button", { name: /^Next/ })).toBeNull();
-    fireEvent.change(screen.getByLabelText("Name your drink (optional)"), {
-      target: { value: "Monday Fuel" },
-    });
-    for (const detail of [
-      "16oz · Iced · Extra ice",
-      "Latte · 2 shots",
-      "Oat milk · Light",
-      "100%",
-      "Vanilla",
-      "Cold Foam",
-    ]) {
-      expect(screen.getByText(detail, { selector: "dd" })).toBeVisible();
-    }
+      fireEvent.click(next());
+      expect(stepHeading()).toBe("Review");
+      expect(screen.queryByRole("button", { name: /^Next/ })).toBeNull();
+      fireEvent.change(screen.getByLabelText("Name your drink (optional)"), {
+        target: { value: "Monday Fuel" },
+      });
+      for (const detail of [
+        "16oz · Iced · Extra ice",
+        "Latte · 2 shots",
+        "Oat milk · Light",
+        "100%",
+        "Vanilla",
+        "Cold Foam",
+      ]) {
+        expect(screen.getByText(detail, { selector: "dd" })).toBeVisible();
+      }
 
-    fireEvent.click(screen.getByRole("button", { name: "Add a cup" }));
-    expect(livePrice()).toBe("₱540");
-    expect(screen.getByRole("button", { name: "Add to cart" })).toBeDisabled();
-    expect(
-      screen.getByRole("button", { name: "Save to favorites" }),
-    ).toBeDisabled();
+      fireEvent.click(screen.getByRole("button", { name: "Add a cup" }));
+      expect(livePrice()).toBe("₱540");
+      expect(
+        screen.getByRole("button", { name: "Add to cart" }),
+      ).toBeDisabled();
+      expect(
+        screen.getByRole("button", { name: "Save to favorites" }),
+      ).toBeDisabled();
 
-    fireEvent.click(screen.getByRole("button", { name: "Back" }));
-    expect(stepHeading()).toBe("Toppings");
-  });
+      fireEvent.click(screen.getByRole("button", { name: "Back" }));
+      expect(stepHeading()).toBe("Toppings");
+    },
+  );
 
   it("opens the price breakdown on tap", () => {
     renderBuilder({ start: { ...EMPTY_DRAFT, base: "latte", shots: 1 } });
@@ -169,19 +178,35 @@ describe("CoffeeBuilder", () => {
     expect(livePrice()).toBe("₱350");
   });
 
-  it("limits syrups to three", () => {
+  // Clicks through the whole builder, so it gets more than the default 5s.
+  it("has no limit on syrups or toppings", { timeout: LONG_TEST_MS }, () => {
     renderBuilder({
       start: { ...EMPTY_DRAFT, base: "matcha", milk: "oat" },
     });
+    // Matcha ₱150 + oat milk ₱30.
+    expect(livePrice()).toBe("₱180");
+
     fireEvent.click(screen.getByRole("button", { name: /Sweetener/ }));
-    for (const name of [/Vanilla/, /^Caramel/, /Honey/]) {
-      fireEvent.click(chip(name));
+    expect(screen.getByText("None chosen")).toBeVisible();
+    for (const syrup of catalog.syrups) {
+      fireEvent.click(chip(new RegExp(`^${syrup.name}`)));
     }
-    expect(screen.getByText("3 of 3 syrups")).toBeVisible();
-    expect(chip(/Toffee/)).toBeDisabled();
-    expect(chip(/Honey/)).toBeEnabled();
-    fireEvent.click(chip(/Honey/));
-    expect(chip(/Toffee/)).toBeEnabled();
+    expect(screen.getByText(`${catalog.syrups.length} chosen`)).toBeVisible();
+    expect(livePrice()).toBe("₱380");
+
+    fireEvent.click(screen.getByRole("button", { name: /^Toppings/ }));
+    for (const topping of catalog.toppings) {
+      fireEvent.click(chip(new RegExp(`^${topping.name}`)));
+    }
+    expect(screen.getByText(`${catalog.toppings.length} chosen`)).toBeVisible();
+    for (const topping of catalog.toppings) {
+      expect(screen.getByTestId(`topping-${topping.slug}`)).toBeInTheDocument();
+    }
+    // Every topping on top: ₱380 + ₱190 of toppings (two of them are free).
+    expect(livePrice()).toBe("₱570");
+
+    fireEvent.click(chip(/^Whipped Cream/));
+    expect(chip(/^Whipped Cream/)).not.toBeChecked();
   });
 
   it("disables and labels options sold out at the selected branch", () => {
@@ -354,17 +379,13 @@ describe("BuilderCup animation", () => {
     fireEvent.click(screen.getByRole("button", { name: /^Milk/ }));
     fireEvent.click(option(/Whole milk/));
     // Motion applies the new height on the next animation frame.
-    await waitFor(() =>
-      expect(liquid().height).toBeCloseTo(0.97 * cupHeight, 0),
-    );
-    expect(liquid().top).toBeCloseTo(236 - 0.97 * cupHeight, 0);
+    await waitFor(() => expect(liquid().height).toBeCloseTo(cupHeight, 0));
+    expect(liquid().top).toBeCloseTo(236 - cupHeight, 0);
 
     // A foam takes the last part of the cup, so the liquid sits lower.
     fireEvent.click(screen.getByRole("button", { name: /^Toppings/ }));
     fireEvent.click(chip(/Cold Foam/));
-    await waitFor(() =>
-      expect(liquid().height).toBeCloseTo(0.97 * cupHeight - 12, 0),
-    );
+    await waitFor(() => expect(liquid().height).toBeCloseTo(cupHeight - 12, 0));
   });
 
   it("shows the finished drink at once with reduced motion", () => {

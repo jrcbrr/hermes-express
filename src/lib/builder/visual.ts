@@ -16,8 +16,8 @@ export type LiquidLayer = {
   share: number;
 };
 
-/** A finished drink fills the cup to just under the rim. */
-export const BRIM_SHARE = 0.97;
+/** A finished drink fills the cup right to the rim (the rim line covers its edge). */
+export const BRIM_SHARE = 1;
 
 /** Used when an ingredient has no colour set (e.g. a new admin-added one). */
 export const FALLBACK_LIQUID_COLOR = "#B88A5E";
@@ -26,6 +26,8 @@ const BASE_SHARE = 0.4;
 const BASE_ALONE_SHARE = 0.72;
 const EXTRA_SHOT_SHARE = 0.04;
 const SYRUP_SHARE = 0.03;
+/** All syrups together stay a thin band, however many are chosen. */
+const SYRUP_BAND = 0.09;
 const MILK_SHARE: Record<AmountLevel, number> = {
   light: 0.2,
   regular: 0.3,
@@ -64,9 +66,13 @@ export function cupLayers(
     (draft.shots ?? 0) - (base?.includedShots ?? 0),
   );
   const hasMilk = draft.milk !== null && draft.milk !== "none";
+  const syrupShare = Math.min(
+    SYRUP_SHARE,
+    SYRUP_BAND / Math.max(1, draft.syrups.length),
+  );
 
   const layers = [
-    ...draft.syrups.map((slug) => layer(`syrup:${slug}`, slug, SYRUP_SHARE)),
+    ...draft.syrups.map((slug) => layer(`syrup:${slug}`, slug, syrupShare)),
     layer(
       "base",
       draft.base,
@@ -172,9 +178,16 @@ export function toppingVisuals(
 export const FOAM_THICKNESS = 12;
 export const DOLLOP_HEIGHT = 46;
 
+/** A drink whose top is this close to the rim (SVG units) counts as full. */
+const NEAR_RIM = 10;
+/** The rim's line is drawn 2 units above the top of the glass. */
+const RIM_LINE_OFFSET = 2;
+
 export type ToppingLayout = {
   /** Top of the foam layers (the drink's surface when there is no foam). */
   foamTop: number;
+  /** Where the whipped cream's base sits, or null without it. */
+  dollopBase: number | null;
   /** Top of the whipped cream, or null without it. */
   dollopTop: number | null;
   /** Where drizzles and dusts sit, and how wide they spread. */
@@ -183,25 +196,36 @@ export type ToppingLayout = {
 };
 
 /**
- * Where toppings sit, given the drink's surface (SVG y, smaller is higher):
- * foams stack on the drink, whipped cream sits on the foams, and drizzles
- * and dusts go on whatever is on top.
+ * Where toppings sit, given the drink's surface and the top of the glass
+ * (SVG y, smaller is higher): foams stack on the drink, and drizzles and
+ * dusts go on whatever is on top. Whipped cream sits on the rim when the
+ * drink is full, like a real topped cup, otherwise on the drink.
  */
 export function toppingLayout(
   toppings: readonly ToppingVisual[],
   surface: number,
+  rim: number,
 ): ToppingLayout {
   const foams = toppings.filter((t) => t.style === "foam").length;
   const foamTop = surface - foams * FOAM_THICKNESS;
-  const hasDollop = toppings.some((t) => t.style === "dollop");
-  return hasDollop
-    ? {
-        foamTop,
-        dollopTop: foamTop - DOLLOP_HEIGHT,
-        crown: foamTop - 26,
-        crownSpan: [72, 128],
-      }
-    : { foamTop, dollopTop: null, crown: foamTop, crownSpan: [46, 154] };
+  if (!toppings.some((t) => t.style === "dollop")) {
+    return {
+      foamTop,
+      dollopBase: null,
+      dollopTop: null,
+      crown: foamTop,
+      crownSpan: [46, 154],
+    };
+  }
+  const dollopBase =
+    foamTop - rim <= NEAR_RIM ? rim - RIM_LINE_OFFSET : foamTop;
+  return {
+    foamTop,
+    dollopBase,
+    dollopTop: dollopBase - DOLLOP_HEIGHT,
+    crown: dollopBase - 26,
+    crownSpan: [72, 128],
+  };
 }
 
 /**

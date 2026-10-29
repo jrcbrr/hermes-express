@@ -136,7 +136,7 @@ function tier(halfWidth: number, y: number, height: number): string {
 
 /** Whipped cream: three piped tiers and a curled tip, softly lit from the top left. */
 function Dollop({ topping, uid, layout, reduce }: PieceProps) {
-  const base = layout.foamTop;
+  const base = layout.dollopBase ?? layout.foamTop;
   const fill = `${uid}-fill`;
   const shadow = shade(topping.color, -0.35);
   // A faint edge keeps white cream readable above the rim on a light page.
@@ -440,16 +440,19 @@ const DRAW = {
 export function CupToppings({
   toppings,
   surface,
+  rim,
   reduce,
   layer,
 }: {
   toppings: ToppingVisual[];
   surface: number;
+  /** Top of the glass (SVG y): full drinks wear their whipped cream on it. */
+  rim: number;
   reduce: boolean;
   layer: "inside" | "above";
 }) {
   const uid = useId();
-  const layout = toppingLayout(toppings, surface);
+  const layout = toppingLayout(toppings, surface, rim);
   const onDollop = layout.dollopTop !== null;
   const isAbove = (t: ToppingVisual) =>
     t.style === "dollop" ||
