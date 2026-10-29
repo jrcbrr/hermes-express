@@ -22,6 +22,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Tests: reducer, undo/reset, step navigation, price updates, random drinks (500 seeded runs), cup visuals and start drink; component tests for the builder, its animation phases and the page; E2E that builds a drink step by step, opens a signature, follows the menu link, checks reduced motion and the phone layout.
 - New dependency: `motion` (Motion), listed in PLAN §9 for the builder animations.
 
+- The finished drink fills the cup to the brim: the base pours in to about half, and once a milk is chosen the liquids rise to just under the rim, keeping their proportions (more milk or more shots take more of the cup). Foams finish at the brim, and whipped cream domes above it.
 - Toppings with depth instead of flat shapes: whipped cream is piped in soft tiers with a curled tip, foams are shaded domes with tiny bubbles (and salt flecks on sea salt cream), sauces are glossy and drape with tapered drips (drawn on as they pour), cinnamon and cocoa are a fine dusting, cookie crumble has lit crumbs, pearls are glossy and jelly and nata de coco are see-through cubes that fall one after another. Each topping is shaded from its own ingredient colour, so it works in light and dark mode.
 
 #### Changed
