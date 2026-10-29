@@ -195,3 +195,30 @@ Rules the AI follows are in [`../CLAUDE.md`](../CLAUDE.md). Stage prompts are in
   - Anything that depends on the device (reduced motion, theme) must render the same as the server first, then update after hydration.
   - Looking at real screenshots catches problems tests don't, such as the cup scrolling out of view on a phone.
 - **Raw log:** [docs/ai-logs/2026-10-29-stage-4.md](ai-logs/2026-10-29-stage-4.md)
+
+## 2026-10-29 — Stage 5: Cart, checkout & orders
+
+- **Goal:** Let customers order: a cart (guest cart in the browser, merged into the account on login), Add to cart from `/menu` and `/build`, editing a cart drink in the builder, `/checkout` (pickup or delivery, Taguig/BGC address, ASAP or 15-minute slots, demo payment), a `placeOrder` server action that recomputes every price, the `order`, `order_item` and `order_status_event` tables, and a simple `/orders/[id]` page.
+- **Key prompts I gave:**
+  - The Stage 5 master prompt (cart, tables, checkout rules, demo payment, `placeOrder` re-validation and price recomputation, `HX-` codes, extension points for Stage 8, tests including tampered prices and an E2E, closing block with PR). Plan first and wait for "go".
+  - "Sounds good you can go ahead and push it": accepting the AI's suggested answers to its four questions (receipts in a follow-up PR, I set up the CI database, a new `cart` table, Cash on Delivery for delivery only).
+- **What the AI did:**
+  - Noticed that `PLAN.md` puts receipts (tab, PDF, email, two new dependencies) in Stage 5 while my prompt did not, and that the "CI database before Stage 5" TODO was still open, and asked before coding.
+  - Committed my Stage 4 raw log, branched from the updated `main`, and built in small commits: statuses, schedule slots, cart logic and validation, order lines and codes, the migration, the cart store and page, Add to cart, `placeOrder`, checkout, the order page, the E2E, then docs.
+  - Kept all rules in pure, tested functions (`cart.ts`, `schedule.ts`, `orders.ts`, `order-status.ts`) and made the cart, checkout and server share them, so the price on screen and the price saved can't disagree.
+  - Made `placeOrder` safe to repeat (one order per checkout via `clientRequestId`) and atomic (one `db.batch()`), and retried taken order codes.
+  - Checked that `.env.local` pointed at the Neon dev branch (not production) before applying the migration there, then ran the full E2E suite against it on desktop and phone.
+  - Ran lint, format check, typecheck, tests with coverage and the production build.
+- **What I reviewed / changed / rejected and why:**
+  - _(My own reflections: what I questioned, changed or rejected, and why.)_
+- **Problems & fixes:**
+  - **Build failed on the first page with an id in its URL** (`/orders/[id]`): with Cache Components, the nav's `usePathname()` outside `<Suspense>` blocks prerendering, because the URL is unknown at build time. Fixed (following the Next.js 16 docs) by reading the URL in a tiny `NavLink` per link inside its own `<Suspense>`.
+  - **Cart state leaked between unit tests:** the store kept its parsed cart in memory while tests cleared `localStorage`. The store now re-reads whenever the stored text changes, which also makes it more robust in the app.
+  - **Zod skips the delivery and payment rules while a basic field is invalid**, so the barangay error appears only after the phone is fixed. Kept as is (each error still shows), and the test was split into two cases.
+  - **Tests that expected the Stage 4 "disabled" Add to cart** were updated to check the working buttons; the behaviour changed on purpose.
+  - **One existing E2E flaked once** when the dev server was still compiling `/build` under parallel load; it passed 8 out of 8 runs on its own. CI uses the production build, with retries.
+- **What I learned:**
+  - Store what the customer chose, not what it cost: prices are recomputed everywhere from one function, so a stale or tampered price never matters.
+  - An idempotency key (one id per checkout) turns "the customer tapped Pay twice" from a bug into a non-event.
+  - With Partial Prerendering, anything that reads the URL in a shared layout should sit in the smallest possible `<Suspense>` leaf.
+- **Raw log:** [docs/ai-logs/2026-10-29-stage-5.md](ai-logs/2026-10-29-stage-5.md)

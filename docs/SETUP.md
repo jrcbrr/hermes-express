@@ -122,9 +122,9 @@ npm run test:e2e
 - **Coverage gate:** 90% for `src/lib/**` and `src/server/**`, 70% overall. The HTML report is in `coverage/index.html`.
 - **E2E tests** (Playwright) live in `e2e/`. They start the app on port 3100 by themselves. The first time, install the browser with `npx playwright install chromium`.
 
-### CI database (TODO before Stage 5)
+### CI database (TODO)
 
-CI has no database yet, so the database-backed E2E test (`e2e/auth.spec.ts`, "sign up → log out → log in") **skips itself** when `DATABASE_URL` is missing. Before Stage 5 (checkout), set this up so it runs on every PR:
+CI has no database yet, so the database-backed E2E tests (`e2e/auth.spec.ts` "sign up → log out → log in", the menu and builder tests, and `e2e/checkout.spec.ts` "build → cart → checkout → order created") **skip themselves** when `DATABASE_URL` is missing. They all run locally against the Neon dev branch. Set this up so they run on every PR:
 
 1. In the Neon console, create a branch named `ci` from `main`.
 2. In GitHub → Settings → Secrets and variables → Actions, add repository secrets `DATABASE_URL` (the `ci` branch's pooled connection string) and `BETTER_AUTH_SECRET`.

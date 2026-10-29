@@ -408,7 +408,8 @@ hermes-express/
 | `product` | id, type (`signature`/`pastry`/`snack`), name, slug, description, priceCentavos, imageUrl, recipe (jsonb, signatures only), isSeasonal, availableFrom, availableTo, isActive |
 | `branch_stock` | branchId, ingredientId?, productId?, isSoldOut |
 | `saved_drink` | id, userId, name, config (jsonb), createdAt |
-| `order` | id, code (e.g. `HX-7K2P`), userId, branchId, fulfillment (`pickup`/`delivery`), status, scheduledFor?, contactName, phone, address?, notes, subtotal, discount, deliveryFee, pointsRedeemed, total, promoCodeId?, paymentMethod, paymentStatus (`demo_paid`), createdAt, updatedAt |
+| `cart` | userId (PK), items (jsonb: choices and quantities, never prices), updatedAt (added in Stage 5, see ADR 0003) |
+| `order` | id, code (e.g. `HX-7K2P`), userId, branchId, fulfillment (`pickup`/`delivery`), status, scheduledFor?, contactName, phone, receiptEmail, address?, notes, subtotal, discount, deliveryFee, pointsRedeemed, total, promoCodeId?, paymentMethod (`gcash_demo`/`card_demo`/`cod`), paymentStatus (`demo_paid`/`unpaid` for cash), clientRequestId (unique: one order per checkout), createdAt, updatedAt |
 | `order_item` | id, orderId, kind (`custom`/`product`), productId?, name, config (jsonb snapshot), unitPriceCentavos, quantity, lineTotalCentavos |
 | `order_status_event` | id, orderId, status, changedByUserId, createdAt |
 | `rating` | id, orderItemId, userId, stars, comment, createdAt |
@@ -509,7 +510,7 @@ The seed stops with a clear error if any seed variable is missing or a password 
 | 2 | `stage-2-auth` | Better Auth, roles, protected routes, seed admin/baristas | P0 |
 | 3 | `stage-3-catalog` | Schema + seed for ingredients/products/branches, `/menu`, pricing lib | P0 |
 | 4 | `stage-4-builder` | Coffee builder with pour/stack/mix, live price, undo/reset | P0 |
-| 5 | `stage-5-checkout` | Cart, checkout, demo payment, order creation, receipts (tab, PDF download, email) | P0 |
+| 5 | `stage-5-checkout` | Cart, checkout, demo payment, order creation; receipts (tab, PDF download, email) in a follow-up PR | P0 |
 | 6 | `stage-6-tracking` | Tracker, barista queue, status updates, sold-out | P0 |
 | 7 | `stage-7-admin` | Admin menu/ingredients/prices, orders, customers | P0/P2 |
 | 8 | `stage-8-rewards` | Favorites, history, points, promos, ratings, badges, scheduling, other emails, sounds, surprise me | P1 |
@@ -558,4 +559,14 @@ The seed stops with a clear error if any seed variable is missing or a password 
 | Builder E2E in CI | The build-a-drink E2E test needs the seeded catalog, so it skips without `DATABASE_URL` (like the menu tests) until the Neon `ci` branch exists. A no-database test still checks `/build` renders. |
 | Reset | Reset returns to where the drink started: the signature recipe when opened from one, otherwise an empty cup. Reset can be undone. |
 | Syrups and toppings | No limit (was max 3 syrups and 5 toppings): customers add as many as they like, each once. The server keeps a hidden safety cap of 30 per list to reject junk requests. |
+
+### Decisions made by the owner (Stage 5)
+| Topic | Decision |
+|---|---|
+| Receipts | Built in a follow-up PR straight after the checkout PR, to keep each PR reviewable. Checkout already asks for the receipt email and stores it on the order (`receipt_email`). |
+| Saved cart | New `cart` table (one row per user, choices only, never prices). A guest's `localStorage` cart is merged into it on login; logout forgets it on the device (ADR 0003). |
+| Cash on Delivery | Offered for delivery only; pickup offers GCash (Demo) and Card (Demo). Cash orders are saved as `unpaid`, demo payments as `demo_paid`. |
+| Scheduling | Slots every 15 minutes from opening time to 15 minutes before closing, today and the next 2 days, at least 20 minutes from now. ASAP only while the branch is open and not in its last 15 minutes. Manila time. |
+| Delivery area | Taguig City only, checked with a barangay list (`src/config/delivery-areas.ts`): the 28 original barangays, with Fort Bonifacio shown as "Fort Bonifacio (BGC)", plus the 10 EMBO barangays. |
+| CI database | Still to do by the owner: a Neon `ci` branch and the `DATABASE_URL` / `BETTER_AUTH_SECRET` repository secrets. Until then the database E2E tests, including checkout, skip in CI and run locally. |
 | Cup fill | A finished drink fills the cup to the brim; foams finish at the brim and whipped cream sits on the rim. |

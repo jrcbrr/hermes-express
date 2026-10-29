@@ -5,6 +5,32 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Stage 5: Cart, checkout & orders (2026-10-29)
+
+#### Added
+
+- **Cart** (`/cart`, open to guests): every item with its choices, price, a quantity stepper (1–20), Edit for custom drinks (opens the builder at `/build?edit=<id>`, where "Update cart" changes the drink in place) and Remove. Subtotal, the delivery fee rule, and a branch picker that flags items sold out at the chosen branch and blocks checkout until they are fixed.
+- The cart lives in the browser (`localStorage`, key `hx_cart`) and stays in step across tabs. Logging in merges a guest's cart into the account's saved cart (new `cart` table: choices only, never prices); a signed-in customer's changes are saved to the account shortly after each change; logging out forgets the account's cart on that device. The header and the mobile Cart tab show the number of items.
+- **Add to cart** works on `/menu` (signature drinks, pastries and snacks; disabled when sold out at the branch) and in the builder's Review step, with an "Added to your cart" confirmation.
+- **Checkout** (`/checkout`, login required): pickup or delivery; branch; name, mobile number and receipt email filled in from the profile; a Taguig delivery address (street and a barangay list, including Fort Bonifacio (BGC) and the EMBO barangays); a note for the barista; ASAP (only while the branch is open) or a 15-minute slot within branch hours, today and the next 2 days; GCash (Demo), Card (Demo) or Cash on Delivery (delivery only). Live totals with the ₱49 delivery fee, free from ₱800.
+- A demo payment screen ("Processing your payment with GCash (Demo)…") that always succeeds. The checkout, the processing screen and the order page all say that no real payment is made.
+- **`placeOrder` server action** (`src/server/orders/actions.ts`): checks the session, re-validates everything with Zod, ignores any price the browser sends and recomputes every price from the catalog, re-checks ASAP or the slot with the server's clock and the branch's hours, refuses items sold out at the branch or off the menu, snapshots each item (drink, choices, name, prices), and saves the order, its items and its first status (`Received`) in one batch with a short code such as `HX-7K2P`. The same checkout sent twice returns the same order.
+- **Order page** `/orders/[id]`: code, status, branch, pickup or delivery, time, contact, items with their choices, totals and payment. Customers see only their own orders (baristas their branch's, admins all). The live tracker comes in Stage 6.
+- Tables `order`, `order_item`, `order_status_event` and `cart` (additive migration `0002_orders_and_cart`).
+- Pure, tested logic: `src/lib/cart.ts` (cart changes, merge, pricing per branch), `src/lib/schedule.ts` (slots and ASAP in Manila time), `src/lib/orders.ts` (order lines, totals, order codes), `src/lib/order-status.ts` (statuses and allowed transitions), `src/lib/validation/cart.ts` and `checkout.ts`, and `src/config/delivery-areas.ts`.
+- Extension points for Stage 8: `draftOrder()` takes a discount, the order already has `discount_centavos`, `points_redeemed` and `promo_code_id`, and the checkout schema and summary mark where promo codes and points go.
+- Tests: cart, schedule slots, delivery fee boundary, order lines and codes, status transitions, checkout validation, `placeOrder` (including tampered client prices being ignored, sold-out items, closed branches, past slots, code collisions and repeated checkouts), `syncCart`/`saveCart`, order queries and permissions; component tests for the cart, checkout and order page; an E2E for build → cart → sign up → checkout → order created.
+
+#### Changed
+
+- The menu's "Online ordering opens soon" note and the builder's disabled "Add to cart" are gone; their tests now check the working buttons.
+- The desktop nav and mobile tab bar read the current URL inside a small `<Suspense>` per link, so pages with an id in the URL (such as `/orders/[id]`) can still be prerendered with Cache Components.
+- `personNameSchema`, `emailSchema` and `phoneSchema` are now exported from `src/lib/validation/auth.ts` for reuse at checkout.
+
+#### Not in this stage
+
+- Receipts (receipts tab, PDF download, email) follow in a separate PR right after this one (owner decision). The checkout already collects the receipt email.
+
 ### Stage 4: Coffee builder (2026-10-29)
 
 #### Added
