@@ -43,7 +43,7 @@ vi.mock("next/cache", () => ({
 vi.mock("next/headers", () => ({
   cookies: async () => ({
     get: (name: string) =>
-      name === "hx_branch" && mocks.cookieValue !== undefined
+      name === "hx_menu_branch" && mocks.cookieValue !== undefined
         ? { name, value: mocks.cookieValue }
         : undefined,
   }),

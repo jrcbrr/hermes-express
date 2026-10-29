@@ -1,9 +1,7 @@
 import { connection } from "next/server";
-import { buildMenu } from "@/lib/catalog";
+import { buildMenu, soldOutSlugsByBranch } from "@/lib/catalog";
 import { getSelectedBranchSlug, loadCatalog } from "@/server/catalog/queries";
-import { BranchPicker } from "./branch-picker";
-import { MenuSections } from "./menu-sections";
-import { MenuUnavailable } from "./menu-unavailable";
+import { MenuBrowser } from "./menu-browser";
 
 /**
  * The live part of /menu. It reads the branch cookie and the current time, so
@@ -14,21 +12,18 @@ export async function MenuContent() {
   await connection();
   const branchSlug = await getSelectedBranchSlug();
   const catalog = await loadCatalog();
+  const now = new Date();
 
   return (
-    <>
-      <div className="mt-6">
-        <BranchPicker selected={branchSlug} />
-      </div>
+    <MenuBrowser
+      initialBranch={branchSlug}
+      sections={catalog ? buildMenu(catalog, branchSlug, now) : null}
+      soldOutByBranch={catalog ? soldOutSlugsByBranch(catalog, now) : {}}
+    >
       <p className="mt-4 text-sm text-muted-foreground">
         Online ordering opens soon. Until then, you are welcome to browse the
         menu.
       </p>
-      {catalog ? (
-        <MenuSections sections={buildMenu(catalog, branchSlug, new Date())} />
-      ) : (
-        <MenuUnavailable />
-      )}
-    </>
+    </MenuBrowser>
   );
 }

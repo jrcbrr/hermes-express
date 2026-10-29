@@ -1,4 +1,4 @@
-import { render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { CatalogSnapshot, MenuItem, MenuSection } from "@/lib/catalog";
 
@@ -25,6 +25,8 @@ const signature: MenuItem = {
   name: "Olympus Latte",
   description: "Latte with oat milk, honey and a dusting of cinnamon.",
   priceCentavos: 17500,
+  imageUrl: "/images/menu/olympus-latte.jpg",
+  temperature: "hot",
   isSeasonal: false,
   isSoldOut: false,
 };
@@ -35,6 +37,8 @@ const pastry: MenuItem = {
   name: "Cinnamon Roll",
   description: "Soft swirl of cinnamon sugar.",
   priceCentavos: 12000,
+  imageUrl: null,
+  temperature: null,
   isSeasonal: false,
   isSoldOut: false,
 };
@@ -57,6 +61,33 @@ describe("ProductCard", () => {
     expect(within(card).getByText("₱175")).toBeInTheDocument();
     expect(within(card).getByText(signature.description)).toBeInTheDocument();
     expect(within(card).queryByRole("list", { name: "Status" })).toBeNull();
+  });
+
+  it("shows the photo above the name, or no photo when there is none", () => {
+    const card = renderCard(signature);
+    const photo = card.querySelector("img")!;
+    expect(photo).toHaveAttribute("alt", "");
+    expect(decodeURIComponent(photo.getAttribute("src")!)).toContain(
+      "/images/menu/olympus-latte.jpg",
+    );
+    expect(photo).not.toHaveClass("grayscale");
+    expect(renderCard(pastry).querySelector("img")).toBeNull();
+  });
+
+  it("fades the photo of a sold-out item", () => {
+    const card = renderCard({ ...signature, isSoldOut: true });
+    expect(card.querySelector("img")).toHaveClass("grayscale");
+  });
+
+  it("can use a level 4 heading under a drink group", () => {
+    render(
+      <ul>
+        <ProductCard item={signature} headingLevel={4} />
+      </ul>,
+    );
+    expect(
+      screen.getByRole("heading", { level: 4, name: "Olympus Latte" }),
+    ).toBeInTheDocument();
   });
 
   it("lets signature drinks open in the builder, with add to cart coming soon", () => {
@@ -98,7 +129,7 @@ describe("ProductCard", () => {
 
 describe("BranchPicker", () => {
   it("offers every branch and marks the selected one", () => {
-    render(<BranchPicker selected="bgc" />);
+    render(<BranchPicker selected="bgc" onSelect={vi.fn()} />);
     expect(
       screen.getByRole("group", { name: "Showing availability at" }),
     ).toBeInTheDocument();
@@ -113,6 +144,17 @@ describe("BranchPicker", () => {
     expect(
       screen.getByRole("button", { name: "Taguig Lakeshore" }),
     ).toHaveAttribute("aria-pressed", "false");
+  });
+});
+
+describe("BranchPicker clicks", () => {
+  it("switches in the browser instead of submitting the form", () => {
+    const onSelect = vi.fn();
+    render(<BranchPicker selected="tipas" onSelect={onSelect} />);
+    const click = new MouseEvent("click", { bubbles: true, cancelable: true });
+    screen.getByRole("button", { name: "BGC" }).dispatchEvent(click);
+    expect(onSelect).toHaveBeenCalledWith("bgc");
+    expect(click.defaultPrevented).toBe(true);
   });
 });
 
@@ -147,6 +189,51 @@ describe("MenuSections", () => {
     const pastries = screen.getByRole("region", { name: "Pastries" });
     expect(within(pastries).getByText("Cinnamon Roll")).toBeInTheDocument();
     expect(within(pastries).queryByText("Olympus Latte")).toBeNull();
+  });
+
+  it("groups signature drinks into hot, iced and frappes, with jump links", () => {
+    render(
+      <MenuSections
+        sections={[
+          {
+            type: "signature",
+            items: [
+              signature,
+              {
+                ...signature,
+                slug: "frappe",
+                name: "Frappe",
+                temperature: "blended",
+              },
+              {
+                ...signature,
+                slug: "cold",
+                name: "Cold Brew",
+                temperature: "iced",
+              },
+            ],
+          },
+        ]}
+      />,
+    );
+    const drinks = screen.getByRole("region", { name: "Signature Drinks" });
+    expect(
+      within(drinks)
+        .getAllByRole("heading", { level: 3 })
+        .map((h) => h.textContent),
+    ).toEqual(["Hot drinks", "Iced drinks", "Frappes"]);
+    expect(
+      within(screen.getByRole("list", { name: "Frappes" })).getByRole(
+        "heading",
+        { level: 4, name: "Frappe" },
+      ),
+    ).toBeInTheDocument();
+    const nav = screen.getByRole("navigation", { name: "Menu sections" });
+    expect(
+      within(nav)
+        .getAllByRole("link")
+        .map((a) => a.getAttribute("href")),
+    ).toEqual(["#signature-drinks", "#hot-drinks", "#iced-drinks", "#frappes"]);
   });
 
   it("explains an empty section", () => {
@@ -204,9 +291,30 @@ describe("MenuContent", () => {
     expect(screen.getByText("Sold out at this branch")).toBeInTheDocument();
   });
 
+  it("switches branches instantly and remembers the choice in a cookie", async () => {
+    render(await MenuContent());
+    expect(screen.queryByText("Sold out at this branch")).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "BGC" }));
+
+    expect(screen.getByRole("button", { name: "BGC" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    expect(screen.getByText("Sold out at this branch")).toBeInTheDocument();
+    expect(screen.getByText("Showing availability at BGC.")).toHaveAttribute(
+      "aria-live",
+      "polite",
+    );
+    expect(document.cookie).toContain("hx_menu_branch=bgc");
+  });
+
   it("shows a polite message when the catalog can't be loaded", async () => {
     mocks.catalog = null;
     render(await MenuContent());
+    expect(
+      screen.getByRole("group", { name: "Showing availability at" }),
+    ).toBeInTheDocument();
     expect(screen.getByRole("status")).toHaveTextContent(
       "Our menu is unavailable at the moment.",
     );

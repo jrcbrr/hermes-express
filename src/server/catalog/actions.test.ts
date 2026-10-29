@@ -20,13 +20,14 @@ beforeEach(() => {
 });
 
 describe("selectBranch", () => {
-  it("stores a known branch in a long-lived, HTTP-only cookie", async () => {
+  // Not HTTP-only: the browser rewrites it when switching branches instantly.
+  it("stores a known branch in a long-lived cookie the browser can update", async () => {
     await selectBranch(form("bgc"));
-    expect(mocks.set).toHaveBeenCalledWith("hx_branch", "bgc", {
+    expect(mocks.set).toHaveBeenCalledWith("hx_menu_branch", "bgc", {
       path: "/",
       maxAge: 60 * 60 * 24 * 365,
       sameSite: "lax",
-      httpOnly: true,
+      httpOnly: false,
       secure: false,
     });
   });
@@ -35,7 +36,7 @@ describe("selectBranch", () => {
     vi.stubEnv("NODE_ENV", "production");
     await selectBranch(form("tipas"));
     expect(mocks.set).toHaveBeenCalledWith(
-      "hx_branch",
+      "hx_menu_branch",
       "tipas",
       expect.objectContaining({ secure: true }),
     );
