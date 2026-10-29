@@ -12,6 +12,7 @@ describe("resolveBuilderStart", () => {
       draft: EMPTY_DRAFT,
       signatureName: null,
       notice: null,
+      editId: null,
     });
   });
 
@@ -38,12 +39,20 @@ describe("resolveBuilderStart", () => {
     expect(start.notice).toMatch(/could not find that drink/);
   });
 
-  it("explains that editing a cart item comes with the cart", () => {
+  it("passes on the cart item to edit, which the browser loads", () => {
     const start = resolveBuilderStart(catalog, {
       edit: "item-1",
       from: "olympus-latte",
     });
-    expect(start.draft).toBe(EMPTY_DRAFT);
-    expect(start.notice).toMatch(/once the cart opens/);
+    expect(start).toEqual({
+      draft: EMPTY_DRAFT,
+      signatureName: null,
+      notice: null,
+      editId: "item-1",
+    });
+  });
+
+  it("ignores an empty edit id", () => {
+    expect(resolveBuilderStart(catalog, { edit: "" }).editId).toBeNull();
   });
 });

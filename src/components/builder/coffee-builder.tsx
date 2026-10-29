@@ -8,6 +8,8 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { useRouter } from "next/navigation";
+import { cartStore } from "@/components/cart/cart-store";
 import { BranchPicker } from "@/components/menu/branch-picker";
 import { siteConfig } from "@/config/site";
 import { useSound } from "@/hooks/use-sound";
@@ -23,6 +25,8 @@ import {
   reduceBuilder,
   sameDraft,
   STEPS,
+  toDrinkConfig,
+  unavailableChoices,
   type BuilderAction,
   type BuilderDraft,
   type StepId,
@@ -66,6 +70,7 @@ export function CoffeeBuilder({
   notice,
   initialBranch,
   soldOutByBranch,
+  editing = null,
 }: {
   catalog: BuilderCatalog;
   start: BuilderDraft;
@@ -73,13 +78,29 @@ export function CoffeeBuilder({
   notice: string | null;
   initialBranch: string;
   soldOutByBranch: Record<string, string[]>;
+  /** Set when changing a drink already in the cart. */
+  editing?: { itemId: string; quantity: number } | null;
 }) {
   const rules = useMemo(() => builderRules(catalog), [catalog]);
   const [state, dispatchRaw] = useReducer(
     (s: ReturnType<typeof createBuilderState>, a: BuilderAction) =>
       reduceBuilder(s, a, rules),
     start,
-    createBuilderState,
+    (draft: BuilderDraft) => {
+      const initial = createBuilderState(draft);
+      // An edited drink opens on its review, with its cart quantity.
+      return editing
+        ? {
+            ...initial,
+            step: furthestStep(draft),
+            quantity: editing.quantity,
+          }
+        : initial;
+    },
+  );
+  const router = useRouter();
+  const [cartStatus, setCartStatus] = useState<"idle" | "added" | "full">(
+    "idle",
   );
   const [branch, setBranch] = useState(initialBranch);
   const [announcement, setAnnouncement] = useState("");
@@ -103,6 +124,24 @@ export function CoffeeBuilder({
       play("clink");
     }
     dispatchRaw(action);
+    setCartStatus("idle");
+  }
+
+  const canAddToCart =
+    price !== null &&
+    furthest === "review" &&
+    unavailableChoices(state.draft, unavailable).length === 0;
+
+  function addToCart() {
+    const config = toDrinkConfig(state.draft);
+    if (config === null || !canAddToCart) return;
+    const entry = { kind: "custom" as const, config, quantity: state.quantity };
+    if (editing) {
+      cartStore.replace(editing.itemId, entry);
+      router.push("/cart");
+      return;
+    }
+    setCartStatus(cartStore.add(entry) ? "added" : "full");
   }
 
   function surprise() {
@@ -211,6 +250,10 @@ export function CoffeeBuilder({
               {...stepProps}
               quantity={state.quantity}
               branchName={branchName}
+              isEditing={editing !== null}
+              canAddToCart={canAddToCart}
+              cartStatus={cartStatus}
+              onAddToCart={addToCart}
             />
           )}
         </section>

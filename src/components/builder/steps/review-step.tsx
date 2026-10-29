@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { useId } from "react";
 import { Button } from "@/components/ui/button";
 import { optionIndex } from "@/lib/builder/catalog";
@@ -15,7 +16,19 @@ export function ReviewStep({
   dispatch,
   quantity,
   branchName,
-}: StepProps & { quantity: number; branchName: string }) {
+  isEditing,
+  canAddToCart,
+  cartStatus,
+  onAddToCart,
+}: StepProps & {
+  quantity: number;
+  branchName: string;
+  /** Changing a drink already in the cart. */
+  isEditing: boolean;
+  canAddToCart: boolean;
+  cartStatus: "idle" | "added" | "full";
+  onAddToCart: () => void;
+}) {
   const nameId = useId();
   const index = optionIndex(catalog);
   const name = (slug: string) => index.get(slug)?.name ?? slug;
@@ -110,10 +123,15 @@ export function ReviewStep({
       />
 
       <div className="flex flex-col gap-2 sm:flex-row">
-        {/* Wired up in Stage 5 (cart) and Stage 8 (favorites). */}
-        <Button size="lg" className="h-11 flex-1 font-semibold" disabled>
-          Add to cart
+        <Button
+          size="lg"
+          className="h-11 flex-1 font-semibold"
+          disabled={!canAddToCart}
+          onClick={onAddToCart}
+        >
+          {isEditing ? "Update cart" : "Add to cart"}
         </Button>
+        {/* Wired up in Stage 8 (favorites). */}
         <Button
           size="lg"
           variant="outline"
@@ -123,9 +141,23 @@ export function ReviewStep({
           Save to favorites
         </Button>
       </div>
+      <p role="status" className="text-sm empty:hidden">
+        {cartStatus === "added" ? (
+          <>
+            Added to your cart.{" "}
+            <Link
+              href="/cart"
+              className="font-semibold text-accent underline-offset-4 hover:underline"
+            >
+              View cart
+            </Link>
+          </>
+        ) : cartStatus === "full" ? (
+          "Your cart is full. Please check out or remove an item first."
+        ) : null}
+      </p>
       <p className="text-xs text-muted-foreground">
-        Online ordering and favorites open soon. Until then, you are welcome to
-        build and price your drink.
+        Saving drinks to your favorites opens soon.
       </p>
     </div>
   );

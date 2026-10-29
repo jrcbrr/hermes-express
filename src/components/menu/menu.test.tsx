@@ -7,8 +7,13 @@ const mocks = vi.hoisted(() => ({
   catalog: null as CatalogSnapshot | null,
 }));
 
+const { routerPush } = vi.hoisted(() => ({ routerPush: vi.fn() }));
 vi.mock("next/server", () => ({ connection: async () => {} }));
 vi.mock("@/server/catalog/actions", () => ({ selectBranch: vi.fn() }));
+vi.mock("@/server/cart/actions", () => ({
+  saveCart: vi.fn(async () => undefined),
+}));
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push: routerPush }) }));
 vi.mock("@/server/catalog/queries", () => ({
   getSelectedBranchSlug: async () => mocks.branch,
   loadCatalog: async () => mocks.catalog,
@@ -105,14 +110,32 @@ describe("ProductCard", () => {
     ).toBeInTheDocument();
   });
 
-  it("lets signature drinks open in the builder, with add to cart coming soon", () => {
+  it("lets signature drinks open in the builder", () => {
     const card = renderCard(signature);
     expect(
       within(card).getByRole("link", { name: "Customize Olympus Latte" }),
     ).toHaveAttribute("href", "/build?from=olympus-latte");
-    expect(
-      within(card).getByRole("button", { name: "Add Olympus Latte to cart" }),
-    ).toBeDisabled();
+  });
+
+  it("adds items to the cart and confirms it", () => {
+    const card = renderCard(signature);
+    const add = within(card).getByRole("button", {
+      name: "Add Olympus Latte to cart",
+    });
+    fireEvent.click(add);
+    fireEvent.click(add);
+    expect(add).toHaveTextContent("Added");
+    expect(within(card).getByRole("status")).toHaveTextContent(
+      "Olympus Latte added to your cart.",
+    );
+    const stored = JSON.parse(window.localStorage.getItem("hx_cart")!);
+    expect(stored.items).toEqual([
+      expect.objectContaining({
+        kind: "product",
+        productSlug: "olympus-latte",
+        quantity: 2,
+      }),
+    ]);
   });
 
   it("does not offer Customize for pastries and snacks", () => {
@@ -120,7 +143,7 @@ describe("ProductCard", () => {
     expect(within(card).queryByText("Customize")).toBeNull();
     expect(
       within(card).getByRole("button", { name: "Add Cinnamon Roll to cart" }),
-    ).toBeDisabled();
+    ).toBeEnabled();
   });
 
   it("labels sold-out items and disables their actions", () => {
@@ -131,6 +154,9 @@ describe("ProductCard", () => {
     expect(within(card).queryByRole("link")).toBeNull();
     expect(
       within(card).getByRole("button", { name: "Customize Olympus Latte" }),
+    ).toBeDisabled();
+    expect(
+      within(card).getByRole("button", { name: "Add Olympus Latte to cart" }),
     ).toBeDisabled();
   });
 
@@ -297,7 +323,6 @@ describe("MenuContent", () => {
     );
     expect(screen.getByText("Cinnamon Roll")).toBeInTheDocument();
     expect(screen.queryByText("Sold out at this branch")).toBeNull();
-    expect(screen.getByText(/Online ordering opens soon/)).toBeInTheDocument();
   });
 
   it("shows sold-out items at the branch that flagged them", async () => {
