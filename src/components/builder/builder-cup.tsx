@@ -10,6 +10,7 @@ import {
 import { useEffect, useId, useState, useSyncExternalStore } from "react";
 import { Button } from "@/components/ui/button";
 import { useSound } from "@/hooks/use-sound";
+import { CupToppings } from "./builder-toppings";
 import type { BuilderCatalog } from "@/lib/builder/catalog";
 import type { BuilderDraft } from "@/lib/builder/state";
 import {
@@ -21,7 +22,6 @@ import {
   stackLayers,
   toppingVisuals,
   type LiquidLayer,
-  type ToppingVisual,
 } from "@/lib/builder/visual";
 
 // Glass geometry (viewBox 0 0 200 250). The 22oz cup is MAX_HEIGHT tall.
@@ -137,8 +137,6 @@ export function BuilderCup({
   }));
 
   const toppings = toppingVisuals(draft.toppings, catalog);
-  const foams = toppings.filter((t) => t.style === "foam");
-  const crown = surface - foams.length * 9;
 
   return (
     <div className="flex items-center justify-center gap-3 md:flex-col">
@@ -274,13 +272,21 @@ export function BuilderCup({
             top={Math.min(surface + 4, BOTTOM - 26)}
             reduce={reduce}
           />
-          <Toppings
+          <CupToppings
             toppings={toppings}
             surface={surface}
-            crown={crown}
             reduce={reduce}
+            layer="inside"
           />
         </g>
+
+        {/* Whipped cream can rise over the rim; the glass edge stays in front. */}
+        <CupToppings
+          toppings={toppings}
+          surface={surface}
+          reduce={reduce}
+          layer="above"
+        />
 
         <g
           fill="none"
@@ -384,124 +390,6 @@ function IceCubes({
           />
         </motion.g>
       ))}
-    </AnimatePresence>
-  );
-}
-
-function Topping({
-  topping,
-  index,
-  surface,
-  crown,
-}: {
-  topping: ToppingVisual;
-  index: number;
-  surface: number;
-  crown: number;
-}) {
-  const color = topping.color;
-  switch (topping.style) {
-    case "foam":
-      return (
-        <rect
-          x="30"
-          y={surface - 9 * (index + 1) - 2}
-          width="140"
-          height="12"
-          rx="6"
-          fill={color}
-        />
-      );
-    case "drizzle":
-      return (
-        <path
-          d={`M44 ${crown - 2 + index * 3} q10 -6 20 0 t20 0 t20 0 t20 0 t20 0 t20 0`}
-          fill="none"
-          stroke={color}
-          strokeWidth="3"
-          strokeLinecap="round"
-        />
-      );
-    case "sprinkle":
-      return (
-        <g fill={color}>
-          {[56, 72, 88, 104, 120, 136, 148].map((x, i) => (
-            <circle
-              key={x}
-              cx={x + index * 3}
-              cy={crown - 3 + (i % 3) * 2}
-              r="1.8"
-            />
-          ))}
-        </g>
-      );
-    case "bottom":
-      return (
-        <g fill={color}>
-          {[64, 78, 92, 106, 120, 134].map((x, i) =>
-            topping.slug === "tapioca-pearls" ? (
-              <circle
-                key={x}
-                cx={x + (index % 2) * 5}
-                cy={BOTTOM - 6 - index * 10 - (i % 2) * 5}
-                r="5"
-              />
-            ) : (
-              <rect
-                key={x}
-                x={x + (index % 2) * 5 - 4}
-                y={BOTTOM - 12 - index * 10 - (i % 2) * 5}
-                width="9"
-                height="9"
-                rx="2"
-                opacity="0.9"
-              />
-            ),
-          )}
-        </g>
-      );
-  }
-}
-
-function Toppings({
-  toppings,
-  surface,
-  crown,
-  reduce,
-}: {
-  toppings: ToppingVisual[];
-  surface: number;
-  crown: number;
-  reduce: boolean;
-}) {
-  // Each style is counted separately so stacked foams and drizzles don't overlap.
-  const seen: Record<string, number> = {};
-  return (
-    <AnimatePresence initial={false}>
-      {toppings.map((topping) => {
-        const index = (seen[topping.style] = (seen[topping.style] ?? -1) + 1);
-        return (
-          <motion.g
-            key={topping.slug}
-            data-testid={`topping-${topping.slug}`}
-            initial={{ opacity: 0, y: -60 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={
-              reduce
-                ? { duration: 0 }
-                : { type: "spring", stiffness: 220, damping: 18 }
-            }
-          >
-            <Topping
-              topping={topping}
-              index={index}
-              surface={surface}
-              crown={crown}
-            />
-          </motion.g>
-        );
-      })}
     </AnimatePresence>
   );
 }

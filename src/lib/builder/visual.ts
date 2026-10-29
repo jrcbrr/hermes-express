@@ -103,7 +103,13 @@ export function mixColor(layers: readonly LiquidLayer[]): string | null {
   return `#${mixed.map(toHex).join("")}`.toUpperCase();
 }
 
-export type ToppingStyle = "foam" | "drizzle" | "sprinkle" | "bottom";
+/**
+ * dollop: a piped swirl (whipped cream). foam: a soft dome on the drink.
+ * drizzle: a sauce zig-zag with drips. dust: a fine powder. crumble: small
+ * crumbs. pieces: pearls or cubes that sink to the bottom.
+ */
+export type ToppingStyle =
+  "dollop" | "foam" | "drizzle" | "dust" | "crumble" | "pieces";
 
 export type ToppingVisual = {
   slug: string;
@@ -112,20 +118,20 @@ export type ToppingVisual = {
 };
 
 const TOPPING_STYLES: Record<string, ToppingStyle> = {
-  "whipped-cream": "foam",
+  "whipped-cream": "dollop",
   "cold-foam": "foam",
   "sea-salt-cream": "foam",
   "caramel-drizzle": "drizzle",
   "chocolate-drizzle": "drizzle",
-  "cookie-crumble": "sprinkle",
-  "cinnamon-dust": "sprinkle",
-  "cocoa-powder": "sprinkle",
-  "tapioca-pearls": "bottom",
-  "coffee-jelly": "bottom",
-  "nata-de-coco": "bottom",
+  "cookie-crumble": "crumble",
+  "cinnamon-dust": "dust",
+  "cocoa-powder": "dust",
+  "tapioca-pearls": "pieces",
+  "coffee-jelly": "pieces",
+  "nata-de-coco": "pieces",
 };
 
-/** How each topping is drawn. Unknown toppings are sprinkled on top. */
+/** How each topping is drawn. Unknown toppings are dusted on top. */
 export function toppingVisuals(
   toppings: readonly string[],
   catalog: BuilderCatalog,
@@ -133,9 +139,84 @@ export function toppingVisuals(
   const index = optionIndex(catalog);
   return toppings.map((slug) => ({
     slug,
-    style: TOPPING_STYLES[slug] ?? "sprinkle",
+    style: TOPPING_STYLES[slug] ?? "dust",
     color: index.get(slug)?.color ?? FALLBACK_LIQUID_COLOR,
   }));
+}
+
+/** Thickness of one foam layer, and height of the whipped cream swirl (SVG units). */
+export const FOAM_THICKNESS = 12;
+export const DOLLOP_HEIGHT = 46;
+
+export type ToppingLayout = {
+  /** Top of the foam layers (the drink's surface when there is no foam). */
+  foamTop: number;
+  /** Top of the whipped cream, or null without it. */
+  dollopTop: number | null;
+  /** Where drizzles and dusts sit, and how wide they spread. */
+  crown: number;
+  crownSpan: [number, number];
+};
+
+/**
+ * Where toppings sit, given the drink's surface (SVG y, smaller is higher):
+ * foams stack on the drink, whipped cream sits on the foams, and drizzles
+ * and dusts go on whatever is on top.
+ */
+export function toppingLayout(
+  toppings: readonly ToppingVisual[],
+  surface: number,
+): ToppingLayout {
+  const foams = toppings.filter((t) => t.style === "foam").length;
+  const foamTop = surface - foams * FOAM_THICKNESS;
+  const hasDollop = toppings.some((t) => t.style === "dollop");
+  return hasDollop
+    ? {
+        foamTop,
+        dollopTop: foamTop - DOLLOP_HEIGHT,
+        crown: foamTop - 26,
+        crownSpan: [72, 128],
+      }
+    : { foamTop, dollopTop: null, crown: foamTop, crownSpan: [46, 154] };
+}
+
+/**
+ * A lighter (amount > 0, towards white) or darker (amount < 0, towards
+ * black) version of a colour, for shading. amount is between -1 and 1.
+ */
+export function shade(hex: string, amount: number): string {
+  const t = Math.min(1, Math.abs(amount));
+  const target = amount >= 0 ? 255 : 0;
+  return `#${parseHex(hex)
+    .map((c) => toHex(c + (target - c) * t))
+    .join("")}`.toUpperCase();
+}
+
+export type ScatterPoint = { x: number; y: number; size: number };
+
+/**
+ * `count` points with x, y and size between 0 and 1. The same seed always
+ * gives the same points, so dust and crumbs don't jump around on re-render.
+ */
+export function scatter(count: number, seed: number): ScatterPoint[] {
+  let state = seed >>> 0 || 1;
+  const next = () => {
+    state = (Math.imul(state, 1664525) + 1013904223) >>> 0;
+    return state / 4294967296;
+  };
+  return Array.from({ length: count }, () => ({
+    x: next(),
+    y: next(),
+    size: next(),
+  }));
+}
+
+/** A small whole number from a slug, used as a scatter seed. */
+export function seedOf(slug: string): number {
+  let hash = 7;
+  for (const char of slug)
+    hash = (Math.imul(hash, 31) + char.charCodeAt(0)) >>> 0;
+  return hash;
 }
 
 export function iceCubeCount(level: AmountLevel | undefined): number {

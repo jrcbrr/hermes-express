@@ -9,7 +9,11 @@ import {
   FALLBACK_LIQUID_COLOR,
   iceCubeCount,
   mixColor,
+  scatter,
+  seedOf,
+  shade,
   stackLayers,
+  toppingLayout,
   toppingVisuals,
   type LiquidLayer,
 } from "./visual";
@@ -112,19 +116,75 @@ describe("mixColor", () => {
 });
 
 describe("toppingVisuals", () => {
-  it("draws foams, drizzles, sprinkles and bottom pieces", () => {
+  it("gives each topping its own style", () => {
     expect(
       toppingVisuals(
-        ["cold-foam", "caramel-drizzle", "cocoa-powder", "tapioca-pearls"],
+        [
+          "whipped-cream",
+          "cold-foam",
+          "caramel-drizzle",
+          "cocoa-powder",
+          "cookie-crumble",
+          "tapioca-pearls",
+        ],
         catalog,
       ).map((t) => t.style),
-    ).toEqual(["foam", "drizzle", "sprinkle", "bottom"]);
+    ).toEqual(["dollop", "foam", "drizzle", "dust", "crumble", "pieces"]);
   });
 
-  it("sprinkles unknown toppings with a fallback colour", () => {
+  it("dusts unknown toppings with a fallback colour", () => {
     expect(toppingVisuals(["stardust"], catalog)).toEqual([
-      { slug: "stardust", style: "sprinkle", color: FALLBACK_LIQUID_COLOR },
+      { slug: "stardust", style: "dust", color: FALLBACK_LIQUID_COLOR },
     ]);
+  });
+});
+
+describe("toppingLayout", () => {
+  const visuals = (slugs: string[]) => toppingVisuals(slugs, catalog);
+
+  it("puts drizzles straight on the drink when there is nothing else", () => {
+    expect(toppingLayout(visuals(["caramel-drizzle"]), 120)).toEqual({
+      foamTop: 120,
+      dollopTop: null,
+      crown: 120,
+      crownSpan: [46, 154],
+    });
+  });
+
+  it("stacks foams, then whipped cream, and crowns the top", () => {
+    const layout = toppingLayout(
+      visuals(["cold-foam", "sea-salt-cream", "whipped-cream"]),
+      120,
+    );
+    expect(layout.foamTop).toBe(96);
+    expect(layout.dollopTop).toBe(50);
+    expect(layout.crown).toBe(70);
+    expect(layout.crownSpan).toEqual([72, 128]);
+  });
+});
+
+describe("shade", () => {
+  it("lightens towards white and darkens towards black", () => {
+    expect(shade("#806040", 0.5)).toBe("#C0B0A0");
+    expect(shade("#806040", -0.5)).toBe("#403020");
+    expect(shade("#806040", 0)).toBe("#806040");
+    expect(shade("#806040", 2)).toBe("#FFFFFF");
+    expect(shade("#806040", -2)).toBe("#000000");
+  });
+});
+
+describe("scatter", () => {
+  it("gives the same points for the same seed, all between 0 and 1", () => {
+    const points = scatter(50, seedOf("cocoa-powder"));
+    expect(points).toEqual(scatter(50, seedOf("cocoa-powder")));
+    expect(points).not.toEqual(scatter(50, seedOf("cinnamon-dust")));
+    for (const p of points) {
+      for (const value of [p.x, p.y, p.size]) {
+        expect(value).toBeGreaterThanOrEqual(0);
+        expect(value).toBeLessThan(1);
+      }
+    }
+    expect(scatter(3, 0)).toHaveLength(3);
   });
 });
 

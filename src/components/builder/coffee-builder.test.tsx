@@ -384,4 +384,61 @@ describe("BuilderCup animation", () => {
     );
     expect(screen.queryByTestId("steam")).toBeNull();
   });
+
+  it("shades each topping style, and drizzles drape over the cream", () => {
+    const toppings = [
+      "cold-foam",
+      "sea-salt-cream",
+      "whipped-cream",
+      "chocolate-drizzle",
+      "cookie-crumble",
+      "nata-de-coco",
+    ];
+    renderBuilder({
+      start: {
+        ...EMPTY_DRAFT,
+        base: "latte",
+        shots: 1,
+        milk: "whole",
+        toppings,
+      },
+    });
+    const styles = toppings.map((slug) =>
+      screen.getByTestId(`topping-${slug}`).getAttribute("data-style"),
+    );
+    expect(styles).toEqual([
+      "foam",
+      "foam",
+      "dollop",
+      "drizzle",
+      "crumble",
+      "pieces",
+    ]);
+    // Every topping is shaded with its own gradient, not a flat fill.
+    for (const slug of ["cold-foam", "whipped-cream", "nata-de-coco"]) {
+      const topping = screen.getByTestId(`topping-${slug}`);
+      expect(
+        topping.querySelector("linearGradient, radialGradient"),
+      ).not.toBeNull();
+    }
+    // Sea salt flecks only on sea salt cream.
+    expect(
+      screen.getByTestId("topping-sea-salt-cream").querySelectorAll("circle")
+        .length,
+    ).toBeGreaterThan(
+      screen.getByTestId("topping-cold-foam").querySelectorAll("circle").length,
+    );
+    // Whipped cream and what rests on it are drawn above the glass clip.
+    const cup = screen.getByTestId("builder-cup");
+    const clipped = cup.querySelector("g[clip-path]")!;
+    expect(clipped.contains(screen.getByTestId("topping-whipped-cream"))).toBe(
+      false,
+    );
+    expect(
+      clipped.contains(screen.getByTestId("topping-chocolate-drizzle")),
+    ).toBe(false);
+    expect(clipped.contains(screen.getByTestId("topping-cold-foam"))).toBe(
+      true,
+    );
+  });
 });
