@@ -2,6 +2,7 @@
 
 import { randomInt, randomUUID } from "node:crypto";
 import { and, eq, sql } from "drizzle-orm";
+import { after } from "next/server";
 import { getDb } from "@/db";
 import { branch, order, orderItem, orderStatusEvent } from "@/db/schema";
 import { siteConfig } from "@/config/site";
@@ -17,6 +18,7 @@ import {
 } from "@/lib/validation/checkout";
 import { requireUser } from "@/server/auth/session";
 import { getCatalogSnapshot } from "@/server/catalog/queries";
+import { sendReceiptEmail } from "@/server/receipts/email";
 
 export type PlaceOrderResult =
   | { ok: true; orderId: string }
@@ -207,6 +209,9 @@ export async function placeOrder(input: unknown): Promise<PlaceOrderResult> {
           changedByUserId: user.id,
         }),
       ]);
+      // Runs after the response is sent, so the email never slows checkout
+      // down. Only new orders get here: a repeated checkout returns earlier.
+      after(() => sendReceiptEmail(orderId, user));
       return { ok: true, orderId };
     } catch (error) {
       const constraint = uniqueViolation(error);

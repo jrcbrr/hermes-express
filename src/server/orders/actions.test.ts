@@ -43,11 +43,21 @@ const mocks = vi.hoisted(() => {
       return [];
     }),
   };
-  return { db, state, requireUser: vi.fn() };
+  return {
+    db,
+    state,
+    requireUser: vi.fn(),
+    after: vi.fn(),
+    sendReceiptEmail: vi.fn(),
+  };
 });
 
 vi.mock("@/db", () => ({ getDb: () => mocks.db }));
 vi.mock("@/server/auth/session", () => ({ requireUser: mocks.requireUser }));
+vi.mock("next/server", () => ({ after: mocks.after }));
+vi.mock("@/server/receipts/email", () => ({
+  sendReceiptEmail: mocks.sendReceiptEmail,
+}));
 vi.mock("@/server/catalog/queries", () => ({
   getCatalogSnapshot: async () => mocks.state.snapshot,
 }));
@@ -293,6 +303,24 @@ describe("placeOrder", () => {
     mocks.state.selects = [[{ id: "order-1" }]];
     expect(await placeOrder(input)).toEqual({ ok: true, orderId: "order-1" });
     expect(mocks.db.batch).not.toHaveBeenCalled();
+    // The receipt went out with the first checkout.
+    expect(mocks.after).not.toHaveBeenCalled();
+  });
+
+  it("emails the receipt after the response, once per new order", async () => {
+    const result = await placeOrder(input);
+    const orderId = (result as { orderId: string }).orderId;
+    expect(mocks.after).toHaveBeenCalledTimes(1);
+    expect(mocks.sendReceiptEmail).not.toHaveBeenCalled();
+    const task = mocks.after.mock.calls[0]![0] as () => unknown;
+    await task();
+    expect(mocks.sendReceiptEmail).toHaveBeenCalledWith(orderId, { id: "u1" });
+  });
+
+  it("sends no receipt when the order is refused", async () => {
+    mocks.state.selects = [[], [{ ...BGC, isActive: false }]];
+    expect((await placeOrder(input)).ok).toBe(false);
+    expect(mocks.after).not.toHaveBeenCalled();
   });
 
   it("refuses inactive branches", async () => {
