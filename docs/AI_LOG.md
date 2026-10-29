@@ -176,12 +176,22 @@ Rules the AI follows are in [`../CLAUDE.md`](../CLAUDE.md). Stage prompts are in
 - **Key prompts I gave:**
   - The Stage 4 master prompt (steps, state machine in `src/lib/builder/`, animated SVG cup with Motion, price bar, sold-out options, Surprise me, `?from=` and `?edit=`, layout, accessibility, tests, closing block). Plan first with a component tree and state design, and wait for "go".
   - Answers to the AI's three questions: switch the links to `?from=` but keep `?drink=` working; skip the build-a-drink E2E test without a database; Reset goes back to the starting drink and can be undone.
+  - After the PR was open, three design changes, all added to PR #5 before merging:
+    - "Please elevate the design for the toppings but not too heavy." When the AI proposed a light line-art refresh, I **corrected** it: "The problem here is that the toppings design are flat, I want it elevated."
+    - "I want it when you are making the drink it will finish off at the brim of the cup."
+    - "Make it so that the toppings and syrups don't have a limit", and the whipped cream was still below the brim, so fix that too.
+  - Checked progress myself several times ("is it deployed?", "we are at stage 4, right?"), paused the session ("stop for now") and resumed it later.
 - **What the AI did:**
   - Noticed that the Stage 3 links used `?drink=` while the prompt asked for `?from=`, and that Motion was planned but not installed, and raised both before coding.
-  - Wrote the builder as a pure reducer with rules the UI can't bypass (no hot Cold Brew, at most 3 syrups and 5 toppings, shots only for espresso bases), with 100% line coverage, including a test that the price after every action matches `calculateDrinkPrice()`.
+  - Wrote the builder as a pure reducer with rules the UI can't bypass (no hot Cold Brew, shots only for espresso bases, and at first at most 3 syrups and 5 toppings, a limit removed later at my request), with 100% line coverage, including a test that the price after every action matches `calculateDrinkPrice()`.
   - Built the cup from pure helpers (layers, a height-weighted mixed colour, topping styles) so the drawing logic is tested without a browser, and timed the pour, stack and mix phases with a small state machine tested with fake timers.
   - Looked at screenshots at 375px and 1280px, in light and dark mode, and changed the phone layout because the cup scrolled out of view while choosing toppings: it is now a compact cup pinned under the header. Also shortened the step labels so all six fit at 375px.
   - Ran lint, typecheck, tests with coverage, the production build and the full E2E suite (desktop and phone).
+  - After the PR:
+    - **Toppings with depth:** moved the topping drawing into `builder-toppings.tsx` and added tested helpers in `visual.ts` (`shade()` for lighter and darker tones of each ingredient colour, `scatter()` for repeatable dust and crumbs, `toppingLayout()` for placement). Whipped cream is piped in tiers, foams are shaded domes with bubbles, sauces are glossy with drips that draw on, and pearls and jelly cubes are see-through and fall in one after another. No blur filters and no new colours, so it stays light and works in dark mode.
+    - **Brim-full drink:** the base still pours to about half the cup, then once a milk is chosen the liquids rise to the rim, keeping their proportions. Foams finish at the brim and whipped cream sits on the rim.
+    - **No limit on syrups or toppings:** each can be added once, the counter shows "N chosen", and the server keeps a hidden cap of 30 per list to reject junk requests. "Surprise me" still picks a modest number. PLAN §5 and §13 were updated with the decision.
+    - Each change came with a short plan first, then screenshots in light and dark mode, the full checks, and a push to PR #5 so the preview updated.
 - **What I reviewed / changed / rejected and why:**
   - _(My own reflections: what I questioned, changed or rejected, and why.)_
 - **Problems & fixes:**
@@ -189,12 +199,20 @@ Rules the AI follows are in [`../CLAUDE.md`](../CLAUDE.md). Stage prompts are in
   - **Hydration mismatch from that fix:** the server can't know the device setting, so its HTML had "Mix again" and the browser's did not. Fixed by reading the setting only after hydration (`useSyncExternalStore`). A unit test for the device setting was dropped because Motion caches the setting once per page; an E2E test with reduced motion checks it in a real browser instead.
   - **Lint rule `react-hooks/immutability`:** a running total in the cup's render was flagged; moved into a pure, tested helper (`stackLayers()`).
   - **Forced clicks on hidden inputs** in the screenshot script landed under the pinned price bar; the tests click the visible option cards, as a customer would.
+  - **Whipped cream sat below the rim:** it was placed on the drink's surface, which was 3% below the rim. It now sits on the rim line. The same screenshots showed a thin white strip under the rim, so the drink now fills right to the rim.
+  - **Whipped cream above the rim nearly disappeared in light mode** against the cream page; it got a faint outline in a darker shade of the cream.
+  - **Wrong expected price in a new test:** the AI added up the 11 toppings as ₱240 instead of ₱190. The test was corrected to ₱570; the app's price was right.
+  - **An old test used "4 syrups" as an invalid drink,** which became valid once the limit was removed. It now uses a list over the 30-item safety cap.
+  - **Two long builder tests timed out once** under the full parallel suite. Their timeout was raised to 15 seconds; what they check did not change.
+  - **A shell command mangled backticks** in an edit before anything was written; the AI switched to its file-editing tool.
 - **What I learned:**
   - Putting the rules in a reducer, not only in the buttons, means "Surprise me", undo and future features can't build an invalid drink.
   - Animations can be driven by a tiny state machine (pouring, stacked, mixing, mixed), which makes them testable with fake timers.
   - Anything that depends on the device (reduced motion, theme) must render the same as the server first, then update after hydration.
   - Looking at real screenshots catches problems tests don't, such as the cup scrolling out of view on a phone.
-- **Raw log:** [docs/ai-logs/2026-10-29-stage-4.md](ai-logs/2026-10-29-stage-4.md)
+  - Being specific about what's wrong ("flat", not just "elevate it") gets a much better result than the first proposal.
+  - A limit can be removed for customers while the server still keeps a safety cap, so the API stays protected.
+- **Raw log:** [docs/ai-logs/2026-10-29-stage-4.md](ai-logs/2026-10-29-stage-4.md) (exported before the merge of PR #5; checked for secrets before committing)
 
 ## 2026-10-29 — Stage 5: Cart, checkout & orders
 
