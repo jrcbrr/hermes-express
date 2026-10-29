@@ -1,32 +1,26 @@
 import { choiceCard, ChoiceText, type ChoiceOption } from "./option-group";
 
 /**
- * Pick up to `max`: checkboxes styled as cards. Once the limit is reached,
- * the unchosen ones are disabled (chosen ones can always be removed).
+ * Pick as many as you like: checkboxes styled as cards. Sold-out options are
+ * disabled, but one already chosen can always be removed.
  */
 export function ChipGroup({
   legend,
-  noun,
   options,
   selected,
-  max,
   onToggle,
 }: {
   legend: string;
-  /** Plural, for the counter: "syrups", "toppings". */
-  noun: string;
   options: ChoiceOption[];
   selected: readonly string[];
-  max: number;
   onToggle: (value: string) => void;
 }) {
-  const full = selected.length >= max;
   return (
     <fieldset>
       <legend className="mb-2 flex w-full justify-between gap-2 text-sm font-semibold">
         <span>{legend}</span>
         <span className="font-normal text-muted-foreground">
-          {selected.length} of {max} {noun}
+          {selected.length === 0 ? "None chosen" : `${selected.length} chosen`}
         </span>
       </legend>
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
@@ -38,7 +32,7 @@ export function ChipGroup({
                 type="checkbox"
                 value={option.value}
                 checked={checked}
-                disabled={!checked && (option.disabled || full)}
+                disabled={!checked && option.disabled}
                 onChange={() => onToggle(option.value)}
                 className="sr-only"
               />

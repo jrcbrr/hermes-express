@@ -151,43 +151,45 @@ describe("milk, sweetener and toppings", () => {
     expect(run([odd], state)).toBe(state);
   });
 
-  it("toggles syrups, up to three", () => {
-    const three = run(
-      ["vanilla", "caramel", "honey"].map((syrup) => ({
-        type: "toggleSyrup" as const,
-        syrup,
-      })),
-    );
-    expect(three.draft.syrups).toEqual(["vanilla", "caramel", "honey"]);
-    expect(run([{ type: "toggleSyrup", syrup: "toffee" }], three)).toBe(three);
-    expect(run([{ type: "toggleSyrup", syrup: "maple" }], three)).toBe(three);
+  it("adds every syrup if the customer likes, each once, and prices them all", () => {
+    const syrups = catalog.syrups.map((s) => s.slug);
+    const all = run([
+      { type: "setBase", base: "latte" },
+      { type: "setMilk", milk: "whole" },
+      ...syrups.map((syrup) => ({ type: "toggleSyrup" as const, syrup })),
+    ]);
+    expect(all.draft.syrups).toEqual(syrups);
+    // Latte ₱130 plus 10 syrups at ₱20.
+    expect(price(all)).toBe(13000 + syrups.length * 2000);
+
+    expect(run([{ type: "toggleSyrup", syrup: "maple" }], all)).toBe(all);
     expect(
-      run([{ type: "toggleSyrup", syrup: "caramel" }], three).draft.syrups,
-    ).toEqual(["vanilla", "honey"]);
+      run([{ type: "toggleSyrup", syrup: "caramel" }], all).draft.syrups,
+    ).not.toContain("caramel");
   });
 
-  it("toggles toppings, up to five", () => {
-    const slugs = [
-      "whipped-cream",
-      "caramel-drizzle",
-      "cookie-crumble",
-      "cocoa-powder",
-      "coffee-jelly",
-    ];
-    const five = run(
-      slugs.map((topping) => ({ type: "toggleTopping" as const, topping })),
+  it("adds every topping if the customer likes, each once, and prices them all", () => {
+    const toppings = catalog.toppings.map((t) => t.slug);
+    const all = run([
+      { type: "setBase", base: "latte" },
+      { type: "setMilk", milk: "whole" },
+      ...toppings.map((topping) => ({
+        type: "toggleTopping" as const,
+        topping,
+      })),
+    ]);
+    expect(all.draft.toppings).toEqual(toppings);
+    const toppingTotal = catalog.toppings.reduce(
+      (sum, t) => sum + t.priceCentavos,
+      0,
     );
-    expect(five.draft.toppings).toEqual(slugs);
+    expect(price(all)).toBe(13000 + toppingTotal);
+
+    expect(run([{ type: "toggleTopping", topping: "glitter" }], all)).toBe(all);
     expect(
-      run([{ type: "toggleTopping", topping: "nata-de-coco" }], five),
-    ).toBe(five);
-    expect(run([{ type: "toggleTopping", topping: "glitter" }], five)).toBe(
-      five,
-    );
-    expect(
-      run([{ type: "toggleTopping", topping: "whipped-cream" }], five).draft
+      run([{ type: "toggleTopping", topping: "whipped-cream" }], all).draft
         .toppings,
-    ).toHaveLength(4);
+    ).toHaveLength(toppings.length - 1);
   });
 });
 

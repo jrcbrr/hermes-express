@@ -17,8 +17,6 @@ import {
 import {
   DRINK_NAME_MAX_LENGTH,
   MAX_SHOTS,
-  MAX_SYRUPS,
-  MAX_TOPPINGS,
   MIN_SHOTS,
   SWEETNESS_LEVELS,
   type AmountLevel,
@@ -302,13 +300,9 @@ function withoutKey<T extends object, K extends keyof T>(
   return copy;
 }
 
-function toggle(
-  list: readonly string[],
-  item: string,
-  max: number,
-): string[] | null {
-  if (list.includes(item)) return list.filter((i) => i !== item);
-  return list.length < max ? [...list, item] : null;
+/** Adds the item, or removes it when it's already there (no limit on how many). */
+function toggle(list: readonly string[], item: string): string[] {
+  return list.includes(item) ? list.filter((i) => i !== item) : [...list, item];
 }
 
 /** Applies a change to the drink; returns null when the change is not allowed. */
@@ -384,14 +378,18 @@ function editDraft(
 
     case "toggleSyrup": {
       if (!rules.syrups.has(action.syrup)) return null;
-      const syrups = toggle(draft.syrups, action.syrup, MAX_SYRUPS);
-      return syrups ? [{ ...draft, syrups }, "syrup"] : null;
+      return [
+        { ...draft, syrups: toggle(draft.syrups, action.syrup) },
+        "syrup",
+      ];
     }
 
     case "toggleTopping": {
       if (!rules.toppings.has(action.topping)) return null;
-      const toppings = toggle(draft.toppings, action.topping, MAX_TOPPINGS);
-      return toppings ? [{ ...draft, toppings }, "topping"] : null;
+      return [
+        { ...draft, toppings: toggle(draft.toppings, action.topping) },
+        "topping",
+      ];
     }
 
     case "setName":
