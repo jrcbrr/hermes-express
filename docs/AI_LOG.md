@@ -241,4 +241,4 @@ Rules the AI follows are in [`../CLAUDE.md`](../CLAUDE.md). Stage prompts are in
   - Store what the customer chose, not what it cost: prices are recomputed everywhere from one function, so a stale or tampered price never matters.
   - An idempotency key (one id per checkout) turns "the customer tapped Pay twice" from a bug into a non-event.
   - With Partial Prerendering, anything that reads the URL in a shared layout should sit in the smallest possible `<Suspense>` leaf.
-- **Raw log:** [docs/ai-logs/2026-10-29-stage-5.md](ai-logs/2026-10-29-stage-5.md)
+- **Raw log:** [docs/ai-logs/2026-10-29-stage-5.md](ai-logs/2026-10-29-stage-5.md) (exported before the merge of PR #6; checked for secrets before committing)
