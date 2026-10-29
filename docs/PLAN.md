@@ -550,3 +550,10 @@ The seed stops with a clear error if any seed variable is missing or a password 
 | Menu photos | Real, free-licence photos from Wikimedia Commons, one per product, checked by eye to match the item. No photos showing other brands' logos. Credits on `/credits`. The seed fills a photo only where a product has none. |
 | Branch picker | Switching branches is instant: the page carries every branch's sold-out list, and the browser saves the choice in the `hx_menu_branch` cookie (not HTTP-only; it holds only a branch name). |
 | Receipts | Built in Stage 5 with checkout (moved from Stage 8): own tab, PDF download, emailed to an address entered at checkout. Shows branch address, phone, TIN and a VAT line (§7). |
+
+### Decisions made by the owner (Stage 4)
+| Topic | Decision |
+|---|---|
+| Builder link | `/build?from=<slug>` opens a signature drink in the builder. The older `?drink=<slug>` still works. Menu and landing links use `?from=`. |
+| Builder E2E in CI | The build-a-drink E2E test needs the seeded catalog, so it skips without `DATABASE_URL` (like the menu tests) until the Neon `ci` branch exists. A no-database test still checks `/build` renders. |
+| Reset | Reset returns to where the drink started: the signature recipe when opened from one, otherwise an empty cup. Reset can be undone. |
