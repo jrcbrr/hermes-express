@@ -1,13 +1,10 @@
-import { ShoppingBag } from "lucide-react";
-import Link from "next/link";
 import { Suspense } from "react";
 import { Logo } from "@/components/brand/logo";
+import { CartHeaderLink } from "@/components/cart/cart-count";
 import { SoundToggle } from "@/components/sound/sound-toggle";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
-import { buttonVariants } from "@/components/ui/button";
 import { AccountSlot } from "./account-slot";
 import { DesktopNav } from "./desktop-nav";
-import { CART_HREF } from "./nav-items";
 
 /**
  * Top bar. Desktop: logo, main links, cart, sound, theme, account menu.
@@ -23,13 +20,7 @@ export function SiteHeader() {
           {/* Desktop-only items sit in hidden wrappers: the button styles set
               their own display, which would override `hidden` on the link. */}
           <div className="hidden md:flex">
-            <Link
-              href={CART_HREF}
-              aria-label="Cart"
-              className={buttonVariants({ variant: "ghost", size: "icon-lg" })}
-            >
-              <ShoppingBag className="size-5" aria-hidden="true" />
-            </Link>
+            <CartHeaderLink />
           </div>
           <SoundToggle />
           <ThemeToggle />

@@ -4,7 +4,7 @@ import { resolveBuilderStart, type SearchParams } from "@/lib/builder/start";
 import { soldOutIngredientsByBranch } from "@/lib/catalog";
 import { getSelectedBranchSlug, loadCatalog } from "@/server/catalog/queries";
 import { BuilderUnavailable } from "./builder-unavailable";
-import { CoffeeBuilder } from "./coffee-builder";
+import { BuilderEntry } from "./builder-entry";
 
 /**
  * The live part of /build. It reads the branch cookie and the query string, so
@@ -26,7 +26,8 @@ export async function BuilderContent({
   const catalog = toBuilderCatalog(snapshot, new Date());
   const start = resolveBuilderStart(catalog, params);
   return (
-    <CoffeeBuilder
+    <BuilderEntry
+      editId={start.editId}
       catalog={catalog}
       start={start.draft}
       signatureName={start.signatureName}

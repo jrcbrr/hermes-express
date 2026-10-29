@@ -14,7 +14,12 @@ import {
   timestamp,
   uniqueIndex,
 } from "drizzle-orm/pg-core";
+import type { BranchService } from "@/config/site";
+import type { CartItem } from "@/lib/cart";
 import type { IngredientKind, ProductType, PromoType } from "@/lib/catalog";
+import type { OrderStatus } from "@/lib/order-status";
+import type { OrderItemConfig, OrderItemKind } from "@/lib/orders";
+import type { PaymentMethod, PaymentStatus } from "@/lib/validation/checkout";
 import type { Role } from "@/lib/roles";
 import type { DrinkConfig } from "@/lib/validation/drink";
 
@@ -235,4 +240,113 @@ export const promoCode = pgTable(
     ...timestamps,
   },
   (t) => [check("promo_code_value_positive", sql`${t.value} > 0`)],
+);
+
+// ---------------------------------------------------------------------------
+// Cart and orders (Stage 5). Order prices are snapshots: they are copied at
+// order time, so later menu changes never alter an old order.
+// ---------------------------------------------------------------------------
+
+/** A signed-in customer's saved cart: what they chose, never prices. */
+export const cart = pgTable("cart", {
+  userId: text("user_id")
+    .primaryKey()
+    .references(() => user.id, { onDelete: "cascade" }),
+  items: jsonb("items").$type<CartItem[]>().notNull().default([]),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow()
+    .$onUpdate(() => new Date()),
+});
+
+export const order = pgTable(
+  "order",
+  {
+    id: text("id").primaryKey(),
+    /** Short code shown to the customer, e.g. "HX-7K2P". */
+    code: text("code").notNull().unique(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "restrict" }),
+    branchId: text("branch_id")
+      .notNull()
+      .references(() => branch.id, { onDelete: "restrict" }),
+    fulfillment: text("fulfillment").$type<BranchService>().notNull(),
+    status: text("status").$type<OrderStatus>().notNull(),
+    /** Null means ASAP. */
+    scheduledFor: timestamp("scheduled_for", { withTimezone: true }),
+    contactName: text("contact_name").notNull(),
+    /** +639XXXXXXXXX. */
+    phone: text("phone").notNull(),
+    /** Where the receipt is emailed. */
+    receiptEmail: text("receipt_email").notNull(),
+    /** Delivery only. */
+    address: text("address"),
+    notes: text("notes").notNull().default(""),
+    subtotalCentavos: integer("subtotal_centavos").notNull(),
+    discountCentavos: integer("discount_centavos").notNull().default(0),
+    deliveryFeeCentavos: integer("delivery_fee_centavos").notNull(),
+    pointsRedeemed: integer("points_redeemed").notNull().default(0),
+    totalCentavos: integer("total_centavos").notNull(),
+    /** Stage 8 (promo codes). */
+    promoCodeId: text("promo_code_id").references(() => promoCode.id, {
+      onDelete: "set null",
+    }),
+    paymentMethod: text("payment_method").$type<PaymentMethod>().notNull(),
+    paymentStatus: text("payment_status").$type<PaymentStatus>().notNull(),
+    /** Sent by the browser once per checkout, so a double tap orders once. */
+    clientRequestId: text("client_request_id").notNull().unique(),
+    ...timestamps,
+  },
+  (t) => [
+    index("order_user_id_idx").on(t.userId),
+    index("order_branch_status_idx").on(t.branchId, t.status),
+    check(
+      "order_amounts_not_negative",
+      sql`${t.subtotalCentavos} >= 0 and ${t.discountCentavos} >= 0 and ${t.deliveryFeeCentavos} >= 0 and ${t.totalCentavos} >= 0`,
+    ),
+  ],
+);
+
+export const orderItem = pgTable(
+  "order_item",
+  {
+    id: text("id").primaryKey(),
+    orderId: text("order_id")
+      .notNull()
+      .references(() => order.id, { onDelete: "cascade" }),
+    kind: text("kind").$type<OrderItemKind>().notNull(),
+    productId: text("product_id").references(() => product.id, {
+      onDelete: "set null",
+    }),
+    name: text("name").notNull(),
+    config: jsonb("config").$type<OrderItemConfig>().notNull(),
+    unitPriceCentavos: integer("unit_price_centavos").notNull(),
+    quantity: integer("quantity").notNull(),
+    lineTotalCentavos: integer("line_total_centavos").notNull(),
+    sortOrder: integer("sort_order").notNull().default(0),
+  },
+  (t) => [
+    index("order_item_order_id_idx").on(t.orderId),
+    check("order_item_quantity_positive", sql`${t.quantity} > 0`),
+  ],
+);
+
+/** Every status an order has had, oldest first: the tracker's history. */
+export const orderStatusEvent = pgTable(
+  "order_status_event",
+  {
+    id: text("id").primaryKey(),
+    orderId: text("order_id")
+      .notNull()
+      .references(() => order.id, { onDelete: "cascade" }),
+    status: text("status").$type<OrderStatus>().notNull(),
+    changedByUserId: text("changed_by_user_id").references(() => user.id, {
+      onDelete: "set null",
+    }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [index("order_status_event_order_id_idx").on(t.orderId)],
 );

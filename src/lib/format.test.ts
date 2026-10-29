@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatTime } from "./format";
+import { formatPhPhone, formatTime } from "./format";
 
 describe("formatTime", () => {
   it.each([
@@ -15,5 +15,16 @@ describe("formatTime", () => {
 
   it.each(["7:00", "24:00", "12:60", "noon"])("rejects %s", (input) => {
     expect(() => formatTime(input)).toThrow(RangeError);
+  });
+});
+
+describe("formatPhPhone", () => {
+  it("writes a stored number the local way", () => {
+    expect(formatPhPhone("+639171234567")).toBe("0917 123 4567");
+  });
+
+  it("leaves anything else alone", () => {
+    expect(formatPhPhone("")).toBe("");
+    expect(formatPhPhone("12345")).toBe("12345");
   });
 });

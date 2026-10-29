@@ -1,7 +1,8 @@
 /**
  * Where the builder starts, from the page's query string:
  * - `?from=<slug>` (or the older `?drink=<slug>`): a signature drink's recipe.
- * - `?edit=<cartItemId>`: a cart item to change (the cart arrives in Stage 5).
+ * - `?edit=<cartItemId>`: a drink in the cart to change. The cart lives in
+ *   the browser, so the page only passes the id on (see BuilderEntry).
  * - nothing: an empty cup.
  */
 import type { BuilderCatalog } from "./catalog";
@@ -15,6 +16,8 @@ export type BuilderStart = {
   signatureName: string | null;
   /** A polite note for the customer, e.g. when a link no longer works. */
   notice: string | null;
+  /** The cart item being edited, if any. */
+  editId: string | null;
 };
 
 function first(value: string | string[] | undefined): string | undefined {
@@ -25,15 +28,11 @@ export function resolveBuilderStart(
   catalog: BuilderCatalog,
   params: SearchParams,
 ): BuilderStart {
-  const empty = { draft: EMPTY_DRAFT, signatureName: null };
+  const empty = { draft: EMPTY_DRAFT, signatureName: null, editId: null };
 
-  // TODO(Stage 5): load the cart item and start from its drink.
-  if (first(params.edit) !== undefined) {
-    return {
-      ...empty,
-      notice:
-        "Editing a drink from your cart will be available once the cart opens. You are welcome to build a new drink below.",
-    };
+  const editId = first(params.edit);
+  if (editId !== undefined && editId !== "") {
+    return { ...empty, notice: null, editId };
   }
 
   const slug = first(params.from) ?? first(params.drink);
@@ -51,5 +50,6 @@ export function resolveBuilderStart(
     draft: draftFromRecipe(signature.recipe, signature.slug),
     signatureName: signature.name,
     notice: null,
+    editId: null,
   };
 }

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { AddProductButton } from "@/components/cart/add-product-button";
 import { Button, buttonVariants } from "@/components/ui/button";
 import type { MenuItem } from "@/lib/catalog";
 import { formatPeso } from "@/lib/money";
@@ -53,15 +54,11 @@ export function ProductCard({
           {item.description}
         </p>
         <div className="mt-5 flex gap-2">
-          {/* Add to cart is wired up in Stage 5 (checkout). */}
-          <Button
-            size="lg"
-            className="h-11 flex-1 font-semibold"
-            disabled
-            aria-label={`Add ${item.name} to cart`}
-          >
-            Add to cart
-          </Button>
+          <AddProductButton
+            slug={item.slug}
+            name={item.name}
+            disabled={item.isSoldOut}
+          />
           {isSignature ? (
             item.isSoldOut ? (
               <Button

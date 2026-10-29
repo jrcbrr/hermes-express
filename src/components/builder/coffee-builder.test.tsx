@@ -16,7 +16,12 @@ import {
 } from "@/lib/builder/state";
 import { FIXTURE_NOW, seedSnapshot } from "@/test/catalog-fixture";
 
+const { routerPush } = vi.hoisted(() => ({ routerPush: vi.fn() }));
 vi.mock("@/server/catalog/actions", () => ({ selectBranch: vi.fn() }));
+vi.mock("@/server/cart/actions", () => ({
+  saveCart: vi.fn(async () => undefined),
+}));
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push: routerPush }) }));
 
 const { CoffeeBuilder } = await import("./coffee-builder");
 
@@ -145,11 +150,27 @@ describe("CoffeeBuilder", () => {
       fireEvent.click(screen.getByRole("button", { name: "Add a cup" }));
       expect(livePrice()).toBe("₱540");
       expect(
-        screen.getByRole("button", { name: "Add to cart" }),
-      ).toBeDisabled();
-      expect(
         screen.getByRole("button", { name: "Save to favorites" }),
       ).toBeDisabled();
+
+      fireEvent.click(screen.getByRole("button", { name: "Add to cart" }));
+      expect(screen.getByText(/Added to your cart/)).toBeVisible();
+      expect(screen.getByRole("link", { name: "View cart" })).toHaveAttribute(
+        "href",
+        "/cart",
+      );
+      const stored = JSON.parse(window.localStorage.getItem("hx_cart")!);
+      expect(stored.items).toEqual([
+        expect.objectContaining({
+          kind: "custom",
+          quantity: 2,
+          config: expect.objectContaining({
+            base: "latte",
+            milk: "oat",
+            name: "Monday Fuel",
+          }),
+        }),
+      ]);
 
       fireEvent.click(screen.getByRole("button", { name: "Back" }));
       expect(stepHeading()).toBe("Toppings");

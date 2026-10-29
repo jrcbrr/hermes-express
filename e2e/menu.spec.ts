@@ -38,7 +38,7 @@ test.describe("with a seeded database", () => {
     ).toHaveAttribute("href", "/build?from=olympus-latte");
     await expect(
       olympus.getByRole("button", { name: "Add Olympus Latte to cart" }),
-    ).toBeDisabled();
+    ).toBeEnabled();
   });
 
   test("groups drinks and shows a loaded photo on every card", async ({

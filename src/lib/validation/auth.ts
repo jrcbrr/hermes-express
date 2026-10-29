@@ -14,19 +14,19 @@ export function normalizePhPhone(input: string): string | null {
 export const PASSWORD_MIN_LENGTH = 8;
 export const PASSWORD_MAX_LENGTH = 128;
 
-const name = z
+export const personNameSchema = z
   .string()
   .trim()
   .min(2, "Please enter your name (at least 2 characters).")
   .max(80, "Please keep your name under 80 characters.");
 
-const email = z
+export const emailSchema = z
   .string()
   .trim()
   .toLowerCase()
   .pipe(z.email("Please enter a valid email address."));
 
-const phone = z
+export const phoneSchema = z
   .string()
   .trim()
   .transform((value, ctx) => {
@@ -55,9 +55,9 @@ const password = z
 
 export const signUpSchema = z
   .object({
-    name,
-    email,
-    phone,
+    name: personNameSchema,
+    email: emailSchema,
+    phone: phoneSchema,
     password,
     confirmPassword: z.string(),
   })
@@ -68,14 +68,14 @@ export const signUpSchema = z
 export type SignUpInput = z.infer<typeof signUpSchema>;
 
 export const logInSchema = z.object({
-  email,
+  email: emailSchema,
   password: z.string().min(1, "Please enter your password."),
 });
 export type LogInInput = z.infer<typeof logInSchema>;
 
 export const profileSchema = z.object({
-  name,
-  phone,
+  name: personNameSchema,
+  phone: phoneSchema,
   defaultAddress: z
     .string()
     .trim()

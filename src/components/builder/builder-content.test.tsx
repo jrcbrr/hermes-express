@@ -9,8 +9,13 @@ const mocks = vi.hoisted(() => ({
   catalog: null as CatalogSnapshot | null,
 }));
 
+const { routerPush } = vi.hoisted(() => ({ routerPush: vi.fn() }));
 vi.mock("next/server", () => ({ connection: async () => {} }));
 vi.mock("@/server/catalog/actions", () => ({ selectBranch: vi.fn() }));
+vi.mock("@/server/cart/actions", () => ({
+  saveCart: vi.fn(async () => undefined),
+}));
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push: routerPush }) }));
 vi.mock("@/server/catalog/queries", () => ({
   getSelectedBranchSlug: async () => mocks.branch,
   loadCatalog: async () => mocks.catalog,

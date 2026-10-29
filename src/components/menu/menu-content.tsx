@@ -19,11 +19,6 @@ export async function MenuContent() {
       initialBranch={branchSlug}
       sections={catalog ? buildMenu(catalog, branchSlug, now) : null}
       soldOutByBranch={catalog ? soldOutSlugsByBranch(catalog, now) : {}}
-    >
-      <p className="mt-4 text-sm text-muted-foreground">
-        Online ordering opens soon. Until then, you are welcome to browse the
-        menu.
-      </p>
-    </MenuBrowser>
+    />
   );
 }

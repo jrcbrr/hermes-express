@@ -70,7 +70,7 @@ test.describe("with a seeded database", () => {
     await expect(breakdown).toContainText("Vanilla");
     await expect(
       page.getByRole("button", { name: "Add to cart" }),
-    ).toBeDisabled();
+    ).toBeEnabled();
   });
 
   test("opens a signature drink at its menu price", async ({ page }) => {
