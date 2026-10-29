@@ -41,6 +41,8 @@ describe("getRouteAccess", () => {
       "/orders",
       "/orders/HX-7K2P",
       "/favorites",
+      "/receipts",
+      "/receipts/6f1c7a52",
       "/rewards",
       "/profile",
     ]) {

@@ -56,6 +56,10 @@ describe("OrderDetails", () => {
     expect(screen.getByText(/No real payment was made/)).toBeVisible();
     expect(screen.queryByText("Delivery fee")).toBeNull();
     expect(screen.queryByText("Deliver to")).toBeNull();
+    expect(screen.getByRole("link", { name: "View receipt" })).toHaveAttribute(
+      "href",
+      `/receipts/${ID}`,
+    );
   });
 
   it("shows delivery details, a schedule, a note and a discount", async () => {

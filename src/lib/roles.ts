@@ -31,6 +31,7 @@ export const USER_ONLY_PREFIXES = [
   "/checkout",
   "/orders",
   "/favorites",
+  "/receipts",
   "/rewards",
   "/profile",
 ] as const;
