@@ -2,14 +2,16 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { CartBadge, useCartCount } from "@/components/cart/cart-count";
 import { cn } from "@/lib/utils";
-import { isActivePath, mobileTabItems } from "./nav-items";
+import { CART_HREF, isActivePath, mobileTabItems } from "./nav-items";
 
 const CENTER_INDEX = Math.floor(mobileTabItems.length / 2);
 
 /** Phone-only bottom tab bar, like a native app. Hidden from md (768px) up. */
 export function MobileTabBar() {
   const pathname = usePathname();
+  const cartCount = useCartCount();
 
   return (
     <nav
@@ -38,12 +40,27 @@ export function MobileTabBar() {
                     <Icon className="size-6" aria-hidden="true" />
                   </span>
                 ) : (
-                  <Icon
-                    className={cn("size-5", active && "text-primary")}
-                    aria-hidden="true"
-                  />
+                  <span className="relative">
+                    <Icon
+                      className={cn("size-5", active && "text-primary")}
+                      aria-hidden="true"
+                    />
+                    {href === CART_HREF ? (
+                      <CartBadge
+                        count={cartCount}
+                        className="-top-2 -right-3"
+                      />
+                    ) : null}
+                  </span>
                 )}
-                <span>{label}</span>
+                <span>
+                  {label}
+                  {href === CART_HREF && cartCount > 0 ? (
+                    <span className="sr-only">
+                      , {cartCount} {cartCount === 1 ? "item" : "items"}
+                    </span>
+                  ) : null}
+                </span>
               </Link>
             </li>
           );

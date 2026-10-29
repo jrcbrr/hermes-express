@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { Inter, Nunito } from "next/font/google";
+import { Suspense } from "react";
+import { CartSessionSlot } from "@/components/cart/cart-session-slot";
 import { MobileTabBar } from "@/components/layout/mobile-tab-bar";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
@@ -51,6 +53,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           </main>
           <SiteFooter />
           <MobileTabBar />
+          {/* Keeps the cart in step with the signed-in account. */}
+          <Suspense fallback={null}>
+            <CartSessionSlot />
+          </Suspense>
         </ThemeProvider>
       </body>
     </html>
