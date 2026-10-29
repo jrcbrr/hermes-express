@@ -348,4 +348,3 @@ prefixed commits. Update CHANGELOG.md and add a docs/AI_LOG.md entry. Push and o
 - [ ] You understand what changed (ask Claude to explain anything you don't)
 - [ ] Merge the PR, then `git checkout main && git pull`
 - [ ] `/export` the Claude Code session → `docs/ai-logs/<date>-stage-N.md`, then commit it
-- [ ] Add your own notes to the `docs/AI_LOG.md` entry (what *you* decided, changed or rejected)
