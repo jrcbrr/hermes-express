@@ -120,7 +120,38 @@ test.describe("with a seeded database", () => {
     await expect(page.getByText("1 × Butter Croissant")).toBeVisible();
     await expect(page.getByText(/No real payment was made/)).toBeVisible();
 
-    // 7. The cart is empty again.
+    // 7. The receipt: numbered for its branch, with VAT, and a PDF download.
+    await page.getByRole("link", { name: "View receipt" }).click();
+    // The first visit compiles the page on the dev server.
+    await expect(page).toHaveURL(/\/receipts\/[0-9a-f-]{36}$/, {
+      timeout: 15_000,
+    });
+    const receiptNumber = page.getByTestId("receipt-number");
+    await expect(receiptNumber).toHaveText(/^HX-[A-Z]{2,5}-\d{6,}$/);
+    await expect(page.getByTestId("receipt-total")).toHaveText("₱415");
+    await expect(page.getByText("VAT (12%)")).toBeVisible();
+    await expect(
+      page.getByText("Demo receipt. Not an official receipt."),
+    ).toBeVisible();
+    const downloading = page.waitForEvent("download");
+    await page.getByRole("link", { name: "Download PDF" }).click();
+    const download = await downloading;
+    expect(download.suggestedFilename()).toBe(
+      `${await receiptNumber.textContent()}.pdf`,
+    );
+    const pdf = await page.request.get(
+      `${new URL(page.url()).pathname.replace("/receipts/", "/api/receipts/")}/pdf`,
+    );
+    expect(pdf.headers()["content-type"]).toBe("application/pdf");
+    expect((await pdf.body()).subarray(0, 5).toString("latin1")).toBe("%PDF-");
+
+    // 8. It is listed under Receipts.
+    await page.goto("/receipts");
+    await expect(
+      page.getByRole("link", { name: new RegExp(`HX-[A-Z]+-\\d+`) }),
+    ).toHaveCount(1);
+
+    // 9. The cart is empty again.
     await page.goto("/cart");
     await expect(page.getByText("Your cart is empty.")).toBeVisible();
   });
