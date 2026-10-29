@@ -128,10 +128,10 @@ test.describe("with a seeded database", () => {
     });
     const receiptNumber = page.getByTestId("receipt-number");
     await expect(receiptNumber).toHaveText(/^HX-[A-Z]{2,5}-\d{6,}$/);
-    await expect(page.getByTestId("receipt-total")).toHaveText("₱415");
-    await expect(page.getByText("VAT (12%)")).toBeVisible();
+    await expect(page.getByTestId("receipt-total")).toHaveText("PHP 415.00");
+    await expect(page.getByText("VAT Amount (12%)")).toBeVisible();
     await expect(
-      page.getByText("Demo receipt. Not an official receipt."),
+      page.getByText("DEMO RECEIPT. NOT AN OFFICIAL RECEIPT."),
     ).toBeVisible();
     const downloading = page.waitForEvent("download");
     await page.getByRole("link", { name: "Download PDF" }).click();
