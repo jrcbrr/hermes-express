@@ -109,9 +109,9 @@ export function formatSlotDay(slot: Date, now: Date): string {
 
 /** "7:15 AM", in Manila time. */
 export function formatSlotTime(slot: Date): string {
-  return timeFormat.format(slot).replace(/\s?([ap])\.?m\.?$/i, (_, p) =>
-    ` ${String(p).toUpperCase()}M`,
-  );
+  return timeFormat
+    .format(slot)
+    .replace(/\s?([ap])\.?m\.?$/i, (_, p) => ` ${String(p).toUpperCase()}M`);
 }
 
 /** "Today, 7:15 AM". */

@@ -140,7 +140,7 @@ export function recipeSlugs(config: DrinkConfig): string[] {
  * Sold out at a branch: flagged directly, or (signature drinks) any
  * ingredient in its recipe is sold out or switched off there.
  */
-function soldOutCheck(snapshot: CatalogSnapshot, branchSlug: string) {
+export function soldOutCheck(snapshot: CatalogSnapshot, branchSlug: string) {
   const flags = snapshot.soldOut.filter((f) => f.branchSlug === branchSlug);
   const productIds = new Set(flags.map((f) => f.productId));
   const ingredientIds = new Set(flags.map((f) => f.ingredientId));

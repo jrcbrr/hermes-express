@@ -25,9 +25,7 @@ describe("isAsapAvailable", () => {
 
   it("uses Manila time, not the server's time zone", () => {
     // 23:30 UTC is 07:30 the next morning in Manila.
-    expect(isAsapAvailable(hours, new Date("2026-11-15T23:30:00Z"))).toBe(
-      true,
-    );
+    expect(isAsapAvailable(hours, new Date("2026-11-15T23:30:00Z"))).toBe(true);
   });
 
   it("rejects hours that close before they open", () => {
@@ -109,9 +107,7 @@ describe("formatting", () => {
 
   it("names the day relative to today", () => {
     expect(formatSlotDay(manila("2026-11-15T21:00:00"), now)).toBe("Today");
-    expect(formatSlotDay(manila("2026-11-16T07:00:00"), now)).toBe(
-      "Tomorrow",
-    );
+    expect(formatSlotDay(manila("2026-11-16T07:00:00"), now)).toBe("Tomorrow");
     expect(formatSlotDay(manila("2026-11-17T07:00:00"), now)).toMatch(
       /Tuesday/,
     );
