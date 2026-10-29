@@ -35,7 +35,7 @@ test.describe("with a seeded database", () => {
     await expect(olympus).toContainText("₱175");
     await expect(
       olympus.getByRole("link", { name: "Customize Olympus Latte" }),
-    ).toHaveAttribute("href", "/build?drink=olympus-latte");
+    ).toHaveAttribute("href", "/build?from=olympus-latte");
     await expect(
       olympus.getByRole("button", { name: "Add Olympus Latte to cart" }),
     ).toBeDisabled();
@@ -116,6 +116,6 @@ test.describe("with a seeded database", () => {
     ).toBeVisible();
     await expect(
       featured.getByRole("link", { name: "Customize Olympus Latte" }),
-    ).toHaveAttribute("href", "/build?drink=olympus-latte");
+    ).toHaveAttribute("href", "/build?from=olympus-latte");
   });
 });

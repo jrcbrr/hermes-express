@@ -7,6 +7,7 @@ import {
   isAvailableNow,
   recipeSlugs,
   resolveBranchSlug,
+  soldOutIngredientsByBranch,
   soldOutSlugsByBranch,
   toPricingCatalog,
   type CatalogIngredient,
@@ -280,6 +281,25 @@ describe("soldOutSlugsByBranch", () => {
     expect(soldOutSlugsByBranch(withOatOut, NOW).tipas).toEqual([
       "olympus-latte",
     ]);
+  });
+});
+
+describe("soldOutIngredientsByBranch", () => {
+  it("lists the ingredient slugs flagged at each branch, ignoring products", () => {
+    const flagged: CatalogSnapshot = {
+      ...snapshot,
+      soldOut: [
+        ...snapshot.soldOut,
+        { branchSlug: "bgc", ingredientId: "i-oat", productId: null },
+        { branchSlug: "tipas", ingredientId: "i-honey", productId: null },
+        { branchSlug: "tipas", ingredientId: "i-missing", productId: null },
+      ],
+    };
+    expect(soldOutIngredientsByBranch(flagged)).toEqual({
+      tipas: ["honey"],
+      bgc: ["oat"],
+      "taguig-lakeshore": [],
+    });
   });
 });
 

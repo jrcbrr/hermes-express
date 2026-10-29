@@ -185,7 +185,7 @@ describe("calculateDrinkPrice: drinks built from scratch", () => {
     expect(price({ milkAmount: "light", sweetness: 0 })).toBe(13000);
   });
 
-  it("adds ₱20 per syrup, up to 3", () => {
+  it("adds ₱20 per syrup", () => {
     expect(price({ syrups: ["vanilla"] })).toBe(15000);
     expect(price({ syrups: ["vanilla", "caramel"] })).toBe(17000);
     expect(price({ syrups: ["vanilla", "caramel", "toffee"] })).toBe(19000);
@@ -333,10 +333,12 @@ describe("calculateDrinkPrice: signature drinks", () => {
 
 describe("calculateDrinkPrice: invalid drinks", () => {
   it("rejects configs that break the schema", () => {
-    expect(
-      priceError({ syrups: ["vanilla", "caramel", "honey", "toffee"] }),
-    ).toBe("invalid_config");
-    expect(priceError({ toppings: ["a", "b", "c", "d", "e", "f"] })).toBe(
+    // Any number of syrups and toppings is fine, but repeats and junk-sized
+    // lists (over the safety cap) are not.
+    const junk = Array.from({ length: 31 }, (_, i) => `item-${i}`);
+    expect(priceError({ syrups: junk })).toBe("invalid_config");
+    expect(priceError({ toppings: junk })).toBe("invalid_config");
+    expect(priceError({ syrups: ["vanilla", "vanilla"] })).toBe(
       "invalid_config",
     );
     expect(priceError({ shots: 5 })).toBe("invalid_config");

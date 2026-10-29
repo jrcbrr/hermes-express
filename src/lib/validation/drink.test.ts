@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   DRINK_NAME_MAX_LENGTH,
   drinkConfigSchema,
+  MAX_LIST_ITEMS,
   type DrinkConfig,
 } from "./drink";
 
@@ -105,26 +106,32 @@ describe("drinkConfigSchema", () => {
     },
   );
 
-  it("allows at most 3 syrups", () => {
+  it("allows as many different syrups and toppings as the customer likes", () => {
+    const many = (prefix: string, count: number) =>
+      Array.from({ length: count }, (_, i) => `${prefix}-${i}`);
     expect(
-      firstMessage({
-        syrups: ["vanilla", "caramel", "honey", "toffee"],
-      }),
-    ).toBe("Please choose at most 3 syrups.");
+      parse({ syrups: many("syrup", 10), toppings: many("topping", 11) })
+        .success,
+    ).toBe(true);
+  });
+
+  it("rejects junk lists longer than the safety cap", () => {
+    const junk = Array.from(
+      { length: MAX_LIST_ITEMS + 1 },
+      (_, i) => `item-${i}`,
+    );
+    expect(firstMessage({ syrups: junk })).toBe(
+      `Please choose at most ${MAX_LIST_ITEMS} syrups.`,
+    );
+    expect(firstMessage({ toppings: junk })).toBe(
+      `Please choose at most ${MAX_LIST_ITEMS} toppings.`,
+    );
   });
 
   it("does not allow the same syrup twice", () => {
     expect(firstMessage({ syrups: ["vanilla", "vanilla"] })).toBe(
       "Each syrup can only be added once.",
     );
-  });
-
-  it("allows at most 5 toppings", () => {
-    expect(
-      firstMessage({
-        toppings: ["a", "b", "c", "d", "e", "f"],
-      }),
-    ).toBe("Please choose at most 5 toppings.");
   });
 
   it("does not allow the same topping twice", () => {

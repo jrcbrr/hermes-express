@@ -74,9 +74,9 @@ export function ProductCard({
                 Customize
               </Button>
             ) : (
-              // The builder reads ?drink= to start from this recipe (Stage 4).
+              // The builder starts from this recipe (/build?from=<slug>).
               <Link
-                href={`/build?drink=${item.slug}`}
+                href={`/build?from=${item.slug}`}
                 aria-label={`Customize ${item.name}`}
                 className={buttonVariants({
                   variant: "outline",

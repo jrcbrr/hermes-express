@@ -81,7 +81,7 @@ describe("FeaturedDrinkList", () => {
     ).toHaveAttribute("href", "/menu#signature-drinks");
     expect(
       within(card).getByRole("link", { name: "Customize Winged Mocha" }),
-    ).toHaveAttribute("href", "/build?drink=winged-mocha");
+    ).toHaveAttribute("href", "/build?from=winged-mocha");
   });
 
   it("shows each drink's photo when it has one", async () => {

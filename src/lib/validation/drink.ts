@@ -16,8 +16,12 @@ export const SWEETNESS_LEVELS = [0, 25, 50, 75, 100] as const;
 
 export const MIN_SHOTS = 1;
 export const MAX_SHOTS = 4;
-export const MAX_SYRUPS = 3;
-export const MAX_TOPPINGS = 5;
+/**
+ * Customers may add as many syrups and toppings as they like (owner decision,
+ * Stage 4), each one only once. This cap only stops junk requests: the menu
+ * has far fewer options, so a real customer never reaches it.
+ */
+export const MAX_LIST_ITEMS = 30;
 export const DRINK_NAME_MAX_LENGTH = 40;
 
 export type DrinkSize = (typeof DRINK_SIZES)[number];
@@ -29,11 +33,11 @@ const slug = z
   .string()
   .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Please choose a valid option.");
 
-/** A list of ingredient slugs with no repeats and at most `max` entries. */
-function slugList(max: number, label: string) {
+/** A list of ingredient slugs with no repeats. */
+function slugList(label: string) {
   return z
     .array(slug)
-    .max(max, `Please choose at most ${max} ${label}.`)
+    .max(MAX_LIST_ITEMS, `Please choose at most ${MAX_LIST_ITEMS} ${label}.`)
     .refine(
       (items) => new Set(items).size === items.length,
       `Each ${label.replace(/s$/, "")} can only be added once.`,
@@ -53,8 +57,8 @@ export const drinkConfigSchema = z
     milk: slug,
     milkAmount: z.enum(AMOUNT_LEVELS),
     sweetness: z.literal(SWEETNESS_LEVELS),
-    syrups: slugList(MAX_SYRUPS, "syrups"),
-    toppings: slugList(MAX_TOPPINGS, "toppings"),
+    syrups: slugList("syrups"),
+    toppings: slugList("toppings"),
     /** The customer's name for the drink, e.g. "Monday Fuel". */
     name: z
       .string()

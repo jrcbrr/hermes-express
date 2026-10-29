@@ -202,6 +202,29 @@ export function soldOutSlugsByBranch(
   );
 }
 
+/**
+ * For every branch, the slugs of the ingredients flagged sold out there. Sent
+ * to the builder once, so switching branches re-labels options instantly.
+ * Inactive ingredients are not listed: the builder never shows them.
+ */
+export function soldOutIngredientsByBranch(
+  snapshot: CatalogSnapshot,
+): Record<string, string[]> {
+  const slugById = new Map(snapshot.ingredients.map((i) => [i.id, i.slug]));
+  return Object.fromEntries(
+    siteConfig.branches.map((b) => [
+      b.slug,
+      snapshot.soldOut.flatMap((flag) => {
+        const slug =
+          flag.branchSlug === b.slug && flag.ingredientId !== null
+            ? slugById.get(flag.ingredientId)
+            : undefined;
+        return slug === undefined ? [] : [slug];
+      }),
+    ]),
+  );
+}
+
 export type DrinkGroup = {
   /** Null holds drinks without a recipe (should not happen; never hidden). */
   temperature: DrinkTemperature | null;

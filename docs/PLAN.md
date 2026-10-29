@@ -137,8 +137,8 @@ Contact details live in one config file (`src/config/site.ts`) so they're easy t
 | **Cup** | Size (12oz / 16oz / 22oz), temperature (Hot / Iced / Blended), ice level slider for iced (Light / Regular / Extra) |
 | **Base** | Tap a base. Shots stepper (1–4) for espresso-based drinks |
 | **Milk** | Tap a milk. Amount slider (Light / Regular / Extra) |
-| **Sweetener** | Sweetness slider 0 / 25 / 50 / 75 / 100%, plus tap-to-add syrups (max 3) |
-| **Toppings** | Tap to add (max 5) |
+| **Sweetener** | Sweetness slider 0 / 25 / 50 / 75 / 100%, plus tap-to-add syrups (as many as you like, each once) |
+| **Toppings** | Tap to add (as many as you like, each once) |
 | **Review** | Name your drink, summary, price, quantity, **Add to cart**, **Save to favorites** |
 
 ### Visuals
@@ -550,3 +550,12 @@ The seed stops with a clear error if any seed variable is missing or a password 
 | Menu photos | Real, free-licence photos from Wikimedia Commons, one per product, checked by eye to match the item. No photos showing other brands' logos. Credits on `/credits`. The seed fills a photo only where a product has none. |
 | Branch picker | Switching branches is instant: the page carries every branch's sold-out list, and the browser saves the choice in the `hx_menu_branch` cookie (not HTTP-only; it holds only a branch name). |
 | Receipts | Built in Stage 5 with checkout (moved from Stage 8): own tab, PDF download, emailed to an address entered at checkout. Shows branch address, phone, TIN and a VAT line (§7). |
+
+### Decisions made by the owner (Stage 4)
+| Topic | Decision |
+|---|---|
+| Builder link | `/build?from=<slug>` opens a signature drink in the builder. The older `?drink=<slug>` still works. Menu and landing links use `?from=`. |
+| Builder E2E in CI | The build-a-drink E2E test needs the seeded catalog, so it skips without `DATABASE_URL` (like the menu tests) until the Neon `ci` branch exists. A no-database test still checks `/build` renders. |
+| Reset | Reset returns to where the drink started: the signature recipe when opened from one, otherwise an empty cup. Reset can be undone. |
+| Syrups and toppings | No limit (was max 3 syrups and 5 toppings): customers add as many as they like, each once. The server keeps a hidden safety cap of 30 per list to reject junk requests. |
+| Cup fill | A finished drink fills the cup to the brim; foams finish at the brim and whipped cream sits on the rim. |

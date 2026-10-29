@@ -61,7 +61,14 @@ flowchart LR
    4. Product photos live in `public/images/menu/<slug>.jpg`, are referenced by `product.image_url`, and are served through Next.js `<Image>`. Photographer credits are in `src/config/photo-credits.ts` and shown on `/credits`.
    5. `/menu` and the landing page read the database only at request time, inside `<Suspense>` after `connection()`. The page shell is still prerendered, and a build with no database (CI) works. If the database can't be reached, a polite message replaces the cards.
    6. `calculateDrinkPrice(config, catalog)` in `src/lib/pricing.ts` is the only price calculation. A drink built from scratch costs the sum of its parts. A customized signature costs its menu price plus the difference made by the changes, so an unchanged signature always costs its menu price. `calculateCartTotals()` adds lines, caps the discount and applies the ₱49 delivery fee (free from ₱800).
-5. **Live updates:** the order tracker and barista queue poll a route handler every 10 seconds. This is simpler than websockets and works well on serverless hosting (ADR coming in a later stage).
+5. **Coffee builder** (Stage 4, `/build`):
+   1. `BuilderContent` (a Server Component inside `<Suspense>`) loads the cached catalog snapshot, the branch cookie and the query string. `toBuilderCatalog()` in `src/lib/builder/catalog.ts` shapes the options for each step, and `soldOutIngredientsByBranch()` sends every branch's sold-out ingredients, so switching branches is instant like on `/menu`.
+   2. `resolveBuilderStart()` (`src/lib/builder/start.ts`) picks the starting drink: a signature recipe for `?from=<slug>` (or the older `?drink=`), otherwise an empty cup. `?edit=<cartItemId>` waits for the Stage 5 cart.
+   3. The client component `CoffeeBuilder` keeps everything in one `useReducer` built on `reduceBuilder()` (`src/lib/builder/state.ts`): the drink in progress, an undo stack (50 versions), the starting drink for Reset, the step and the quantity. Invalid changes (a hot Cold Brew, a fourth syrup) are ignored by the reducer, not just hidden in the UI.
+   4. The live price is `calculateDrinkPrice()`, the same function the server will use at checkout, so the two can never disagree.
+   5. `BuilderCup` draws the drink from pure helpers in `src/lib/builder/visual.ts` (layers, mixed colour, toppings, ice) and animates it with Motion: pour, stack, mix. With reduced motion it shows the finished drink.
+   6. "Surprise me" uses `randomDrink()` (`src/lib/builder/random.ts`), which only picks options available at the branch.
+6. **Live updates:** the order tracker and barista queue poll a route handler every 10 seconds. This is simpler than websockets and works well on serverless hosting (ADR coming in a later stage).
 
 ## Folder structure
 
@@ -73,6 +80,7 @@ src/
 │  ├─ layout/    Site header, desktop nav, mobile tab bar, footer, nav-items list.
 │  ├─ landing/   Landing page sections (hero, how it works, featured, teaser, rewards, branches).
 │  ├─ menu/      /menu: product cards, branch picker, sections, unavailable message.
+│  ├─ builder/   /build: CoffeeBuilder, the animated cup, step panels (steps/), controls, price bar.
 │  ├─ theme/     next-themes provider and the light/dark toggle.
 │  ├─ sound/     Sound mute toggle (uses hooks/use-sound.ts).
 │  ├─ auth/      Login and sign-up forms, labelled form field.
@@ -87,6 +95,7 @@ src/
 │  ├─ money.ts   formatPeso() and centavo helpers.
 │  ├─ pricing.ts calculateDrinkPrice() and calculateCartTotals() (100% tested).
 │  ├─ catalog.ts Menu building, seasonal availability, sold-out rules.
+│  ├─ builder/   Builder state machine (state.ts), start drink, random drink, cup visuals.
 │  └─ validation/ Zod schemas (auth.ts: sign-up, login, profile, PH phone; drink.ts: DrinkConfig).
 ├─ server/       Server actions and queries grouped by feature (90% gate).
 │  ├─ auth/      Session helpers (requireUser/requireRole) and auth actions.
@@ -94,6 +103,7 @@ src/
 │  ├─ profile/   updateProfile action.
 │  └─ rate-limit.ts Postgres fixed-window rate limiter.
 ├─ hooks/        Client-side React hooks.
+├─ test/         Test helpers (catalog-fixture.ts: the seed menu as a catalog snapshot).
 └─ proxy.ts      Cookie check that redirects signed-out visitors from protected pages.
 e2e/             Playwright browser tests.
 scripts/         Node scripts run by npm (db-migrate.ts, db-seed-catalog.ts).
