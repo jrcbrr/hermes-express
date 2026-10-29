@@ -1,4 +1,5 @@
 import { AtSign, Mail, Phone } from "lucide-react";
+import Link from "next/link";
 import { LogoMark } from "@/components/brand/logo-mark";
 import { siteConfig } from "@/config/site";
 import { formatTime } from "@/lib/format";
@@ -75,7 +76,12 @@ export function SiteFooter() {
 
       <div className="border-t">
         <div className="mx-auto flex max-w-6xl flex-col gap-1 px-4 py-4 text-xs text-muted-foreground sm:flex-row sm:justify-between md:px-6">
-          <p>© {siteConfig.name}</p>
+          <p>
+            © {siteConfig.name} ·{" "}
+            <Link href="/credits" className="underline underline-offset-4">
+              Photo credits
+            </Link>
+          </p>
           <p>{siteConfig.demoNotice}</p>
         </div>
       </div>

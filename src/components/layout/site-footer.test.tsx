@@ -40,4 +40,12 @@ describe("SiteFooter", () => {
     ).toBeInTheDocument();
     expect(screen.getByText(siteConfig.demoNotice)).toBeInTheDocument();
   });
+
+  it("links to the photo credits", () => {
+    render(<SiteFooter />);
+    expect(screen.getByRole("link", { name: "Photo credits" })).toHaveAttribute(
+      "href",
+      "/credits",
+    );
+  });
 });
