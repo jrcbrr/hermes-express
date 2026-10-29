@@ -13,9 +13,6 @@ Rules the AI follows are in [`../CLAUDE.md`](../CLAUDE.md). Stage prompts are in
 - **What the AI did:**
 - **What I reviewed / changed / rejected and why:**
 - **Problems & fixes:**
-  - **Slow branch picker:** each click posted a form and waited for the server to rebuild the page. Now the browser switches on its own. The old cookie was HTTP-only, which the browser can't overwrite, so it was renamed to `hx_menu_branch`; otherwise anyone who had used the old picker would see their choice "forgotten".
-  - **Photo sources:** Unsplash and Pexels block automated downloads, so the photos come from Wikimedia Commons, which has an official API and clear licences.
-  - **Existing products had no photos:** the seed only inserts new rows, so it now also fills a photo where a product has none, without ever replacing one.
 - **What I learned:**
 - **Raw log:** docs/ai-logs/<file>.md
 ```
@@ -44,7 +41,6 @@ Rules the AI follows are in [`../CLAUDE.md`](../CLAUDE.md). Stage prompts are in
   - Did the account steps myself (`vercel login`, `vercel link`, `vercel env pull`, importing the repo into Vercel, adding Neon), and had the AI create the public GitHub repo and open PR #1 only after I explicitly confirmed.
   - Set up branch protection on `main` myself. The AI found that my first settings (1 required approval, no bypass, no required checks) would block my own PRs forever while not enforcing CI. It explained this and waited for my OK; I then approved: PR required, 0 approvals, CI check "Lint, typecheck, test, build, E2E" required, no bypass, no force-push.
   - Asked the AI to merge PR #1 and handle the session log; it scanned the exported log for secrets before committing it to the public repo.
-  - _(My own reflections: what I questioned, changed or rejected, and why.)_
 - **Problems & fixes:**
   - **Git identity not set:** the first commit failed. Fixed by setting a repo-only identity (`jrcbrr` + GitHub noreply email).
   - **`create-next-app` refuses non-empty folders:** scaffolded into a temporary folder, then copied the files in.
@@ -78,7 +74,6 @@ Rules the AI follows are in [`../CLAUDE.md`](../CLAUDE.md). Stage prompts are in
   - Wrote unit tests and Playwright checks, ran lint, format, typecheck, coverage, build and E2E, then committed in small prefixed commits.
 - **What I reviewed / changed / rejected and why:**
   - Picked espresso text on gold buttons, keeping the exact brand gold.
-  - _(My own reflections: what I questioned, changed or rejected, and why.)_
 - **Problems & fixes:**
   - **AA contrast conflict in the plan:** resolved with espresso `primary-foreground`; `PLAN.md` updated.
   - **Name clash:** PLAN's `muted` is a text colour, but shadcn uses `muted` as a background. Mapped PLAN's `muted` to `muted-foreground` and documented the mapping in `ARCHITECTURE.md`.
@@ -118,7 +113,6 @@ Rules the AI follows are in [`../CLAUDE.md`](../CLAUDE.md). Stage prompts are in
     - Scanned the exported chat log for secrets before committing it.
 - **What I reviewed / changed / rejected and why:**
   - Rejected one shared barista password: separate passwords per branch are safer, and losing one doesn't expose the others.
-  - _(My own reflections: what I questioned, changed or rejected, and why.)_
 - **Problems & fixes:**
   - **E2E URL check passed too early:** `/profile$/` also matched `/signup?next=/profile`. The test now compares the exact path.
   - **Two `alert`s on the page:** Next.js adds a hidden route announcer with `role="alert"`; the test filters by text.
@@ -157,7 +151,9 @@ Rules the AI follows are in [`../CLAUDE.md`](../CLAUDE.md). Stage prompts are in
   - Made branch switching instant: the page now carries every branch's sold-out list, so a click changes the labels in the browser with no server request (an E2E test checks that no request is made).
   - Explained that receipts need orders (Stage 5), so wrote the receipt spec into PLAN §7 and moved receipts and their email into Stage 5 instead of building a receipt with no data.
 - **What I reviewed / changed / rejected and why:**
-  - _(My own reflections: what I questioned, changed or rejected, and why.)_
+  - Chose real photos from Wikimedia Commons over drawn illustrations, and asked for more drinks (frappes, cold brews, hot brews) after seeing the first menu.
+  - Reported that switching branches felt slow, which led to the instant, in-browser branch picker.
+  - Accepted moving receipts to Stage 5, since a receipt needs real orders.
 - **Problems & fixes:**
   - **Placeholder data test:** the landing test counted two "₱175" prices in the old placeholder file. It moved to `featured-drinks.test.tsx`, which checks the same thing against database-shaped data, so no check was dropped.
   - **Cache Components warning on `/menu`:** reading `new Date()` (for seasonal items) during prerendering is not allowed. Fixed with `await connection()`, so the menu part renders per request while the page shell stays prerendered.
@@ -193,7 +189,9 @@ Rules the AI follows are in [`../CLAUDE.md`](../CLAUDE.md). Stage prompts are in
     - **No limit on syrups or toppings:** each can be added once, the counter shows "N chosen", and the server keeps a hidden cap of 30 per list to reject junk requests. "Surprise me" still picks a modest number. PLAN §5 and §13 were updated with the decision.
     - Each change came with a short plan first, then screenshots in light and dark mode, the full checks, and a push to PR #5 so the preview updated.
 - **What I reviewed / changed / rejected and why:**
-  - _(My own reflections: what I questioned, changed or rejected, and why.)_
+  - Rejected the AI's first topping redesign as too light and asked for real depth ("the toppings design are flat").
+  - Asked for the drink to fill to the brim, then pointed out that the whipped cream still sat below it.
+  - Removed the 3-syrup and 5-topping limits; the AI kept a hidden server-side cap of 30 so the API stays protected.
 - **Problems & fixes:**
   - **Reduced motion was ignored in the browser:** `useReducedMotionConfig()` only reads `<MotionConfig>`, which defaults to "never". Seen in a dark-mode, reduced-motion screenshot ("Mix again" was showing). Fixed by also checking the device setting.
   - **Hydration mismatch from that fix:** the server can't know the device setting, so its HTML had "Mix again" and the browser's did not. Fixed by reading the setting only after hydration (`useSyncExternalStore`). A unit test for the device setting was dropped because Motion caches the setting once per page; an E2E test with reduced motion checks it in a real browser instead.
@@ -228,7 +226,9 @@ Rules the AI follows are in [`../CLAUDE.md`](../CLAUDE.md). Stage prompts are in
   - Checked that `.env.local` pointed at the Neon dev branch (not production) before applying the migration there, then ran the full E2E suite against it on desktop and phone.
   - Ran lint, format check, typecheck, tests with coverage and the production build.
 - **What I reviewed / changed / rejected and why:**
-  - _(My own reflections: what I questioned, changed or rejected, and why.)_
+  - Accepted the AI's suggested answers: receipts in a follow-up PR, a `cart` table for the saved cart, and Cash on Delivery for delivery only.
+  - Found on the preview that the checkout summary followed the scroll on laptops, and asked for it to stay in place (fixed on the cart page too).
+  - Before merging, asked whether it was safe to move on; the AI checked and found CI failing on a test that assumed a database, then fixed it.
 - **Problems & fixes:**
   - **Build failed on the first page with an id in its URL** (`/orders/[id]`): with Cache Components, the nav's `usePathname()` outside `<Suspense>` blocks prerendering, because the URL is unknown at build time. Fixed (following the Next.js 16 docs) by reading the URL in a tiny `NavLink` per link inside its own `<Suspense>`.
   - **Cart state leaked between unit tests:** the store kept its parsed cart in memory while tests cleared `localStorage`. The store now re-reads whenever the stored text changes, which also makes it more robust in the app.
