@@ -71,6 +71,16 @@ export function cupLayers(
   ];
 }
 
+/** Each layer with the share of the cup filled below it. */
+export function stackLayers(
+  layers: readonly LiquidLayer[],
+): { layer: LiquidLayer; below: number }[] {
+  return layers.map((layer, i) => ({
+    layer,
+    below: layers.slice(0, i).reduce((sum, l) => sum + l.share, 0),
+  }));
+}
+
 function parseHex(hex: string): [number, number, number] {
   const value = Number.parseInt(hex.slice(1), 16);
   return [(value >> 16) & 255, (value >> 8) & 255, value & 255];

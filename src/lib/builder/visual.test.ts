@@ -9,6 +9,7 @@ import {
   FALLBACK_LIQUID_COLOR,
   iceCubeCount,
   mixColor,
+  stackLayers,
   toppingVisuals,
   type LiquidLayer,
 } from "./visual";
@@ -73,6 +74,17 @@ describe("cupLayers", () => {
       name: "mystery",
       color: FALLBACK_LIQUID_COLOR,
     });
+  });
+});
+
+describe("stackLayers", () => {
+  it("knows how much of the cup is filled below each layer", () => {
+    const below = stackLayers(
+      cupLayers({ ...latte, syrups: ["vanilla"] }, catalog),
+    ).map((s) => s.below);
+    expect(below[0]).toBe(0);
+    expect(below[1]).toBeCloseTo(0.03);
+    expect(below[2]).toBeCloseTo(0.43);
   });
 });
 
