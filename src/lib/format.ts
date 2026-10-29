@@ -14,3 +14,9 @@ export function formatTime(time: string): string {
   const hours12 = hours % 12 === 0 ? 12 : hours % 12;
   return `${hours12}:${match[2]} ${period}`;
 }
+
+/** "+639171234567" -> "0917 123 4567", the way it is written on a form. Other text is returned as is. */
+export function formatPhPhone(stored: string): string {
+  const match = /^\+63(9\d{2})(\d{3})(\d{4})$/.exec(stored);
+  return match ? `0${match[1]} ${match[2]} ${match[3]}` : stored;
+}
