@@ -82,7 +82,7 @@ export type Receipt = {
     branch: string;
     /** e.g. "Tel. 0939 008 2560". */
     phone: string;
-    /** e.g. "VAT REG TIN 000-000-000-000". */
+    /** e.g. "VAT REG TIN 301-707-321-000". */
     tin: string;
     title: "SALES RECEIPT";
   };

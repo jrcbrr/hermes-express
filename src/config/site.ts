@@ -37,8 +37,8 @@ export const siteConfig = {
     },
     email: "johnrudolph2010@gmail.com",
   },
-  /** Tax Identification Number on receipts. A placeholder until the owner provides it. */
-  tin: "000-000-000-000",
+  /** Tax Identification Number on receipts. A made-up demo number (owner decision), not a real TIN. */
+  tin: "301-707-321-000",
   branches: [
     {
       slug: "tipas",

@@ -252,6 +252,7 @@ Rules the AI follows are in [`../CLAUDE.md`](../CLAUDE.md). Stage prompts are in
   - Asked "what do u recommend 1 2 or 3" for the three open questions, then chose real per-branch receipt numbers (an additive database change), and "yes to both" for installing `@react-pdf/renderer` and `resend` and for keeping five bottom tabs on phones.
   - Approved the written plan.
   - After the PR and preview were up: "As for the receipts i want it to be formal." Picked the "PH sales receipt" mock-up out of three (PH sales receipt, business invoice, wording only), with the note that the TIN and VAT must stay.
+  - "for the tin just generate random tin": the placeholder TIN was replaced with a random demo number, `301-707-321-000`.
 - **What the AI did:**
   - Found a contradiction in `PLAN.md` (§4 says five bottom tabs, §7 a Receipts bottom tab) and asked before choosing.
   - Added the TIN placeholder and a short receipt code per branch to `site.ts`; an additive migration with a counter per branch, numbering the 16 existing orders on the dev database per branch; and the counter update inside `placeOrder`'s existing transaction, so two orders at once can't share a number.

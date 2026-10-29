@@ -42,7 +42,7 @@ describe("ReceiptView", () => {
       screen.getByText("BGC · High Street Kiosk, Bonifacio Global City"),
     ).toBeVisible();
     expect(screen.getByText("Tel. 0939 008 2560")).toBeVisible();
-    expect(screen.getByText("VAT REG TIN 000-000-000-000")).toBeVisible();
+    expect(screen.getByText("VAT REG TIN 301-707-321-000")).toBeVisible();
     expect(screen.getByText("SALES RECEIPT")).toBeVisible();
 
     const details = screen.getByTestId("receipt-details");

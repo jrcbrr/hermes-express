@@ -118,7 +118,7 @@ describe("receiptEmailHtml", () => {
     const shown = text(receiptEmailHtml(buildReceipt(pickupOrder)));
     for (const piece of [
       "HERMES EXPRESS",
-      "VAT REG TIN 000-000-000-000",
+      "VAT REG TIN 301-707-321-000",
       "SALES RECEIPT",
       "Receipt No. HX-BGC-000123",
       "Date/Time 10/30/2026 09:15 AM",

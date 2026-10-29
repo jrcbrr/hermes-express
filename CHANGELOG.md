@@ -14,7 +14,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **Download PDF**: `GET /api/receipts/[id]/pdf` builds the receipt PDF on the server (new dependency `@react-pdf/renderer`). Signed-out visitors get 401; someone else's or a missing order gets 404.
 - **Receipt email**: after a new order is placed, the receipt (with the PDF attached) is emailed to the address given at checkout through Resend (new dependency `resend`). It runs after the response, so checkout is never slowed down, and is sent at most once per order. Without `RESEND_API_KEY` or `EMAIL_FROM` it is skipped and logged; errors are logged and never affect the order.
 - `src/lib/receipt.ts`: `buildReceipt()`, `formatReceiptNumber()`, `vatFromTotal()`, `formatReceiptDateTime()`; the page, PDF and email all render the same receipt. `formatPesoPlain()` in `src/lib/money.ts` ("PHP 495.00") for the receipt total.
-- `siteConfig.tin` (placeholder `000-000-000-000` until the owner provides the real TIN) and a `receiptCode` per branch (`TIP`, `BGC`, `TLK`).
+- `siteConfig.tin` (a random demo TIN, `301-707-321-000`, at the owner's request; not a real TIN) and a `receiptCode` per branch (`TIP`, `BGC`, `TLK`).
 - Tests: receipt numbers, the VAT split and rounding, Manila dates, the receipt view, list and details, PDF rendering (one page per receipt), the PDF route's 401/404/200, the email (sent, skipped without configuration, Resend errors, thrown errors, HTML escaping, no secrets or addresses in logs), the counter update in `placeOrder`; the checkout E2E now opens the receipt, downloads the PDF and finds it under Receipts.
 
 #### Changed

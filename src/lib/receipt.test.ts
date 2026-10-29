@@ -85,7 +85,7 @@ describe("buildReceipt", () => {
         shopName: "HERMES EXPRESS",
         branch: "BGC · High Street Kiosk, Bonifacio Global City",
         phone: "Tel. 0939 008 2560",
-        tin: "VAT REG TIN 000-000-000-000",
+        tin: "VAT REG TIN 301-707-321-000",
         title: "SALES RECEIPT",
       },
       details: [
