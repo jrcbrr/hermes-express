@@ -64,6 +64,8 @@ test.describe("promo codes", () => {
       page.getByText("Butter Croissant added to your cart."),
     ).toBeAttached();
     await page.goto("/signup?next=/checkout");
+    // Typing into a page that is still hydrating can be lost.
+    await page.waitForLoadState("networkidle");
     await page.getByLabel("Full name").fill("Playwright Promo");
     await page
       .getByLabel("Email", { exact: true })
@@ -77,6 +79,7 @@ test.describe("promo codes", () => {
     await expect(page).toHaveURL((url) => url.pathname === "/checkout", {
       timeout: 15_000,
     });
+    await page.waitForLoadState("networkidle");
 
     // 3. A wrong code is refused; the real one takes ₱10 off.
     await page.getByLabel("Promo code").fill("NOSUCHCODE");
@@ -123,6 +126,7 @@ test.describe("promo codes", () => {
       page.getByText("Butter Croissant added to your cart."),
     ).toBeAttached();
     await page.goto("/checkout");
+    await page.waitForLoadState("networkidle");
     await page.getByLabel("Promo code").fill(code);
     await page.getByRole("button", { name: "Apply" }).click();
     await expect(page.getByText("We could not find this code.")).toBeVisible();

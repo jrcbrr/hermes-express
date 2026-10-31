@@ -75,6 +75,6 @@ test.describe("with a database", () => {
     await expect(
       page.getByRole("heading", { level: 1, name: "Your orders" }),
     ).toBeVisible();
-    await expect(page.getByText(/coming soon/)).toBeVisible();
+    await expect(page.getByText("You have no orders yet.")).toBeVisible();
   });
 });
