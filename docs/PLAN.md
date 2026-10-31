@@ -418,7 +418,7 @@ hermes-express/
 | `rating` | id, orderItemId, userId, stars, comment, createdAt |
 | `promo_code` | id, code, type (`percent`/`fixed`), value, maxDiscount?, minSubtotal, firstOrderOnly, startsAt, endsAt, maxUses, usedCount, isActive |
 | `points_ledger` | id, userId, delta, reason (`earn`/`redeem`/`admin_adjust`), orderId?, note, createdAt |
-| `user_badge` | userId, badgeKey, earnedAt |
+| `user_badge` | userId, badgeKey, earnedAt, seenAt (unlock toast shown) |
 | `user_stat` | userId, customDrinksBuilt, basesTried (jsonb), milksTried (jsonb) |
 
 Badge definitions live in code (`src/lib/badges.ts`), not in the DB.
@@ -569,6 +569,13 @@ The seed stops with a clear error if any seed variable is missing or a password 
 | Cash at Pickup | Added at the owner's request: pickup orders can pay cash at the counter. Saved as `cash_pickup` and `unpaid`. This replaces the Stage 5 rule that pickup offers only demo payments. |
 | Admin promos | `/admin/promos` is built in Stage 8: create, edit, switch on or off. No deleting, renaming or editing the used count. |
 | Promo uses | A use is counted with the order and returned if the order is cancelled. A cancelled order does not use up a first-order code. |
+| Redeeming | One free drink per order, on one unit of one drink. Pastries and snacks don't qualify. The tier follows the drink's size. A built drink's base and size are free, or a signature's menu price at that size; add-ons are still charged. |
+| Promo with points | Both are allowed. The free drink comes off first and the promo applies to what is left. |
+| Cancelled orders | Redeemed points and the promo use are returned. |
+| Badge timing | Badges unlock when an order is placed, not when it is Completed. |
+| Receipts | One discount line naming both sources, e.g. `LESS: DISCOUNT (FIRSTSIP, 150 PTS)`. |
+| Sounds | Original WAV files synthesized by a script, so there is no licence to track and no new dependency. |
+| Favorites | Saved with the drink's choices only, up to 50 per customer. |
 
 ### Decisions approved by the owner (Stage 7)
 | Topic | Decision |
