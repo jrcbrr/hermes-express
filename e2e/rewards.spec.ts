@@ -1,5 +1,6 @@
 import { loadEnvConfig } from "@next/env";
 import { expect, test, type Page } from "@playwright/test";
+import { logIn as logInWithRetry } from "./helpers";
 
 // Runs in both Playwright projects: desktop (1280px) and mobile (375px).
 loadEnvConfig(process.cwd());
@@ -12,7 +13,7 @@ const onPath = (path: string) => (url: URL) => url.pathname === path;
 
 async function addFromMenu(page: Page, name: string) {
   await page.goto("/menu");
-  await page.getByRole("button", { name: `Add ${name} to cart` }).click();
+  await page.getByRole("button", { name: `Add to cart: ${name}` }).click();
   await expect(page.getByText(`${name} added to your cart.`)).toBeAttached();
 }
 
@@ -67,11 +68,7 @@ test.describe("rewards", () => {
       extraHTTPHeaders: { "x-forwarded-for": fakeIp() },
     });
     const admin = await adminContext.newPage();
-    await admin.goto("/login?next=/admin");
-    await admin.getByLabel("Email").fill(adminEmail!);
-    await admin.getByLabel("Password").fill(adminPassword!);
-    await admin.getByRole("button", { name: "Log in" }).click();
-    await expect(admin).toHaveURL(onPath("/admin"), { timeout: 15_000 });
+    await logInWithRetry(admin, "/admin", adminEmail!, adminPassword!);
 
     // 1. A new customer orders a ₱95 croissant, worth 9 points.
     await addFromMenu(page, "Butter Croissant");
@@ -169,7 +166,7 @@ test.describe("rewards", () => {
       page.getByRole("heading", { name: "Custom Latte" }),
     ).toBeVisible();
     await page
-      .getByRole("button", { name: "Add Custom Latte to cart" })
+      .getByRole("button", { name: "Add to cart: Custom Latte" })
       .click();
     await expect(page.getByText(/Added to your cart/)).toBeVisible();
     await page

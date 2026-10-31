@@ -14,7 +14,7 @@ export type ChoiceOption = {
 };
 
 export const choiceCard =
-  "relative flex min-h-11 cursor-pointer items-center gap-3 rounded-xl border bg-surface px-3 py-2 text-sm transition-colors hover:bg-surface-muted has-checked:border-primary has-checked:bg-primary/10 has-checked:font-semibold has-disabled:cursor-not-allowed has-disabled:opacity-60 has-focus-visible:ring-3 has-focus-visible:ring-ring/50";
+  "group relative flex min-h-11 cursor-pointer items-center gap-3 rounded-xl border bg-surface px-3 py-2 text-sm transition-colors hover:bg-surface-muted has-checked:border-primary has-checked:bg-primary/10 has-checked:font-semibold has-disabled:cursor-not-allowed has-disabled:opacity-60 has-focus-visible:ring-3 has-focus-visible:ring-ring/50";
 
 export function Swatch({ color }: { color: string | null | undefined }) {
   if (!color) return null;
@@ -38,7 +38,7 @@ export function ChoiceText({ option }: { option: ChoiceOption }) {
         ) : null}
       </span>
       {option.detail ? (
-        <span className="text-xs font-normal text-muted-foreground">
+        <span className="text-xs font-normal text-muted-foreground group-has-checked:text-foreground">
           {option.detail}
         </span>
       ) : null}

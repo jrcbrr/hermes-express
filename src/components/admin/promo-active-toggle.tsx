@@ -33,7 +33,7 @@ export function PromoActiveToggle({
         className="h-11 px-4"
         disabled={pending}
         onClick={toggle}
-        aria-label={`Switch ${code} ${isActive ? "off" : "on"}`}
+        aria-label={`Switch ${isActive ? "off" : "on"}: ${code}`}
       >
         {isActive ? "Switch off" : "Switch on"}
       </Button>

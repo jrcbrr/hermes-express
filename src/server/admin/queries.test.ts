@@ -9,6 +9,7 @@ const mocks = await vi.hoisted(async () => {
 vi.mock("@/db", () => ({ getDb: () => mocks.db }));
 
 const {
+  getSalesCharts,
   getTodaySummary,
   getPromo,
   getUserWithOrders,
@@ -46,6 +47,26 @@ describe("getTodaySummary", () => {
     ];
     const summary = await getTodaySummary(new Date("2026-10-31T02:00:00Z"));
     expect(summary.overall.averageCentavos).toBe(20000);
+  });
+});
+
+describe("getSalesCharts", () => {
+  it("fills the days without sales and passes the rest through", async () => {
+    mocks.state.selects = [
+      [{ day: "2026-10-31", revenueCentavos: 40000 }],
+      [{ name: "BGC", orders: 2 }],
+      [{ name: "Custom drinks", quantity: 3 }],
+    ];
+    const charts = await getSalesCharts(new Date("2026-10-31T02:00:00Z"));
+    expect(charts.revenueByDay).toHaveLength(14);
+    expect(charts.revenueByDay[0]).toEqual({
+      day: "2026-10-18",
+      label: "Oct 18",
+      revenueCentavos: 0,
+    });
+    expect(charts.revenueByDay[13]!.revenueCentavos).toBe(40000);
+    expect(charts.ordersByBranch).toEqual([{ name: "BGC", orders: 2 }]);
+    expect(charts.topItems).toEqual([{ name: "Custom drinks", quantity: 3 }]);
   });
 });
 

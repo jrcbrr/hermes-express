@@ -41,7 +41,7 @@ export function AddProductButton({
         size="lg"
         className="h-11 flex-1 gap-2 font-semibold"
         disabled={disabled}
-        aria-label={`Add ${name} to cart`}
+        aria-label={`${status === "added" ? "Added" : "Add to cart"}: ${name}`}
         onClick={add}
       >
         {status === "added" ? (

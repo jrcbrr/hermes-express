@@ -107,13 +107,13 @@ export function ReceiptView({ receipt }: { receipt: Receipt }) {
         ))}
       </dl>
 
-      <dl className={`py-2 ${RULE}`}>
+      <dl className={`pt-2 ${RULE}`}>
         <Row {...payment} />
-        <div className="mt-2">
-          {receipt.soldTo.map((row) => (
-            <Row key={row.label} {...row} />
-          ))}
-        </div>
+      </dl>
+      <dl className="mt-2 pb-2">
+        {receipt.soldTo.map((row) => (
+          <Row key={row.label} {...row} />
+        ))}
       </dl>
 
       <footer className={`pt-3 text-center ${RULE}`}>

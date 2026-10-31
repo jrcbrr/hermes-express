@@ -120,7 +120,7 @@ describe("ProductCard", () => {
   it("adds items to the cart and confirms it", () => {
     const card = renderCard(signature);
     const add = within(card).getByRole("button", {
-      name: "Add Olympus Latte to cart",
+      name: "Add to cart: Olympus Latte",
     });
     fireEvent.click(add);
     fireEvent.click(add);
@@ -142,7 +142,7 @@ describe("ProductCard", () => {
     const card = renderCard(pastry);
     expect(within(card).queryByText("Customize")).toBeNull();
     expect(
-      within(card).getByRole("button", { name: "Add Cinnamon Roll to cart" }),
+      within(card).getByRole("button", { name: "Add to cart: Cinnamon Roll" }),
     ).toBeEnabled();
   });
 
@@ -156,7 +156,7 @@ describe("ProductCard", () => {
       within(card).getByRole("button", { name: "Customize Olympus Latte" }),
     ).toBeDisabled();
     expect(
-      within(card).getByRole("button", { name: "Add Olympus Latte to cart" }),
+      within(card).getByRole("button", { name: "Add to cart: Olympus Latte" }),
     ).toBeDisabled();
   });
 

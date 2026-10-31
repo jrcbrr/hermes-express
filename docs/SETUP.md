@@ -130,7 +130,7 @@ CI has no database yet, so the database-backed E2E tests (`e2e/auth.spec.ts` "si
 2. In GitHub → Settings → Secrets and variables → Actions, add repository secrets `DATABASE_URL` (the `ci` branch's pooled connection string) and `BETTER_AUTH_SECRET`.
 3. In `.github/workflows/ci.yml`, pass both secrets as `env` and run `npm run db:migrate` before the E2E step.
 
-Locally, all requests share one rate-limit bucket (there is no client IP), so the E2E test sends a random test IP header so repeated runs stay under the per-IP limit.
+Locally, all requests share one rate-limit bucket (there is no client IP), so the E2E test sends a random test IP header so repeated runs stay under the per-IP limit. Staff logins share one email, so the `logIn` helper in `e2e/helpers.ts` waits out the limit of 5 attempts a minute. If tests lose their connection to Neon, lower the load with `npx playwright test --workers=2`.
 
 ## 7. Deployment
 

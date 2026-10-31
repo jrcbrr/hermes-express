@@ -44,7 +44,7 @@ export async function OrderDetails({
         className="flex flex-col items-start gap-2 rounded-2xl border bg-surface p-6"
       >
         {isOwner ? (
-          <p className="flex items-center gap-2 font-semibold text-primary">
+          <p className="flex items-center gap-2 font-semibold text-accent">
             <CircleCheck className="size-5" aria-hidden="true" />
             Thank you. Your order has been placed.
           </p>

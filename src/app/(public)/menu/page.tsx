@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
+import { CardGridSkeleton } from "@/components/layout/page-skeleton";
 import { MenuContent } from "@/components/menu/menu-content";
 
 export const metadata: Metadata = {
@@ -18,13 +19,7 @@ export default function MenuPage() {
         Order a signature as it is, or open it in the builder and make it your
         own.
       </p>
-      <Suspense
-        fallback={
-          <p role="status" className="mt-6 text-muted-foreground">
-            Loading the menu…
-          </p>
-        }
-      >
+      <Suspense fallback={<CardGridSkeleton />}>
         <MenuContent />
       </Suspense>
     </div>
