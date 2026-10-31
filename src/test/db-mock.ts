@@ -20,8 +20,16 @@ export function mockDb() {
     insertRows: [{ id: "inserted" }] as unknown[],
     sets: [] as Record<string, unknown>[],
     inserted: [] as Record<string, unknown>[],
+    deleteRows: [{ id: "deleted" }] as unknown[],
+    executeRows: [{ id: "executed" }] as unknown[],
+    executed: [] as unknown[],
   };
   const db = {
+    delete: () => chainable(state.deleteRows),
+    execute: async (query: unknown) => {
+      state.executed.push(query);
+      return { rows: state.executeRows };
+    },
     select: () => chainable(state.selects.shift() ?? []),
     update: () => ({
       set: (values: Record<string, unknown>) => {
@@ -42,6 +50,9 @@ export function mockDb() {
     state.insertRows = [{ id: "inserted" }];
     state.sets = [];
     state.inserted = [];
+    state.deleteRows = [{ id: "deleted" }];
+    state.executeRows = [{ id: "executed" }];
+    state.executed = [];
   };
   return { db, state, reset };
 }

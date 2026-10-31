@@ -1,6 +1,6 @@
 "use server";
 
-import { and, eq, sql } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { getDb } from "@/db";
 import { branch, user } from "@/db/schema";
@@ -102,7 +102,7 @@ export async function adjustPoints(
   _prev: AdminFormState,
   formData: FormData,
 ): Promise<AdminFormState> {
-  const admin = await requireRole(["admin"], PATH);
+  await requireRole(["admin"], PATH);
   const userId = formString(formData, "userId");
   const values = {
     delta: formString(formData, "delta"),
@@ -114,22 +114,13 @@ export async function adjustPoints(
   }
   const { delta, note } = parsed.data;
 
-  // The check is part of the update, so two adjustments at once stay correct.
-  const updated = await getDb()
-    .update(user)
-    .set({ pointsBalance: sql`${user.pointsBalance} + ${delta}::int` })
-    .where(
-      and(eq(user.id, userId), sql`${user.pointsBalance} + ${delta}::int >= 0`),
-    )
-    .returning({ id: user.id });
-  if (updated.length === 0) {
+  if (!(await recordPointsAdjustment({ userId, delta, note }))) {
     return {
       errors: { delta: "This would take the balance below zero." },
       values,
     };
   }
 
-  await recordPointsAdjustment({ userId, delta, note, adminId: admin.id });
   revalidatePath(PATH, "layout");
   return { status: "saved" };
 }
