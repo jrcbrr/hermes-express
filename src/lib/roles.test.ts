@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   canAccessPath,
+  canManageBranch,
   getRouteAccess,
   hasRole,
   isRole,
@@ -8,6 +9,31 @@ import {
   safeNextPath,
   type Role,
 } from "./roles";
+
+describe("canManageBranch", () => {
+  it("lets admins manage any branch", () => {
+    expect(canManageBranch({ role: "admin", branchId: null }, "b1")).toBe(true);
+  });
+
+  it("lets a barista manage only their own branch", () => {
+    const barista = { role: "barista", branchId: "b1" };
+    expect(canManageBranch(barista, "b1")).toBe(true);
+    expect(canManageBranch(barista, "b2")).toBe(false);
+    expect(canManageBranch({ role: "barista", branchId: null }, "b1")).toBe(
+      false,
+    );
+  });
+
+  it("never lets customers or unknown roles manage a branch", () => {
+    expect(canManageBranch({ role: "customer", branchId: "b1" }, "b1")).toBe(
+      false,
+    );
+    expect(canManageBranch({ role: "owner", branchId: "b1" }, "b1")).toBe(
+      false,
+    );
+    expect(canManageBranch({}, "b1")).toBe(false);
+  });
+});
 
 describe("isRole / hasRole", () => {
   it("recognizes only the three roles", () => {
