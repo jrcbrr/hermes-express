@@ -9,7 +9,7 @@ const mocks = await vi.hoisted(async () => {
 vi.mock("@/db", () => ({ getDb: () => mocks.db }));
 vi.mock("@/server/auth/session", () => ({ requireUser: mocks.requireUser }));
 
-const { markBadgesSeen } = await import("./actions");
+const { claimPerfectPour, markBadgesSeen } = await import("./actions");
 const { listUnseenBadges, markBadgesSeenFor, recordOrderBadges } =
   await import("./badges");
 const { listEarnedBadges, listPointsHistory } = await import("./queries");
@@ -122,6 +122,28 @@ describe("badge reads and seen flags", () => {
   it("lists points history", async () => {
     mocks.state.selects = [[{ id: "l1" }]];
     expect(await listPointsHistory("u1")).toEqual([{ id: "l1" }]);
+  });
+});
+
+describe("claimPerfectPour", () => {
+  it("needs a signed-in user", async () => {
+    mocks.requireUser.mockRejectedValue(new Error("redirect"));
+    await expect(claimPerfectPour()).rejects.toThrow("redirect");
+    expect(mocks.state.inserted).toEqual([]);
+  });
+
+  it("gives the signed-in user the badge, already seen", async () => {
+    expect(await claimPerfectPour()).toEqual({ newlyEarned: true });
+    expect(mocks.state.inserted[0]).toMatchObject({
+      userId: "u1",
+      badgeKey: "perfect_pour",
+      seenAt: expect.any(Date),
+    });
+  });
+
+  it("says when the badge was already held", async () => {
+    mocks.state.insertRows = [];
+    expect(await claimPerfectPour()).toEqual({ newlyEarned: false });
   });
 });
 

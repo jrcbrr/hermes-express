@@ -104,7 +104,7 @@ function triedAll(tried: readonly string[], all: readonly string[]): boolean {
 
 /**
  * Badges this order earns, including ones the customer already has. Perfect
- * Pour is not here: only the Stage 9 mini-game unlocks it.
+ * Pour is not here: only the mini-game unlocks it (awardPerfectPour).
  */
 export function badgesForOrder({
   stats,

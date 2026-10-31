@@ -63,6 +63,20 @@ export async function recordOrderBadges(
   }
 }
 
+/**
+ * Gives the Perfect Pour badge; true if it is new. Already marked seen, because
+ * the game tells the customer on the spot.
+ */
+export async function awardPerfectPour(userId: string): Promise<boolean> {
+  const now = new Date();
+  const inserted = await getDb()
+    .insert(userBadge)
+    .values({ userId, badgeKey: "perfect_pour", earnedAt: now, seenAt: now })
+    .onConflictDoNothing()
+    .returning({ badgeKey: userBadge.badgeKey });
+  return inserted.length > 0;
+}
+
 /** Badges the customer hasn't been told about yet. */
 export async function listUnseenBadges(userId: string): Promise<string[]> {
   const rows = await getDb()
