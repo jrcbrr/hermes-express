@@ -6,7 +6,7 @@ export const controlClass =
   "h-11 w-full rounded-lg border border-input bg-surface px-2.5 text-base focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent md:text-sm";
 
 export const linkClass =
-  "font-medium text-primary underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent";
+  "font-medium text-accent underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent";
 
 export function AdminHeading({
   title,

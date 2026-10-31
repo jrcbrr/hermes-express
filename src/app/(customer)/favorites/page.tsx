@@ -81,7 +81,7 @@ async function FavoritesList() {
             <ReorderButton
               entries={priced?.unitPriceCentavos != null ? [entry] : []}
               label="Add to cart"
-              ariaLabel={`Add ${favorite.name} to cart`}
+              ariaLabel={`Add to cart: ${favorite.name}`}
             />
             <RemoveFavoriteButton id={favorite.id} name={favorite.name} />
           </li>

@@ -58,7 +58,7 @@ describe("PromoActiveToggle", () => {
   it("switches a code off", async () => {
     mocks.setPromoActive.mockResolvedValue({ ok: true });
     render(<PromoActiveToggle id="p1" code="RAINY" isActive />);
-    fireEvent.click(screen.getByRole("button", { name: "Switch RAINY off" }));
+    fireEvent.click(screen.getByRole("button", { name: "Switch off: RAINY" }));
     await waitFor(() =>
       expect(mocks.setPromoActive).toHaveBeenCalledWith({
         id: "p1",
@@ -70,7 +70,7 @@ describe("PromoActiveToggle", () => {
   it("shows why it failed", async () => {
     mocks.setPromoActive.mockResolvedValue({ ok: false, message: "Nope" });
     render(<PromoActiveToggle id="p1" code="RAINY" isActive={false} />);
-    fireEvent.click(screen.getByRole("button", { name: "Switch RAINY on" }));
+    fireEvent.click(screen.getByRole("button", { name: "Switch on: RAINY" }));
     expect(await screen.findByRole("alert")).toHaveTextContent("Nope");
   });
 });

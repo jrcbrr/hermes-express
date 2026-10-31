@@ -51,7 +51,7 @@ export async function ReceiptDetails({
       <ReceiptView receipt={receipt} />
       <Link
         href="/receipts"
-        className="self-start text-sm font-medium text-primary underline-offset-4 hover:underline print:hidden"
+        className="self-start text-sm font-medium text-accent underline-offset-4 hover:underline print:hidden"
       >
         All receipts
       </Link>
