@@ -24,6 +24,7 @@ export function ReviewStep({
   onAddToCart,
   favoriteStatus,
   onSaveFavorite,
+  onBeforeLogin,
 }: StepProps & {
   quantity: number;
   branchName: string;
@@ -34,6 +35,8 @@ export function ReviewStep({
   onAddToCart: () => void;
   favoriteStatus: FavoriteStatus;
   onSaveFavorite: () => void;
+  /** Keeps the drink in progress before a guest leaves to log in. */
+  onBeforeLogin?: () => void;
 }) {
   const nameId = useId();
   const index = optionIndex(catalog);
@@ -177,6 +180,7 @@ export function ReviewStep({
           <>
             <Link
               href="/login?next=/build"
+              onClick={onBeforeLogin}
               className="font-semibold text-accent underline-offset-4 hover:underline"
             >
               Log in

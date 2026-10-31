@@ -21,6 +21,7 @@ import {
   createBuilderState,
   draftFromConfig,
   draftPrice,
+  EMPTY_DRAFT,
   furthestStep,
   reduceBuilder,
   sameDraft,
@@ -31,6 +32,7 @@ import {
   type BuilderDraft,
   type StepId,
 } from "@/lib/builder/state";
+import { saveDraft, takeSavedDraft } from "@/lib/builder/saved-draft";
 import { describeDrink } from "@/lib/builder/visual";
 import { branchCookieString } from "@/lib/catalog";
 import { saveFavorite } from "@/server/favorites/actions";
@@ -186,6 +188,17 @@ export function CoffeeBuilder({
     );
   }
 
+  // Brings back a guest's drink after they log in from the builder. A link to
+  // a particular drink or a cart edit wins over it.
+  useEffect(() => {
+    const saved = takeSavedDraft();
+    if (saved && !editing && sameDraft(start, EMPTY_DRAFT)) {
+      dispatchRaw({ type: "load", draft: saved.draft, step: saved.step });
+    }
+    // Only on arrival.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Tell screen reader users what the drink and price are after each change.
   // Typing a name is skipped so every letter isn't read out.
   const { draft, lastEdit } = state;
@@ -279,6 +292,7 @@ export function CoffeeBuilder({
               onAddToCart={addToCart}
               favoriteStatus={favoriteStatus}
               onSaveFavorite={saveToFavorites}
+              onBeforeLogin={() => saveDraft({ draft, step: "review" })}
             />
           )}
         </section>
