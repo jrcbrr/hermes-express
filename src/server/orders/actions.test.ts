@@ -63,6 +63,7 @@ vi.mock("@/server/catalog/queries", () => ({
 }));
 
 const { placeOrder } = await import("./actions");
+const { promoCode } = await import("@/db/schema");
 
 const BGC = {
   id: "branch-bgc",
@@ -138,6 +139,67 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.useRealTimers();
+});
+
+describe("placeOrder with a promo code", () => {
+  const promo = {
+    id: "promo-1",
+    code: "HERMES10",
+    type: "percent",
+    value: 10,
+    maxDiscountCentavos: 10000,
+    minSubtotalCentavos: 0,
+    firstOrderOnly: false,
+    startsAt: null,
+    endsAt: null,
+    maxUses: null,
+    usedCount: 0,
+    isActive: true,
+  };
+  const withCode = { ...input, promoCode: "hermes10" };
+
+  it("takes the discount off and counts the use with the order", async () => {
+    mocks.state.selects = [[], [BGC], [promo]];
+    expect((await placeOrder(withCode)).ok).toBe(true);
+    const row = saved().order;
+    expect(row.promoCodeId).toBe("promo-1");
+    expect(row.discountCentavos).toBeGreaterThan(0);
+    expect(row.totalCentavos).toBe(
+      (row.subtotalCentavos as number) - (row.discountCentavos as number),
+    );
+    expect(mocks.state.batches.at(-1)!.some((q) => q.table === promoCode)).toBe(
+      true,
+    );
+  });
+
+  it("stops the order when the code doesn't apply", async () => {
+    mocks.state.selects = [[], [BGC], []];
+    const result = await placeOrder(withCode);
+    expect(result).toMatchObject({
+      ok: false,
+      errors: { promoCode: "We could not find this code." },
+    });
+    expect(mocks.state.batches).toEqual([]);
+  });
+
+  it("explains when the last use went to another checkout", async () => {
+    mocks.state.selects = [[], [BGC], [promo]];
+    mocks.state.batchErrors = [
+      Object.assign(new Error("Failed query"), {
+        cause: { code: "23514", constraint: "promo_code_within_max_uses" },
+      }),
+    ];
+    expect(await placeOrder(withCode)).toMatchObject({
+      ok: false,
+      errors: { promoCode: "This code has reached its limit." },
+    });
+  });
+
+  it("uses no promo without a code", async () => {
+    mocks.state.selects = [[], [BGC]];
+    await placeOrder(input);
+    expect(saved().order.promoCodeId).toBeNull();
+  });
 });
 
 describe("placeOrder", () => {

@@ -23,6 +23,7 @@ import { formatSlotDay, formatSlotTime } from "@/lib/schedule";
 import { toFieldErrors, type FieldErrors } from "@/lib/validation/auth";
 import {
   checkoutSchema,
+  isCashPayment,
   NOTE_MAX_LENGTH,
   PAYMENT_METHOD_LABELS,
   paymentMethodsFor,
@@ -33,6 +34,7 @@ import {
 import { placeOrder } from "@/server/orders/actions";
 import { ChoiceGroup } from "./choice-group";
 import { OrderSummary } from "./order-summary";
+import { PromoField, type AppliedPromo } from "./promo-field";
 import { ProcessingScreen } from "./processing-screen";
 
 /** ASAP availability and the offered slots (ISO strings) for one branch. */
@@ -121,6 +123,7 @@ export function CheckoutForm({
   const [message, setMessage] = useState<string | undefined>();
   const [problems, setProblems] = useState<OrderProblem[]>([]);
   const [phase, setPhase] = useState<"form" | "processing" | "done">("form");
+  const [appliedPromo, setAppliedPromo] = useState<AppliedPromo | null>(null);
 
   const timing = timings[branch] ?? { asap: false, slots: [] };
   // ASAP is only offered while the branch is open.
@@ -138,7 +141,7 @@ export function CheckoutForm({
     return (
       <ProcessingScreen
         title={
-          paymentMethod === "cod"
+          isCashPayment(paymentMethod)
             ? "Placing your order…"
             : `Processing your payment with ${PAYMENT_METHOD_LABELS[paymentMethod]}…`
         }
@@ -170,18 +173,23 @@ export function CheckoutForm({
   }
 
   const priced = priceCartItems(cart.items, snapshot, branch, now);
+  const lines = priced.flatMap((p) =>
+    p.unitPriceCentavos === null
+      ? []
+      : [
+          {
+            unitPriceCentavos: p.unitPriceCentavos,
+            quantity: p.item.quantity,
+          },
+        ],
+  );
+  const subtotal = calculateCartTotals({ lines, fulfillment }).subtotalCentavos;
+  // A discount is worked out for one subtotal: a changed cart needs a new one.
+  const promo = appliedPromo?.forSubtotal === subtotal ? appliedPromo : null;
   const totals = calculateCartTotals({
-    lines: priced.flatMap((p) =>
-      p.unitPriceCentavos === null
-        ? []
-        : [
-            {
-              unitPriceCentavos: p.unitPriceCentavos,
-              quantity: p.item.quantity,
-            },
-          ],
-    ),
+    lines,
     fulfillment,
+    discountCentavos: promo?.discountCentavos ?? 0,
   });
   const hasProblems = priced.some((p) => p.problem !== null);
 
@@ -216,6 +224,7 @@ export function CheckoutForm({
       timing: when,
       scheduledFor: when === "scheduled" && slot !== "" ? slot : undefined,
       paymentMethod,
+      promoCode: promo?.code,
       items: cart.items,
     };
     const check = checkoutSchema.safeParse(payload);
@@ -241,6 +250,7 @@ export function CheckoutForm({
         return;
       }
       setPhase("form");
+      if (result.errors?.promoCode) setAppliedPromo(null);
       setProblems(result.problems ?? []);
       showErrors(result.errors ?? {}, result.message);
     } catch {
@@ -484,7 +494,9 @@ export function CheckoutForm({
             description:
               method === "cod"
                 ? "Pay the rider in cash when your order arrives."
-                : "A demo payment. Nothing is charged.",
+                : method === "cash_pickup"
+                  ? "Pay in cash at the counter when you collect your order."
+                  : "A demo payment. Nothing is charged.",
           }))}
         />
       </div>
@@ -494,6 +506,13 @@ export function CheckoutForm({
           priced={priced}
           totals={totals}
           fulfillment={fulfillment}
+          promoCode={promo?.code ?? null}
+        />
+        <PromoField
+          items={cart.items}
+          branch={branch}
+          applied={promo}
+          onChange={setAppliedPromo}
         />
         {hasProblems ? (
           <p
@@ -510,7 +529,7 @@ export function CheckoutForm({
           className="h-12 text-base font-semibold"
           disabled={hasProblems}
         >
-          {paymentMethod === "cod"
+          {isCashPayment(paymentMethod)
             ? `Place order · ${formatPeso(totals.totalCentavos)}`
             : `Pay ${formatPeso(totals.totalCentavos)} (demo)`}
         </Button>

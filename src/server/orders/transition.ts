@@ -24,13 +24,22 @@ export async function writeOrderTransition({
   to: OrderStatus;
   changedByUserId: string;
 }): Promise<boolean> {
+  // A cancelled order gives its promo use back.
+  const freePromo =
+    to === "cancelled"
+      ? sql`, freed as (
+      update promo_code
+      set used_count = greatest(used_count - 1, 0)
+      where id in (select promo_code_id from moved)
+    )`
+      : sql``;
   const result = await getDb().execute(sql`
     with moved as (
       update "order"
       set status = ${to}, updated_at = now()
       where id = ${orderId} and status = ${from}
-      returning id
-    )
+      returning id, promo_code_id
+    )${freePromo}
     insert into order_status_event (id, order_id, status, changed_by_user_id)
     select ${randomUUID()}::text, id, ${to}::text, ${changedByUserId}::text from moved
     returning id`);

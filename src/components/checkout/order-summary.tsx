@@ -8,10 +8,12 @@ export function OrderSummary({
   priced,
   totals,
   fulfillment,
+  promoCode = null,
 }: {
   priced: PricedCartItem[];
   totals: CartTotals;
   fulfillment: "pickup" | "delivery";
+  promoCode?: string | null;
 }) {
   return (
     <section
@@ -61,7 +63,15 @@ export function OrderSummary({
         <dd className="text-right tabular-nums">
           {formatPeso(totals.subtotalCentavos)}
         </dd>
-        {/* Stage 8: promo discount and points lines go here. */}
+        {totals.discountCentavos > 0 ? (
+          <>
+            <dt>Discount{promoCode ? ` (${promoCode})` : ""}</dt>
+            <dd className="text-right tabular-nums" data-testid="discount">
+              −{formatPeso(totals.discountCentavos)}
+            </dd>
+          </>
+        ) : null}
+        {/* Stage 8: the points line goes here. */}
         <dt>Delivery fee</dt>
         <dd className="text-right tabular-nums" data-testid="delivery-fee">
           {fulfillment === "pickup"

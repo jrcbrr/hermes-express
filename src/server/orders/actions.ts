@@ -4,7 +4,13 @@ import { randomInt, randomUUID } from "node:crypto";
 import { and, eq, sql } from "drizzle-orm";
 import { after } from "next/server";
 import { getDb } from "@/db";
-import { branch, order, orderItem, orderStatusEvent } from "@/db/schema";
+import {
+  branch,
+  order,
+  orderItem,
+  orderStatusEvent,
+  promoCode,
+} from "@/db/schema";
 import { siteConfig } from "@/config/site";
 import { priceCartItems } from "@/lib/cart";
 import { INITIAL_ORDER_STATUS } from "@/lib/order-status";
@@ -18,6 +24,7 @@ import {
 } from "@/lib/validation/checkout";
 import { requireUser } from "@/server/auth/session";
 import { getCatalogSnapshot } from "@/server/catalog/queries";
+import { resolvePromo, type ResolvedPromo } from "@/server/promos/resolve";
 import { sendReceiptEmail } from "@/server/receipts/email";
 
 export type PlaceOrderResult =
@@ -39,8 +46,8 @@ function fail(
   return { ok: false, message, ...extra };
 }
 
-/** The constraint name of a Postgres unique violation, or null for other errors. */
-function uniqueViolation(error: unknown): string | null {
+/** The constraint name of a Postgres error with this code, or null for others. */
+function violation(error: unknown, sqlState: string): string | null {
   let current: unknown = error;
   // Drizzle wraps the driver's error; the Postgres details sit in `cause`.
   for (let depth = 0; depth < 3 && current instanceof Object; depth++) {
@@ -49,7 +56,7 @@ function uniqueViolation(error: unknown): string | null {
       constraint?: unknown;
       cause?: unknown;
     };
-    if (e.code === "23505") {
+    if (e.code === sqlState) {
       return typeof e.constraint === "string" ? e.constraint : "";
     }
     current = e.cause;
@@ -139,13 +146,32 @@ export async function placeOrder(input: unknown): Promise<PlaceOrderResult> {
 
   const snapshot = await getCatalogSnapshot();
   const priced = priceCartItems(data.items, snapshot, data.branch, now);
-  // Stage 8: promo codes and points become a discount here.
-  const draft = draftOrder(priced, data.fulfillment);
+  let draft = draftOrder(priced, data.fulfillment);
   if (!draft.ok) {
     return fail(
       "Some items in your cart cannot be ordered right now. Please update your cart.",
       { problems: draft.problems },
     );
+  }
+
+  // Stage 8: points join the discount here.
+  let promo: ResolvedPromo | null = null;
+  if (data.promoCode) {
+    const resolved = await resolvePromo(
+      data.promoCode,
+      user.id,
+      draft.totals.subtotalCentavos,
+      now,
+    );
+    if (!resolved.ok) {
+      return fail(resolved.message, {
+        errors: { promoCode: resolved.message },
+      });
+    }
+    promo = resolved;
+    draft = draftOrder(priced, data.fulfillment, promo.discountCentavos);
+    /* v8 ignore next: the same items passed just above. */
+    if (!draft.ok) throw new Error("The priced cart changed.");
   }
 
   const productIds = new Map(snapshot.products.map((p) => [p.slug, p.id]));
@@ -180,6 +206,7 @@ export async function placeOrder(input: unknown): Promise<PlaceOrderResult> {
           discountCentavos: totals.discountCentavos,
           deliveryFeeCentavos: totals.deliveryFeeCentavos,
           totalCentavos: totals.totalCentavos,
+          promoCodeId: promo?.id ?? null,
           paymentMethod: data.paymentMethod,
           paymentStatus: paymentStatusFor(data.paymentMethod),
           clientRequestId: data.clientRequestId,
@@ -208,13 +235,25 @@ export async function placeOrder(input: unknown): Promise<PlaceOrderResult> {
           status: INITIAL_ORDER_STATUS,
           changedByUserId: user.id,
         }),
+        ...(promo
+          ? [
+              db
+                .update(promoCode)
+                .set({ usedCount: sql`${promoCode.usedCount} + 1` })
+                .where(eq(promoCode.id, promo.id)),
+            ]
+          : []),
       ]);
       // Runs after the response is sent, so the email never slows checkout
       // down. Only new orders get here: a repeated checkout returns earlier.
       after(() => sendReceiptEmail(orderId, user));
       return { ok: true, orderId };
     } catch (error) {
-      const constraint = uniqueViolation(error);
+      if (violation(error, "23514") === "promo_code_within_max_uses") {
+        const message = "This code has reached its limit.";
+        return fail(message, { errors: { promoCode: message } });
+      }
+      const constraint = violation(error, "23505");
       if (constraint === "order_client_request_id_unique") {
         // The same checkout finished in a parallel request.
         const sameOrder = await findPlacedOrder(user.id, data.clientRequestId);

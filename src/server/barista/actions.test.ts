@@ -144,6 +144,20 @@ describe("advanceOrder", () => {
   });
 });
 
+describe("advanceOrder cancelling", () => {
+  it("gives the promo use back only when cancelling", async () => {
+    const query = () =>
+      new PgDialect().sqlToQuery(mocks.db.execute.mock.calls[0]![0] as SQL).sql;
+    await advanceOrder({ orderId: ID, to: "brewing" });
+    expect(query()).not.toContain("promo_code set");
+
+    mocks.db.execute.mockClear();
+    mocks.state.selects = [[pickup]];
+    await advanceOrder({ orderId: ID, to: "cancelled" });
+    expect(query()).toContain("update promo_code");
+  });
+});
+
 describe("setSoldOut", () => {
   const input = {
     branchId: "b-bgc",

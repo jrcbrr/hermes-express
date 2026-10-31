@@ -141,6 +141,16 @@ describe("CheckoutForm", () => {
     expect(screen.getByRole("radio", { name: /GCash/ })).toBeChecked();
   });
 
+  it("offers cash at pickup, and only for pickup", () => {
+    storeCart([latte]);
+    renderForm();
+    fireEvent.click(screen.getByRole("radio", { name: /Cash at Pickup/ }));
+    expect(payButton()).toHaveTextContent("Place order · ₱260");
+    fireEvent.click(screen.getByRole("radio", { name: /^Delivery/ }));
+    expect(screen.queryByRole("radio", { name: /Cash at Pickup/ })).toBeNull();
+    expect(screen.getByRole("radio", { name: /GCash/ })).toBeChecked();
+  });
+
   it("shows free delivery from ₱800", () => {
     storeCart([{ ...latte, quantity: 7 }]);
     renderForm();
