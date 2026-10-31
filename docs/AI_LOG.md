@@ -356,8 +356,8 @@ Rules the AI follows are in [`../CLAUDE.md`](../CLAUDE.md). Stage prompts are in
   - Proposed the plan and flagged a conflict: the brief asked for a demo accounts table, but the plan bans secrets in docs.
   - Built the features with three new dependencies, ran axe and Lighthouse against the production build, and fixed what they found.
 - **What I reviewed / changed / rejected and why:**
-  - Accepted its recommendations: no passwords in the README, a demo customer in the seed, and no CI database for now.
-  - Removed screenshots from the scope.
+  - Accepted its recommendations: no passwords in the README and no CI database for now.
+  - Removed screenshots from the scope, and removed the demo customer it had added to the seed, since visitors can sign up.
 - **Problems & fixes:**
   - **The new chart query failed on a real database but passed its unit test.** The test mocks the database. Postgres treated the time zone parameter in `SELECT` and `GROUP BY` as different expressions, so the query now groups by position. The E2E run caught it.
   - **Axe found real issues:** gold link text below AA, muted text below AA on tinted backgrounds, button names that didn't start with their visible label, and receipt rows nested too deeply.

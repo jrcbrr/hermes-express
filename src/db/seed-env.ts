@@ -12,7 +12,7 @@ export type StaffSeed = {
   name: string;
   email: string;
   password: string;
-  role: "admin" | "barista" | "customer";
+  role: "admin" | "barista";
   /** Branch slug, baristas only. */
   branchSlug: string | null;
 };
@@ -77,31 +77,6 @@ export function readStaffSeeds(
     );
   }
   return staff;
-}
-
-export const DEMO_CUSTOMER_EMAIL = "demo.customer@hermes-express.test";
-
-/**
- * The demo customer for hackathon judges. Optional, so a database without demo
- * accounts can still be seeded: no variable, no account.
- */
-export function readDemoCustomerSeed(
-  env: Partial<Record<string, string>> = process.env,
-): StaffSeed | null {
-  const password = env.SEED_DEMO_CUSTOMER_PASSWORD ?? "";
-  if (!password) return null;
-  if (password.length < PASSWORD_MIN_LENGTH) {
-    throw new Error(
-      `SEED_DEMO_CUSTOMER_PASSWORD must be at least ${PASSWORD_MIN_LENGTH} characters.`,
-    );
-  }
-  return {
-    name: "Demo Customer",
-    email: DEMO_CUSTOMER_EMAIL,
-    password,
-    role: "customer",
-    branchSlug: null,
-  };
 }
 
 export type SeedOptions = {

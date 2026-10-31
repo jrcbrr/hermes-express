@@ -13,7 +13,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **Sales charts** on `/admin` with Recharts: revenue by day, orders by branch and top items for the last 14 Manila days, each with a table view.
 - **Error pages** with the Hermes mascot: 404, an error boundary and a root-level fallback. They never show raw error text.
 - **Loading skeletons** for the menu, builder, customer, barista and admin routes.
-- **Demo customer:** `demo.customer@hermes-express.test`, created by the seed when `SEED_DEMO_CUSTOMER_PASSWORD` is set.
 - **E2E:** `e2e/journey.spec.ts` runs sign-up, build, checkout with promo and points, tracking, barista and admin edit as one story. `e2e/a11y.spec.ts` runs axe WCAG A/AA checks at both widths in both themes.
 - New dependencies: `recharts` and `react-is` (charts), `@axe-core/playwright` (dev, accessibility checks).
 

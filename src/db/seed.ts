@@ -16,14 +16,12 @@ async function main() {
   const { siteConfig } = await import("@/config/site");
   const { getDb } = await import("./index");
   const { account, branch, session, user } = await import("./schema");
-  const { parseSeedArgs, readDemoCustomerSeed, readStaffSeeds } =
-    await import("./seed-env");
+  const { parseSeedArgs, readStaffSeeds } = await import("./seed-env");
   const { seedCatalog } = await import("./seed-catalog");
 
   // Check the arguments and every variable before touching the database.
   const options = parseSeedArgs(process.argv.slice(2));
-  const demo = readDemoCustomerSeed();
-  const accounts = [...readStaffSeeds(), ...(demo ? [demo] : [])];
+  const staff = readStaffSeeds();
   const db = getDb();
 
   console.log("Seeding branches…");
@@ -57,8 +55,8 @@ async function main() {
   console.log("Seeding the catalog (only missing rows)…");
   await seedCatalog(db);
 
-  console.log("Seeding staff and demo accounts…");
-  for (const member of accounts) {
+  console.log("Seeding staff accounts…");
+  for (const member of staff) {
     const branchId = member.branchSlug
       ? (branchIds.get(member.branchSlug) ?? null)
       : null;

@@ -48,18 +48,17 @@ There are three separate Neon databases (branches of the same Neon project):
 - **E2E safety check:** `e2e/global-setup.ts` asks the database which Neon branch it is and **refuses to run the tests if it is `main`** (production).
 - A backup of the previous `.env.local` (which pointed at `main`) is kept as `.env.local.backup`. It is git-ignored; delete it once you no longer need it.
 
-| Variable                                   | Needed from        | Purpose                                                                |
-| ------------------------------------------ | ------------------ | ---------------------------------------------------------------------- |
-| `DATABASE_URL`                             | Stage 2            | Neon Postgres connection                                               |
-| `BETTER_AUTH_SECRET`                       | Stage 2            | Signs session cookies                                                  |
-| `BETTER_AUTH_URL`                          | Stage 2            | App base URL                                                           |
-| `RESEND_API_KEY`                           | Stage 5 (optional) | Sends receipt emails; skipped if missing                               |
-| `EMAIL_FROM`                               | Stage 5            | Sender address                                                         |
-| `SEED_ADMIN_EMAIL` / `SEED_ADMIN_PASSWORD` | Stage 2            | First admin account                                                    |
-| `SEED_BARISTA_TIPAS_PASSWORD`              | Stage 2            | Password for `barista.tipas@hermes-express.test`                       |
-| `SEED_BARISTA_BGC_PASSWORD`                | Stage 2            | Password for `barista.bgc@hermes-express.test`                         |
-| `SEED_BARISTA_LAKESHORE_PASSWORD`          | Stage 2            | Password for `barista.taguig-lakeshore@hermes-express.test`            |
-| `SEED_DEMO_CUSTOMER_PASSWORD`              | Stage 9 (optional) | Password for `demo.customer@hermes-express.test`; no value, no account |
+| Variable                                   | Needed from        | Purpose                                                     |
+| ------------------------------------------ | ------------------ | ----------------------------------------------------------- |
+| `DATABASE_URL`                             | Stage 2            | Neon Postgres connection                                    |
+| `BETTER_AUTH_SECRET`                       | Stage 2            | Signs session cookies                                       |
+| `BETTER_AUTH_URL`                          | Stage 2            | App base URL                                                |
+| `RESEND_API_KEY`                           | Stage 5 (optional) | Sends receipt emails; skipped if missing                    |
+| `EMAIL_FROM`                               | Stage 5            | Sender address                                              |
+| `SEED_ADMIN_EMAIL` / `SEED_ADMIN_PASSWORD` | Stage 2            | First admin account                                         |
+| `SEED_BARISTA_TIPAS_PASSWORD`              | Stage 2            | Password for `barista.tipas@hermes-express.test`            |
+| `SEED_BARISTA_BGC_PASSWORD`                | Stage 2            | Password for `barista.bgc@hermes-express.test`              |
+| `SEED_BARISTA_LAKESHORE_PASSWORD`          | Stage 2            | Password for `barista.taguig-lakeshore@hermes-express.test` |
 
 Every seed password needs at least 8 characters; the seed stops with a clear error otherwise. Generate strong values (and `BETTER_AUTH_SECRET`, with 32 bytes) like this:
 

@@ -39,15 +39,14 @@ Built solo for the **NYHA Junior Dev Hackathon**.
 
 ## Demo accounts
 
-| Role     | Email                                          | Branch           |
-| -------- | ---------------------------------------------- | ---------------- |
-| Customer | `demo.customer@hermes-express.test`            | Any              |
-| Barista  | `barista.tipas@hermes-express.test`            | Tipas            |
-| Barista  | `barista.bgc@hermes-express.test`              | BGC              |
-| Barista  | `barista.taguig-lakeshore@hermes-express.test` | Taguig Lakeshore |
-| Admin    | Provided with the password                     | All              |
+| Role    | Email                                          | Branch           |
+| ------- | ---------------------------------------------- | ---------------- |
+| Barista | `barista.tipas@hermes-express.test`            | Tipas            |
+| Barista | `barista.bgc@hermes-express.test`              | BGC              |
+| Barista | `barista.taguig-lakeshore@hermes-express.test` | Taguig Lakeshore |
+| Admin   | Provided with the password                     | All              |
 
-Passwords are not published, because a public admin login would let anyone change the live menu and see customer details. Hackathon judges receive them with the submission. Anyone can sign up as a new customer.
+Passwords are not published, because a public admin login would let anyone change the live menu and see customer details. Hackathon judges receive them with the submission. To try the customer side, sign up for a new account.
 
 Progress is tracked stage by stage in [`CHANGELOG.md`](CHANGELOG.md).
 

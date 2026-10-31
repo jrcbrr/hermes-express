@@ -581,7 +581,7 @@ The seed stops with a clear error if any seed variable is missing or a password 
 | Topic | Decision |
 |---|---|
 | Demo passwords | The README lists demo emails and roles only. The owner gives judges the passwords in the hackathon submission. |
-| Demo customer | `demo.customer@hermes-express.test`, created by the seed only when `SEED_DEMO_CUSTOMER_PASSWORD` is set. |
+| Demo customer | None, at the owner's request. Customers sign up for their own account. |
 | CI database | Still not set up. Database E2E tests skip in CI and are run locally before a PR. |
 | Perfect Pour | Fills in 4 seconds, with a margin of 4% either side of the line at 70%. The browser reports a win and the server accepts it, because the badge carries no points or money. A guest must log in and win again to keep the badge. |
 | Sales charts | The last 14 Manila days, on the same rules as the summary cards. Top items shows 5; built drinks count together as "Custom drinks", because their names are the customers' own. |
