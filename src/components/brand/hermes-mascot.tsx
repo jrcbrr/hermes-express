@@ -3,13 +3,15 @@ import type { SVGProps } from "react";
 type HermesMascotProps = SVGProps<SVGSVGElement> & {
   /** Gives the mascot an accessible name. Without it the mascot is decorative. */
   title?: string;
+  /** Flaps the helmet wing (out for delivery). Still under reduced motion. */
+  flapping?: boolean;
 };
 
 /**
  * "Hermes", the mascot: a minimalist line-art profile wearing a winged
  * helmet. One colour via `currentColor`. Use sparingly (see PLAN.md §3).
  */
-export function HermesMascot({ title, ...props }: HermesMascotProps) {
+export function HermesMascot({ title, flapping, ...props }: HermesMascotProps) {
   return (
     <svg
       viewBox="0 0 120 120"
@@ -27,9 +29,14 @@ export function HermesMascot({ title, ...props }: HermesMascotProps) {
       <path d="M36 58c-2-20 12-34 32-34 17 0 28 11 28 28v6" />
       <path d="M32 58h66" />
       {/* Wing on the side of the helmet */}
-      <path d="M56 44C46 32 34 27 18 28c8 6 18 10 30 13" />
-      <path d="M54 50c-11-5-22-7-34-5 9 4 19 7 30 8" />
-      <path d="M52 55c-8-2-16-2-24 0" />
+      <g
+        className={flapping ? "hx-wing-flap" : undefined}
+        data-testid={flapping ? "mascot-wing-flap" : undefined}
+      >
+        <path d="M56 44C46 32 34 27 18 28c8 6 18 10 30 13" />
+        <path d="M54 50c-11-5-22-7-34-5 9 4 19 7 30 8" />
+        <path d="M52 55c-8-2-16-2-24 0" />
+      </g>
       {/* Face in profile: forehead, nose, lips, chin */}
       <path d="M94 58c1 4 2 7 6 11 1 2-1 3-4 4 1 2 1 3-1 4 2 2 1 4-1 5 1 4-2 8-8 9-5 1-10 1-14 4" />
       {/* Eye and ear */}

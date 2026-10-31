@@ -2,17 +2,16 @@ import { CircleCheck } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { buttonVariants } from "@/components/ui/button";
+import { ReceiptView } from "@/components/receipts/receipt-view";
 import { formatPeso } from "@/lib/money";
-import { ORDER_STATUS_LABELS } from "@/lib/order-status";
+import { buildReceipt } from "@/lib/receipt";
 import { formatSlot } from "@/lib/schedule";
 import { PAYMENT_METHOD_LABELS } from "@/lib/validation/checkout";
 import { requireUser } from "@/server/auth/session";
-import { getOrderForUser } from "@/server/orders/queries";
+import { getOrderForUser, trackingForOrder } from "@/server/orders/queries";
+import { OrderTracker } from "./order-tracker";
 
-/**
- * A placed order: its code, status, items and totals. The live tracker
- * replaces the status line in Stage 6.
- */
+/** A placed order: its code, live tracker, items, totals and receipt. */
 export async function OrderDetails({
   params,
 }: {
@@ -22,6 +21,8 @@ export async function OrderDetails({
   const user = await requireUser(`/orders/${id}`);
   const found = await getOrderForUser(id, user);
   if (!found) notFound();
+  const tracking = await trackingForOrder(found);
+  const isOwner = found.userId === user.id;
 
   const now = new Date();
   const when =
@@ -35,10 +36,12 @@ export async function OrderDetails({
         aria-labelledby="order-code-heading"
         className="flex flex-col items-start gap-2 rounded-2xl border bg-surface p-6"
       >
-        <p className="flex items-center gap-2 font-semibold text-primary">
-          <CircleCheck className="size-5" aria-hidden="true" />
-          Thank you. Your order has been placed.
-        </p>
+        {isOwner ? (
+          <p className="flex items-center gap-2 font-semibold text-primary">
+            <CircleCheck className="size-5" aria-hidden="true" />
+            Thank you. Your order has been placed.
+          </p>
+        ) : null}
         <h2
           id="order-code-heading"
           className="font-heading text-4xl font-extrabold tracking-wide"
@@ -49,15 +52,13 @@ export async function OrderDetails({
         <p className="text-muted-foreground">
           Please mention this code at the counter or to your rider.
         </p>
-        <p>
-          Status:{" "}
-          <span className="font-semibold" data-testid="order-status">
-            {ORDER_STATUS_LABELS[found.status]}
-          </span>
-        </p>
-        <p className="text-sm text-muted-foreground">
-          Live tracking of your order will appear on this page soon.
-        </p>
+      </section>
+
+      <section
+        aria-label="Order progress"
+        className="rounded-2xl border bg-surface p-6"
+      >
+        <OrderTracker orderId={found.id} initial={tracking} />
       </section>
 
       <section
@@ -166,6 +167,15 @@ export async function OrderDetails({
           This is a demo order. No real payment was made.
         </p>
       </section>
+
+      <details open className="rounded-2xl border bg-surface p-6">
+        <summary className="cursor-pointer font-heading text-xl font-extrabold">
+          Receipt
+        </summary>
+        <div className="mt-4">
+          <ReceiptView receipt={buildReceipt(found)} />
+        </div>
+      </details>
 
       <div className="flex flex-wrap gap-3">
         <Link

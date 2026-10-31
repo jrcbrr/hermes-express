@@ -259,6 +259,23 @@
   }
 }
 
+/* The mascot's helmet wing, hinged where it meets the helmet. */
+@keyframes hx-wing-flap {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  50% {
+    transform: rotate(16deg);
+  }
+}
+
+.hx-wing-flap {
+  transform-box: fill-box;
+  transform-origin: right center;
+  animation: hx-wing-flap 0.5s ease-in-out infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
