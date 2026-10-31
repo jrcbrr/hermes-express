@@ -23,6 +23,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - "Thank you. Your order has been placed." shows only to the customer who placed the order.
 - `e2e/checkout.spec.ts` reloads the receipt page before checking it. Next keeps the previous page mounted but hidden, and that page now holds a receipt too.
 
+#### Fixed
+
+- **An item added while signed in could vanish from the cart** (from Stage 5). `CartAccountSync` no longer overwrites changes made while it is talking to the server. Leaving a page before the delayed save ran no longer loses a change either: the browser remembers it has unsaved changes (`hx_cart_unsaved` in localStorage) and sends them on the next page. New unit tests and a checkout E2E cover this.
+
 ### Stage 5 follow-up: Receipts (2026-10-30)
 
 #### Added
