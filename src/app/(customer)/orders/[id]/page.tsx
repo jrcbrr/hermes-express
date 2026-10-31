@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { OrderDetails } from "@/components/orders/order-details";
+import { OrderRatings } from "@/components/ratings/order-ratings";
+import { BadgeNotice } from "@/components/rewards/badge-notice";
 
 export const metadata: Metadata = { title: "Your order" };
 
@@ -18,6 +20,10 @@ export default function OrderPage({ params }: PageProps<"/orders/[id]">) {
         }
       >
         <OrderDetails params={params} />
+      </Suspense>
+      <Suspense>
+        <OrderRatings params={params} />
+        <BadgeNotice path="/orders" />
       </Suspense>
     </div>
   );
