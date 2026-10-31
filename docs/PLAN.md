@@ -563,6 +563,17 @@ The seed stops with a clear error if any seed variable is missing or a password 
 | Reset | Reset returns to where the drink started: the signature recipe when opened from one, otherwise an empty cup. Reset can be undone. |
 | Syrups and toppings | No limit (was max 3 syrups and 5 toppings): customers add as many as they like, each once. The server keeps a hidden safety cap of 30 per list to reject junk requests. |
 
+### Decisions approved by the owner (Stage 6)
+| Topic | Decision |
+|---|---|
+| Cancel button | The queue offers "Cancel order" with a confirm step, separate from the one-tap button, until the drink is ready. |
+| Admin on `/barista` | Admins have no branch, so they switch with `?branch=<slug>`. `/admin/orders` stays in Stage 7. |
+| Toast | Hand-built, with no new dependency. |
+| Ding | The sound hook is called on status changes and new orders; audio files arrive in Stage 8. |
+| Queue contents | Active orders only. Completed and Cancelled leave the board. |
+| Ratings | Rating after `Completed` stays in Stage 8. |
+| Receipt on the order page | Shown in a section that is open by default, below the items. |
+
 ### Decisions made by the owner (Stage 5)
 | Topic | Decision |
 |---|---|

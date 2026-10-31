@@ -80,7 +80,9 @@ flowchart LR
    2. `/receipts` lists the user's receipts (`listReceiptsForUser()`); `/receipts/[id]` shows one through `getOrderForUser()`, so the same people can see an order and its receipt.
    3. `GET /api/receipts/[id]/pdf` (`src/app/api/receipts/[id]/pdf/route.ts`) checks the session (401) and `getOrderForUser()` (404), then renders the PDF with `@react-pdf/renderer` (`src/server/receipts/pdf.tsx`). The PDF is an 80 mm roll (width only, so the height follows the content) in the built-in Courier font, with hyphenation turned off.
    4. `sendReceiptEmail()` (`src/server/receipts/email.ts`) runs in `after()` once per new order: it sends the HTML receipt with the PDF attached through Resend, to the checkout's receipt email, with an idempotency key per order. Without `RESEND_API_KEY` or `EMAIL_FROM` it is skipped; any error is logged (never the key or the address) and never affects the order.
-8. **Live updates:** the order tracker and barista queue poll a route handler every 10 seconds. This is simpler than websockets and works well on serverless hosting (ADR coming in a later stage).
+8. **Live updates:** the order tracker and barista queue poll a route handler every 10 seconds through `usePolling()` (`src/hooks/use-polling.ts`): `GET /api/orders/[id]/status` and `GET /api/barista/queue`. This is simpler than websockets and works well on serverless hosting (ADR coming in a later stage).
+9. **Changing an order (Stage 6):** `advanceOrder()` (`src/server/barista/actions.ts`) checks the role, `canManageBranch()` and `canTransition()`, then updates the order and inserts its `order_status_event` in one SQL statement. The update only matches while the status is unchanged, so a lost race writes nothing.
+10. **Sold-out switches (Stage 6):** `setSoldOut()` saves a `branch_stock` row and calls `updateTag(CATALOG_CACHE_TAG)`, so the cached catalog behind the menu, builder and checkout refreshes at once.
 
 ## Folder structure
 

@@ -5,6 +5,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Stage 6: Tracking, barista queue & sold-out (2026-10-31)
+
+#### Added
+
+- **Live tracker on `/orders/[id]`:** the Hermes mascot moves along the steps, the cup fills while Brewing, and the helmet wing flaps on Out for delivery. Pickup and delivery orders show their own path; a cancelled order shows a notice. It polls every 10 seconds, pauses in a hidden tab, stops at a final status, and calls the "ding" on a change (silent until Stage 8 adds the audio). All motion stops under `prefers-reduced-motion`.
+- **Receipt on the order page**, in a section that is open by default.
+- **`/barista`:** live queue for the barista's branch, grouped by status, soonest due first, with scheduled orders marked. One-tap next-status button, and Cancel order with a confirm step until the drink is ready. New orders show a toast and call the ding. Admins switch branches with `?branch=<slug>`.
+- **`/barista/stock`:** sold-out switches for products and ingredients at the branch. A signature drink blocked by a sold-out ingredient says which one. Changes reach the menu, builder and checkout at once.
+- **Server actions** `advanceOrder` and `setSoldOut` (`src/server/barista/actions.ts`). A barista can only touch their own branch. A status change and its `order_status_event` are written in one SQL statement, so two baristas tapping together produce one change and one event.
+- **Route handlers** `GET /api/orders/[id]/status` and `GET /api/barista/queue` (never cached).
+- `src/lib/order-queue.ts`, `src/lib/stock.ts`, `src/hooks/use-polling.ts`; `advanceStatus`, `isFinalStatus`, `trackerSteps`, `trackerStepIndex` in `src/lib/order-status.ts`; `canManageBranch` in `src/lib/roles.ts`.
+- Tests: every status transition, branch authorization, queue grouping, polling, tracker, queue board, stock switches, both route handlers; new `e2e/tracking.spec.ts`, where a barista advances an order and the customer's open page updates without a reload.
+
+#### Changed
+
+- "Thank you. Your order has been placed." shows only to the customer who placed the order.
+- `e2e/checkout.spec.ts` reloads the receipt page before checking it. Next keeps the previous page mounted but hidden, and that page now holds a receipt too.
+
 ### Stage 5 follow-up: Receipts (2026-10-30)
 
 #### Added
