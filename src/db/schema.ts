@@ -10,6 +10,7 @@ import {
   integer,
   jsonb,
   pgTable,
+  primaryKey,
   text,
   timestamp,
   uniqueIndex,
@@ -19,6 +20,7 @@ import type { CartItem } from "@/lib/cart";
 import type { IngredientKind, ProductType, PromoType } from "@/lib/catalog";
 import type { OrderStatus } from "@/lib/order-status";
 import type { OrderItemConfig, OrderItemKind } from "@/lib/orders";
+import type { PointsReason } from "@/lib/points";
 import type { PaymentMethod, PaymentStatus } from "@/lib/validation/checkout";
 import type { Role } from "@/lib/roles";
 import type { DrinkConfig } from "@/lib/validation/drink";
@@ -53,23 +55,27 @@ export const branch = pgTable("branch", {
 // the extra user fields are declared in src/lib/auth.ts as `additionalFields`.
 // ---------------------------------------------------------------------------
 
-export const user = pgTable("user", {
-  id: text("id").primaryKey(),
-  name: text("name").notNull(),
-  email: text("email").notNull().unique(),
-  emailVerified: boolean("email_verified").notNull().default(false),
-  image: text("image"),
-  /** Philippine mobile number in +639XXXXXXXXX form. */
-  phone: text("phone"),
-  role: text("role").$type<Role>().notNull().default("customer"),
-  /** Only set for baristas: the branch whose queue they work. */
-  branchId: text("branch_id").references(() => branch.id, {
-    onDelete: "set null",
-  }),
-  pointsBalance: integer("points_balance").notNull().default(0),
-  defaultAddress: text("default_address"),
-  ...timestamps,
-});
+export const user = pgTable(
+  "user",
+  {
+    id: text("id").primaryKey(),
+    name: text("name").notNull(),
+    email: text("email").notNull().unique(),
+    emailVerified: boolean("email_verified").notNull().default(false),
+    image: text("image"),
+    /** Philippine mobile number in +639XXXXXXXXX form. */
+    phone: text("phone"),
+    role: text("role").$type<Role>().notNull().default("customer"),
+    /** Only set for baristas: the branch whose queue they work. */
+    branchId: text("branch_id").references(() => branch.id, {
+      onDelete: "set null",
+    }),
+    pointsBalance: integer("points_balance").notNull().default(0),
+    defaultAddress: text("default_address"),
+    ...timestamps,
+  },
+  (t) => [check("user_points_not_negative", sql`${t.pointsBalance} >= 0`)],
+);
 
 export const session = pgTable(
   "session",
@@ -365,3 +371,100 @@ export const orderStatusEvent = pgTable(
   },
   (t) => [index("order_status_event_order_id_idx").on(t.orderId)],
 );
+
+// ---------------------------------------------------------------------------
+// Rewards (Stage 8).
+// ---------------------------------------------------------------------------
+
+/** A customer's saved drink: what they chose, never a price. */
+export const savedDrink = pgTable(
+  "saved_drink",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    config: jsonb("config").$type<DrinkConfig>().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [index("saved_drink_user_id_idx").on(t.userId)],
+);
+
+/** Every change to a points balance. The balances add up to these rows. */
+export const pointsLedger = pgTable(
+  "points_ledger",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    delta: integer("delta").notNull(),
+    reason: text("reason").$type<PointsReason>().notNull(),
+    orderId: text("order_id").references(() => order.id, {
+      onDelete: "set null",
+    }),
+    note: text("note").notNull().default(""),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    index("points_ledger_user_id_idx").on(t.userId),
+    // An order earns points once, whatever happens.
+    uniqueIndex("points_ledger_one_earn_per_order_uq")
+      .on(t.orderId)
+      .where(sql`${t.reason} = 'earn'`),
+  ],
+);
+
+/** One rating per ordered item. */
+export const rating = pgTable(
+  "rating",
+  {
+    id: text("id").primaryKey(),
+    orderItemId: text("order_item_id")
+      .notNull()
+      .references(() => orderItem.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    stars: integer("stars").notNull(),
+    comment: text("comment").notNull().default(""),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("rating_item_user_uq").on(t.orderItemId, t.userId),
+    check("rating_stars_range", sql`${t.stars} between 1 and 5`),
+  ],
+);
+
+export const userBadge = pgTable(
+  "user_badge",
+  {
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    /** A key from src/lib/badges.ts. */
+    badgeKey: text("badge_key").notNull(),
+    earnedAt: timestamp("earned_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    /** Set once the unlock toast has shown. */
+    seenAt: timestamp("seen_at", { withTimezone: true }),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.badgeKey] })],
+);
+
+export const userStat = pgTable("user_stat", {
+  userId: text("user_id")
+    .primaryKey()
+    .references(() => user.id, { onDelete: "cascade" }),
+  customDrinksBuilt: integer("custom_drinks_built").notNull().default(0),
+  basesTried: jsonb("bases_tried").$type<string[]>().notNull().default([]),
+  milksTried: jsonb("milks_tried").$type<string[]>().notNull().default([]),
+});
