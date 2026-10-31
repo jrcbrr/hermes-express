@@ -55,7 +55,7 @@ flowchart LR
    4. Which paths need which role is defined once in `src/lib/roles.ts`.
    5. The header reads the session inside `<Suspense>`, so the rest of every page can still be prerendered (Cache Components).
 4. **Menu and prices** (Stage 3):
-   1. `getCatalogSnapshot()` in `src/server/catalog/queries.ts` loads every ingredient, product and sold-out flag in one query batch. It is cached (`"use cache"`, tag `catalog`, up to an hour); admin edits in Stage 7 will refresh it with `updateTag("catalog")`.
+   1. `getCatalogSnapshot()` in `src/server/catalog/queries.ts` loads every ingredient, product and sold-out flag in one query batch. It is cached (`"use cache"`, tag `catalog`, up to an hour); admin edits refresh it with `updateTag("catalog")`.
    2. Pure functions in `src/lib/catalog.ts` turn the snapshot into the menu for one branch: hide inactive or out-of-season items, group by type, and mark items sold out. A signature drink is also sold out when an ingredient in its recipe is.
    3. The page sends every branch's sold-out list with the menu (`soldOutSlugsByBranch()`). The client component `MenuBrowser` swaps the "Sold out" labels the moment a branch is tapped, with no network request, and saves the choice in the `hx_menu_branch` cookie so the server renders the same branch after a reload. Before JavaScript loads, the buttons submit to the `selectBranch` server action instead (validated with Zod).
    4. Product photos live in `public/images/menu/<slug>.jpg`, are referenced by `product.image_url`, and are served through Next.js `<Image>`. Photographer credits are in `src/config/photo-credits.ts` and shown on `/credits`.
@@ -83,6 +83,7 @@ flowchart LR
 8. **Live updates:** the order tracker and barista queue poll a route handler every 10 seconds through `usePolling()` (`src/hooks/use-polling.ts`): `GET /api/orders/[id]/status` and `GET /api/barista/queue`. This is simpler than websockets and works well on serverless hosting (ADR coming in a later stage).
 9. **Changing an order (Stage 6):** `advanceOrder()` (`src/server/barista/actions.ts`) checks the role, `canManageBranch()` and `canTransition()`, then updates the order and inserts its `order_status_event` in one SQL statement. The update only matches while the status is unchanged, so a lost race writes nothing.
 10. **Sold-out switches (Stage 6):** `setSoldOut()` saves a `branch_stock` row and calls `updateTag(CATALOG_CACHE_TAG)`, so the cached catalog behind the menu, builder and checkout refreshes at once.
+11. **Admin (Stage 7):** the `/admin` layout and every page and action in `src/server/admin/` call `requireRole(["admin"])`. Status changes share `writeOrderTransition()` (`src/server/orders/transition.ts`) with baristas. Menu and ingredient edits call `updateTag(CATALOG_CACHE_TAG)`, and sold-out switches reuse `setSoldOut()`. Points adjustments update the balance in one conditional SQL statement and then call `recordPointsAdjustment()` (`src/server/points/ledger.ts`), a no-op until the Stage 8 ledger.
 
 ## Folder structure
 
@@ -103,7 +104,7 @@ src/
 │  ├─ sound/     Sound mute toggle (uses hooks/use-sound.ts).
 │  ├─ auth/      Login and sign-up forms, labelled form field.
 │  ├─ profile/   Profile edit form.
-│  └─ staff/     Role-guarded placeholder for /barista and /admin.
+│  └─ admin/     /admin: sidebar and drawer, order status select, product, ingredient and customer forms.
 ├─ config/       site.ts: name, tagline, contacts, branches (single source of truth);
 │                delivery-areas.ts: the Taguig barangays we deliver to.
 ├─ db/           Drizzle client (index.ts), schema.ts, migrations/, seed.ts, seed-env.ts,

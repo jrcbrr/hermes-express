@@ -302,3 +302,22 @@ Rules the AI follows are in [`../CLAUDE.md`](../CLAUDE.md). Stage prompts are in
   - Doing two writes in one SQL statement is a simple way to make them succeed together without a long transaction.
   - A streamed page can't change its status code once it has started, so a page's 200 does not prove access was allowed. Check the content.
 - **Raw log:** [docs/ai-logs/2026-10-31-stage-6.md](ai-logs/2026-10-31-stage-6.md) (exported before the merge, so the merge itself is not in the raw log)
+
+## 2026-10-31 — Stage 7: Admin
+
+- **Goal:** Give admins orders, menu, builder options, customers and per-branch summary cards, all authorized on the server.
+- **Key prompts I gave:**
+  - The Stage 7 prompt: the five admin areas, a sidebar and mobile drawer, a points hook for Stage 8, tests that non-admins are rejected, and an E2E where an admin changes a price and the menu shows it. Plan first and wait for my "go".
+- **What the AI did:**
+  - Read the plan and code and proposed a plan with no migration and no new dependency.
+  - Built the pages, server actions, queries and validation, and unit, component and E2E tests.
+  - Moved the status update out of `advanceOrder` so baristas and admins share it.
+- **What I reviewed / changed / rejected and why:**
+  - Approved the plan.
+- **Problems & fixes:**
+  - **The planned ingredient guard was not enough.** The plan only protected the last active option of a kind, but the builder always starts on `12oz` and `hot` and prices a missing milk as `none`. Those three can't be switched off now.
+  - **A signature's price edit could have been blocked** when an ingredient in its recipe was switched off. Ingredients already in the saved recipe now count as active for that check; new recipes still need active ones.
+  - **The Neon branch was not deleted by the AI.** Claude Code's permission check blocked `neonctl branches delete`, and the AI left it for me instead of working around the block. Neon stays at 10 of 10 until `preview/stage-1-design` is deleted.
+- **What I learned:**
+  - A guard has to match what the code relies on, not only what looks like a sensible rule. Reading the builder's starting state showed the gap.
+- **Raw log:** not yet exported. Save it to `docs/ai-logs/2026-10-31-stage-7.md` with `/export`.

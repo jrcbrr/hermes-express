@@ -563,6 +563,17 @@ The seed stops with a clear error if any seed variable is missing or a password 
 | Reset | Reset returns to where the drink started: the signature recipe when opened from one, otherwise an empty cup. Reset can be undone. |
 | Syrups and toppings | No limit (was max 3 syrups and 5 toppings): customers add as many as they like, each once. The server keeps a hidden safety cap of 30 per list to reject junk requests. |
 
+### Decisions approved by the owner (Stage 7)
+| Topic | Decision |
+|---|---|
+| Summary cards | Today is the Manila day. Cancelled orders are excluded; Cash on Delivery orders count as sales. |
+| Sold-out in admin | Reuses `setSoldOut`, which already allows admins at any branch. |
+| Products | Slug and type are fixed once created. Products are hidden, never deleted. Signature drinks must have a valid recipe. Seasonal items need both dates, whole Manila days; turning seasonal off clears them. No photo upload yet. |
+| Ingredients | Edit only, no creating. `12oz`, `hot` and milk `none` can't be switched off (the builder relies on them), nor can the last active size, temperature, base or milk. |
+| Roles | Admins can't change their own role, so the last admin can't lock everyone out. A barista must have a branch; other roles have none. |
+| Points | An adjustment needs a whole non-zero number and a reason, and can't take a balance below zero. No schema change in this stage: the ledger hook is a no-op, so adjustments before Stage 8 leave no history. |
+| Staff phone | An admin may leave a phone empty, because staff accounts may not have one. |
+
 ### Decisions approved by the owner (Stage 6)
 | Topic | Decision |
 |---|---|
