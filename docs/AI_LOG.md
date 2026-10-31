@@ -343,4 +343,4 @@ Rules the AI follows are in [`../CLAUDE.md`](../CLAUDE.md). Stage prompts are in
   - **Neon was at its 10 branch limit again.** Claude Code's permission check blocked the delete until I asked for it directly; `preview/stage-2-auth` was then deleted. This PR's preview fills Neon again.
 - **What I learned:**
   - A rule in the database, such as a balance that can't go negative, still holds when two requests race, where a check in the code alone would not.
-- **Raw log:** not yet exported. Save it to `docs/ai-logs/2026-10-31-stage-8.md` with `/export`.
+- **Raw log:** [docs/ai-logs/2026-10-31-stage-8.md](ai-logs/2026-10-31-stage-8.md) (exported before the merge; checked for secrets before committing)
