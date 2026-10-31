@@ -279,4 +279,4 @@ Rules the AI follows are in [`../CLAUDE.md`](../CLAUDE.md). Stage prompts are in
   - A database migration that adds a required column also changes what older code must send: once the dev database has `receipt_number`, the code on `main` can't insert orders there, so the migration and the code ship together (Vercel migrates each deployment's own database first).
   - Locking one row (the branch's counter) inside a transaction is a simple way to hand out numbers without gaps or duplicates.
   - Building the receipt once and rendering it three ways (page, PDF, email) keeps them from disagreeing.
-- **Raw log:** docs/ai-logs/2026-10-30-stage-5-receipts.md (to be exported before the merge)
+- **Raw log:** [docs/ai-logs/2026-10-30-stage-5-receipts.md](ai-logs/2026-10-30-stage-5-receipts.md) (two sessions; exported before the merge, so the merge itself is not in the raw log)
