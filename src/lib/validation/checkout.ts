@@ -89,7 +89,8 @@ export const checkoutSchema = z
     paymentMethod: z.enum(PAYMENT_METHODS, "Please choose a payment method."),
     /** Checked and priced again by placeOrder. */
     promoCode: z.string().trim().max(PROMO_CODE_MAX_LENGTH).optional(),
-    // Stage 8: pointsToRedeem joins here.
+    /** The cart item to make free with points. Checked again by placeOrder. */
+    redeemItemId: z.string().max(64).optional(),
     items: cartItemsSchema.min(1, "Your cart is empty."),
   })
   .superRefine((data, ctx) => {

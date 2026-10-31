@@ -9,12 +9,15 @@ import {
   order,
   orderItem,
   orderStatusEvent,
+  pointsLedger,
   promoCode,
+  user as userTable,
 } from "@/db/schema";
 import { siteConfig } from "@/config/site";
 import { priceCartItems } from "@/lib/cart";
 import { INITIAL_ORDER_STATUS } from "@/lib/order-status";
 import { draftOrder, generateOrderCode, type OrderProblem } from "@/lib/orders";
+import { rewardForItem, type DrinkReward } from "@/lib/points";
 import { isAsapAvailable, isValidSlot } from "@/lib/schedule";
 import { toFieldErrors, type FieldErrors } from "@/lib/validation/auth";
 import {
@@ -26,6 +29,7 @@ import { requireUser } from "@/server/auth/session";
 import { getCatalogSnapshot } from "@/server/catalog/queries";
 import { resolvePromo, type ResolvedPromo } from "@/server/promos/resolve";
 import { sendReceiptEmail } from "@/server/receipts/email";
+import { recordOrderBadges } from "@/server/rewards/badges";
 
 export type PlaceOrderResult =
   | { ok: true; orderId: string }
@@ -35,6 +39,8 @@ export type PlaceOrderResult =
       errors?: FieldErrors;
       problems?: OrderProblem[];
     };
+
+const NOT_ENOUGH_POINTS = "You do not have enough points for this reward.";
 
 /** How many fresh codes to try if one is already taken (very unlikely). */
 const CODE_ATTEMPTS = 5;
@@ -154,13 +160,33 @@ export async function placeOrder(input: unknown): Promise<PlaceOrderResult> {
     );
   }
 
-  // Stage 8: points join the discount here.
+  // The free drink comes off first; a promo applies to what is left.
+  let reward: DrinkReward | null = null;
+  if (data.redeemItemId) {
+    const item = data.items.find((i) => i.id === data.redeemItemId);
+    reward = item ? rewardForItem(item, snapshot) : null;
+    if (!reward) {
+      const message = "Please choose a drink for your reward.";
+      return fail(message, { errors: { redeemItemId: message } });
+    }
+    const [balance] = await db
+      .select({ points: userTable.pointsBalance })
+      .from(userTable)
+      .where(eq(userTable.id, user.id));
+    if ((balance?.points ?? 0) < reward.points) {
+      return fail(NOT_ENOUGH_POINTS, {
+        errors: { redeemItemId: NOT_ENOUGH_POINTS },
+      });
+    }
+  }
+  const rewardCentavos = reward?.valueCentavos ?? 0;
+
   let promo: ResolvedPromo | null = null;
   if (data.promoCode) {
     const resolved = await resolvePromo(
       data.promoCode,
       user.id,
-      draft.totals.subtotalCentavos,
+      draft.totals.subtotalCentavos - rewardCentavos,
       now,
     );
     if (!resolved.ok) {
@@ -169,7 +195,10 @@ export async function placeOrder(input: unknown): Promise<PlaceOrderResult> {
       });
     }
     promo = resolved;
-    draft = draftOrder(priced, data.fulfillment, promo.discountCentavos);
+  }
+  const discountCentavos = rewardCentavos + (promo?.discountCentavos ?? 0);
+  if (discountCentavos > 0) {
+    draft = draftOrder(priced, data.fulfillment, discountCentavos);
     /* v8 ignore next: the same items passed just above. */
     if (!draft.ok) throw new Error("The priced cart changed.");
   }
@@ -207,6 +236,7 @@ export async function placeOrder(input: unknown): Promise<PlaceOrderResult> {
           deliveryFeeCentavos: totals.deliveryFeeCentavos,
           totalCentavos: totals.totalCentavos,
           promoCodeId: promo?.id ?? null,
+          pointsRedeemed: reward?.points ?? 0,
           paymentMethod: data.paymentMethod,
           paymentStatus: paymentStatusFor(data.paymentMethod),
           clientRequestId: data.clientRequestId,
@@ -243,15 +273,41 @@ export async function placeOrder(input: unknown): Promise<PlaceOrderResult> {
                 .where(eq(promoCode.id, promo.id)),
             ]
           : []),
+        // The balance can't go below zero (a database check), so two checkouts
+        // spending the same points can't both succeed.
+        ...(reward
+          ? [
+              db
+                .update(userTable)
+                .set({
+                  pointsBalance: sql`${userTable.pointsBalance} - ${reward.points}::int`,
+                })
+                .where(eq(userTable.id, user.id)),
+              db.insert(pointsLedger).values({
+                id: randomUUID(),
+                userId: user.id,
+                delta: -reward.points,
+                reason: "redeem" as const,
+                orderId,
+              }),
+            ]
+          : []),
       ]);
+      await recordOrderBadges(user.id, draft.lines, snapshot, now);
       // Runs after the response is sent, so the email never slows checkout
       // down. Only new orders get here: a repeated checkout returns earlier.
       after(() => sendReceiptEmail(orderId, user));
       return { ok: true, orderId };
     } catch (error) {
-      if (violation(error, "23514") === "promo_code_within_max_uses") {
+      const failedCheck = violation(error, "23514");
+      if (failedCheck === "promo_code_within_max_uses") {
         const message = "This code has reached its limit.";
         return fail(message, { errors: { promoCode: message } });
+      }
+      if (failedCheck === "user_points_not_negative") {
+        return fail(NOT_ENOUGH_POINTS, {
+          errors: { redeemItemId: NOT_ENOUGH_POINTS },
+        });
       }
       const constraint = violation(error, "23505");
       if (constraint === "order_client_request_id_unique") {

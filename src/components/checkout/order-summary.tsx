@@ -9,12 +9,18 @@ export function OrderSummary({
   totals,
   fulfillment,
   promoCode = null,
+  pointsRedeemed = 0,
 }: {
   priced: PricedCartItem[];
   totals: CartTotals;
   fulfillment: "pickup" | "delivery";
   promoCode?: string | null;
+  pointsRedeemed?: number;
 }) {
+  const sources = [
+    promoCode,
+    pointsRedeemed > 0 ? `${pointsRedeemed} points` : null,
+  ].filter(Boolean);
   return (
     <section
       aria-labelledby="order-summary-heading"
@@ -65,13 +71,15 @@ export function OrderSummary({
         </dd>
         {totals.discountCentavos > 0 ? (
           <>
-            <dt>Discount{promoCode ? ` (${promoCode})` : ""}</dt>
+            <dt>
+              Discount
+              {sources.length > 0 ? ` (${sources.join(", ")})` : ""}
+            </dt>
             <dd className="text-right tabular-nums" data-testid="discount">
               −{formatPeso(totals.discountCentavos)}
             </dd>
           </>
         ) : null}
-        {/* Stage 8: the points line goes here. */}
         <dt>Delivery fee</dt>
         <dd className="text-right tabular-nums" data-testid="delivery-fee">
           {fulfillment === "pickup"

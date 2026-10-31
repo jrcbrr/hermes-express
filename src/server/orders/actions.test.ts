@@ -49,6 +49,7 @@ const mocks = vi.hoisted(() => {
     requireUser: vi.fn(),
     after: vi.fn(),
     sendReceiptEmail: vi.fn(),
+    recordOrderBadges: vi.fn(),
   };
 });
 
@@ -58,12 +59,19 @@ vi.mock("next/server", () => ({ after: mocks.after }));
 vi.mock("@/server/receipts/email", () => ({
   sendReceiptEmail: mocks.sendReceiptEmail,
 }));
+vi.mock("@/server/rewards/badges", () => ({
+  recordOrderBadges: mocks.recordOrderBadges,
+}));
 vi.mock("@/server/catalog/queries", () => ({
   getCatalogSnapshot: async () => mocks.state.snapshot,
 }));
 
 const { placeOrder } = await import("./actions");
-const { promoCode } = await import("@/db/schema");
+const {
+  pointsLedger,
+  promoCode,
+  user: userTable,
+} = await import("@/db/schema");
 
 const BGC = {
   id: "branch-bgc",
@@ -139,6 +147,102 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.useRealTimers();
+});
+
+describe("placeOrder with points", () => {
+  const signature: CartItem = {
+    id: "s",
+    kind: "product",
+    productSlug: "olympus-latte",
+    quantity: 2,
+  };
+  const redeeming = {
+    ...input,
+    items: [signature],
+    redeemItemId: "s",
+  };
+
+  it("makes one drink free and spends the points with the order", async () => {
+    mocks.state.selects = [[], [BGC], [{ points: 150 }]];
+    expect((await placeOrder(redeeming)).ok).toBe(true);
+    const row = saved().order;
+    expect(row).toMatchObject({
+      subtotalCentavos: 35000,
+      discountCentavos: 17500,
+      pointsRedeemed: 150,
+      totalCentavos: 17500,
+    });
+    const batch = mocks.state.batches.at(-1)!;
+    expect(batch.some((q) => q.table === userTable)).toBe(true);
+    expect(batch.find((q) => q.table === pointsLedger)?.values).toMatchObject({
+      delta: -150,
+      reason: "redeem",
+    });
+  });
+
+  it("refuses without enough points", async () => {
+    mocks.state.selects = [[], [BGC], [{ points: 149 }]];
+    expect(await placeOrder(redeeming)).toMatchObject({
+      ok: false,
+      errors: { redeemItemId: expect.stringContaining("enough points") },
+    });
+    expect(mocks.state.batches).toEqual([]);
+  });
+
+  it("refuses an item that is not a drink, or not in the cart", async () => {
+    mocks.state.selects = [[], [BGC]];
+    const pastry = await placeOrder({ ...input, redeemItemId: "a" });
+    expect(pastry.ok).toBe(false);
+    mocks.state.selects = [[], [BGC]];
+    const missing = await placeOrder({ ...input, redeemItemId: "zzz" });
+    expect(missing.ok).toBe(false);
+    expect(mocks.state.batches).toEqual([]);
+  });
+
+  it("explains when another checkout spent the points first", async () => {
+    mocks.state.selects = [[], [BGC], [{ points: 150 }]];
+    mocks.state.batchErrors = [
+      Object.assign(new Error("Failed query"), {
+        cause: { code: "23514", constraint: "user_points_not_negative" },
+      }),
+    ];
+    expect(await placeOrder(redeeming)).toMatchObject({
+      ok: false,
+      errors: { redeemItemId: expect.stringContaining("enough points") },
+    });
+  });
+
+  it("applies a promo to what is left after the free drink", async () => {
+    mocks.state.selects = [
+      [],
+      [BGC],
+      [{ points: 150 }],
+      [
+        {
+          id: "promo-1",
+          code: "HERMES10",
+          type: "percent",
+          value: 10,
+          maxDiscountCentavos: null,
+          minSubtotalCentavos: 0,
+          firstOrderOnly: false,
+          startsAt: null,
+          endsAt: null,
+          maxUses: null,
+          usedCount: 0,
+          isActive: true,
+        },
+      ],
+    ];
+    await placeOrder({ ...redeeming, promoCode: "HERMES10" });
+    expect(saved().order.discountCentavos).toBe(17500 + 1750);
+  });
+
+  it("updates badges after a new order", async () => {
+    mocks.state.selects = [[], [BGC]];
+    await placeOrder(input);
+    expect(mocks.recordOrderBadges).toHaveBeenCalledTimes(1);
+  });
 });
 
 describe("placeOrder with a promo code", () => {

@@ -9,6 +9,7 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { DELIVERY_BARANGAYS, DELIVERY_CITY } from "@/config/delivery-areas";
 import { siteConfig, type BranchService } from "@/config/site";
+import { useSound } from "@/hooks/use-sound";
 import { priceCartItems } from "@/lib/cart";
 import { branchCookieString, type CatalogSnapshot } from "@/lib/catalog";
 import { formatTime } from "@/lib/format";
@@ -19,6 +20,7 @@ import {
   FREE_DELIVERY_MIN_CENTAVOS,
 } from "@/lib/pricing";
 import { formatPeso } from "@/lib/money";
+import { rewardForItem } from "@/lib/points";
 import { formatSlotDay, formatSlotTime } from "@/lib/schedule";
 import { toFieldErrors, type FieldErrors } from "@/lib/validation/auth";
 import {
@@ -35,6 +37,7 @@ import { placeOrder } from "@/server/orders/actions";
 import { ChoiceGroup } from "./choice-group";
 import { OrderSummary } from "./order-summary";
 import { PromoField, type AppliedPromo } from "./promo-field";
+import { RewardField } from "./reward-field";
 import { ProcessingScreen } from "./processing-screen";
 
 /** ASAP availability and the offered slots (ISO strings) for one branch. */
@@ -92,12 +95,14 @@ export function CheckoutForm({
   initialBranch,
   timings,
   defaults,
+  pointsBalance = 0,
 }: {
   snapshot: CatalogSnapshot;
   now: Date;
   initialBranch: string;
   timings: Record<string, BranchTiming>;
   defaults: { contactName: string; phone: string; receiptEmail: string };
+  pointsBalance?: number;
 }) {
   const router = useRouter();
   const { ready, cart } = useCart();
@@ -124,6 +129,8 @@ export function CheckoutForm({
   const [problems, setProblems] = useState<OrderProblem[]>([]);
   const [phase, setPhase] = useState<"form" | "processing" | "done">("form");
   const [appliedPromo, setAppliedPromo] = useState<AppliedPromo | null>(null);
+  const [redeemChoice, setRedeemChoice] = useState("");
+  const { play } = useSound();
 
   const timing = timings[branch] ?? { asap: false, slots: [] };
   // ASAP is only offered while the branch is open.
@@ -184,12 +191,22 @@ export function CheckoutForm({
         ],
   );
   const subtotal = calculateCartTotals({ lines, fulfillment }).subtotalCentavos;
-  // A discount is worked out for one subtotal: a changed cart needs a new one.
-  const promo = appliedPromo?.forSubtotal === subtotal ? appliedPromo : null;
+  const rewardOptions = priced.flatMap((p) => {
+    const reward = p.problem === null ? rewardForItem(p.item, snapshot) : null;
+    return reward ? [{ itemId: p.item.id, name: p.name, ...reward }] : [];
+  });
+  const reward =
+    rewardOptions.find(
+      (o) => o.itemId === redeemChoice && o.points <= pointsBalance,
+    ) ?? null;
+  const afterReward = subtotal - (reward?.valueCentavos ?? 0);
+  // A discount is worked out for one amount: a changed cart needs a new one.
+  const promo = appliedPromo?.forSubtotal === afterReward ? appliedPromo : null;
   const totals = calculateCartTotals({
     lines,
     fulfillment,
-    discountCentavos: promo?.discountCentavos ?? 0,
+    discountCentavos:
+      (reward?.valueCentavos ?? 0) + (promo?.discountCentavos ?? 0),
   });
   const hasProblems = priced.some((p) => p.problem !== null);
 
@@ -225,6 +242,7 @@ export function CheckoutForm({
       scheduledFor: when === "scheduled" && slot !== "" ? slot : undefined,
       paymentMethod,
       promoCode: promo?.code,
+      redeemItemId: reward?.itemId,
       items: cart.items,
     };
     const check = checkoutSchema.safeParse(payload);
@@ -245,12 +263,14 @@ export function CheckoutForm({
       ]);
       if (result.ok) {
         setPhase("done");
+        play("ding");
         cartStore.clear();
         router.push(`/orders/${result.orderId}`);
         return;
       }
       setPhase("form");
       if (result.errors?.promoCode) setAppliedPromo(null);
+      if (result.errors?.redeemItemId) setRedeemChoice("");
       setProblems(result.problems ?? []);
       showErrors(result.errors ?? {}, result.message);
     } catch {
@@ -507,10 +527,18 @@ export function CheckoutForm({
           totals={totals}
           fulfillment={fulfillment}
           promoCode={promo?.code ?? null}
+          pointsRedeemed={reward?.points ?? 0}
+        />
+        <RewardField
+          options={rewardOptions}
+          balance={pointsBalance}
+          value={reward?.itemId ?? ""}
+          onChange={setRedeemChoice}
         />
         <PromoField
           items={cart.items}
           branch={branch}
+          redeemItemId={reward?.itemId}
           applied={promo}
           onChange={setAppliedPromo}
         />

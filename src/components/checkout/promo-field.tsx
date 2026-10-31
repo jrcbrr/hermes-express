@@ -23,11 +23,13 @@ const CONNECTION_ERROR =
 export function PromoField({
   items,
   branch,
+  redeemItemId,
   applied,
   onChange,
 }: {
   items: CartItem[];
   branch: string;
+  redeemItemId?: string;
   applied: AppliedPromo | null;
   onChange: (promo: AppliedPromo | null) => void;
 }) {
@@ -40,7 +42,12 @@ export function PromoField({
     setError(null);
     startTransition(async () => {
       try {
-        const result = await previewPromo({ code, branch, items });
+        const result = await previewPromo({
+          code,
+          branch,
+          items,
+          redeemItemId,
+        });
         if (result.ok) {
           onChange(result);
           setCode("");

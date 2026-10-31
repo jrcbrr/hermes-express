@@ -76,6 +76,20 @@ describe("formatReceiptDateTime", () => {
   });
 });
 
+describe("points on a receipt", () => {
+  const discounted = { ...pickupOrder, discountCentavos: 5000 };
+  const label = (over: Partial<typeof pickupOrder>) =>
+    buildReceipt({ ...discounted, ...over }).amounts[1]?.label;
+
+  it("names the points, the code, or both", () => {
+    expect(label({ pointsRedeemed: 150 })).toBe("LESS: DISCOUNT (150 PTS)");
+    expect(label({ pointsRedeemed: 150, promoCode: "FIRSTSIP" })).toBe(
+      "LESS: DISCOUNT (FIRSTSIP, 150 PTS)",
+    );
+    expect(label({})).toBe("LESS: DISCOUNT");
+  });
+});
+
 describe("cash at pickup", () => {
   it("says it is paid at pickup", () => {
     const receipt = buildReceipt({
