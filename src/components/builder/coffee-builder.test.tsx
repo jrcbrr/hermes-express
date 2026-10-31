@@ -18,6 +18,7 @@ import { FIXTURE_NOW, seedSnapshot } from "@/test/catalog-fixture";
 
 const { routerPush } = vi.hoisted(() => ({ routerPush: vi.fn() }));
 vi.mock("@/server/catalog/actions", () => ({ selectBranch: vi.fn() }));
+vi.mock("@/server/favorites/actions", () => ({ saveFavorite: vi.fn() }));
 vi.mock("@/server/cart/actions", () => ({
   saveCart: vi.fn(async () => undefined),
 }));
@@ -149,9 +150,14 @@ describe("CoffeeBuilder", () => {
 
       fireEvent.click(screen.getByRole("button", { name: "Add a cup" }));
       expect(livePrice()).toBe("₱540");
-      expect(
+      // A guest is asked to log in rather than losing the drink to a redirect.
+      fireEvent.click(
         screen.getByRole("button", { name: "Save to favorites" }),
-      ).toBeDisabled();
+      );
+      expect(screen.getByRole("link", { name: "Log in" })).toHaveAttribute(
+        "href",
+        "/login?next=/build",
+      );
 
       fireEvent.click(screen.getByRole("button", { name: "Add to cart" }));
       expect(screen.getByText(/Added to your cart/)).toBeVisible();

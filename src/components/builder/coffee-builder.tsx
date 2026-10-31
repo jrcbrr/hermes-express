@@ -33,6 +33,7 @@ import {
 } from "@/lib/builder/state";
 import { describeDrink } from "@/lib/builder/visual";
 import { branchCookieString } from "@/lib/catalog";
+import { saveFavorite } from "@/server/favorites/actions";
 import { formatPeso, multiplyCentavos } from "@/lib/money";
 import { BuilderCup } from "./builder-cup";
 import { BuilderToolbar } from "./builder-toolbar";
@@ -42,7 +43,7 @@ import { StepProgress } from "./step-progress";
 import { BaseStep } from "./steps/base-step";
 import { CupStep } from "./steps/cup-step";
 import { MilkStep } from "./steps/milk-step";
-import { ReviewStep } from "./steps/review-step";
+import { ReviewStep, type FavoriteStatus } from "./steps/review-step";
 import type { StepProps } from "./steps/shared";
 import { SweetenerStep } from "./steps/sweetener-step";
 import { ToppingsStep } from "./steps/toppings-step";
@@ -102,6 +103,7 @@ export function CoffeeBuilder({
   const [cartStatus, setCartStatus] = useState<"idle" | "added" | "full">(
     "idle",
   );
+  const [favoriteStatus, setFavoriteStatus] = useState<FavoriteStatus>("idle");
   const [branch, setBranch] = useState(initialBranch);
   const [announcement, setAnnouncement] = useState("");
   const { play } = useSound();
@@ -125,6 +127,7 @@ export function CoffeeBuilder({
     }
     dispatchRaw(action);
     setCartStatus("idle");
+    setFavoriteStatus("idle");
   }
 
   const canAddToCart =
@@ -142,6 +145,26 @@ export function CoffeeBuilder({
       return;
     }
     setCartStatus(cartStore.add(entry) ? "added" : "full");
+  }
+
+  async function saveToFavorites() {
+    const config = toDrinkConfig(state.draft);
+    if (config === null) return;
+    // The cart knows the signed-in account; guests are asked to log in first.
+    if (cartStore.read().cart.owner === null) {
+      setFavoriteStatus("login");
+      return;
+    }
+    setFavoriteStatus("saving");
+    try {
+      const result = await saveFavorite({
+        name: config.name ?? "",
+        config,
+      });
+      setFavoriteStatus(result.ok ? "saved" : "failed");
+    } catch {
+      setFavoriteStatus("failed");
+    }
   }
 
   function surprise() {
@@ -254,6 +277,8 @@ export function CoffeeBuilder({
               canAddToCart={canAddToCart}
               cartStatus={cartStatus}
               onAddToCart={addToCart}
+              favoriteStatus={favoriteStatus}
+              onSaveFavorite={saveToFavorites}
             />
           )}
         </section>

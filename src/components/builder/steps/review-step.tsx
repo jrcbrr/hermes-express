@@ -8,6 +8,8 @@ import { DRINK_NAME_MAX_LENGTH } from "@/lib/validation/drink";
 import { Stepper } from "../stepper";
 import { AMOUNT_LABELS, type StepProps } from "./shared";
 
+export type FavoriteStatus = "idle" | "saving" | "saved" | "login" | "failed";
+
 /** The finished drink: name, summary, quantity and the order buttons. */
 export function ReviewStep({
   draft,
@@ -20,6 +22,8 @@ export function ReviewStep({
   canAddToCart,
   cartStatus,
   onAddToCart,
+  favoriteStatus,
+  onSaveFavorite,
 }: StepProps & {
   quantity: number;
   branchName: string;
@@ -28,6 +32,8 @@ export function ReviewStep({
   canAddToCart: boolean;
   cartStatus: "idle" | "added" | "full";
   onAddToCart: () => void;
+  favoriteStatus: FavoriteStatus;
+  onSaveFavorite: () => void;
 }) {
   const nameId = useId();
   const index = optionIndex(catalog);
@@ -131,12 +137,12 @@ export function ReviewStep({
         >
           {isEditing ? "Update cart" : "Add to cart"}
         </Button>
-        {/* Wired up in Stage 8 (favorites). */}
         <Button
           size="lg"
           variant="outline"
           className="h-11 flex-1 font-semibold"
-          disabled
+          disabled={!canAddToCart || favoriteStatus === "saving"}
+          onClick={onSaveFavorite}
         >
           Save to favorites
         </Button>
@@ -156,8 +162,30 @@ export function ReviewStep({
           "Your cart is full. Please check out or remove an item first."
         ) : null}
       </p>
-      <p className="text-xs text-muted-foreground">
-        Saving drinks to your favorites opens soon.
+      <p role="status" className="text-sm empty:hidden">
+        {favoriteStatus === "saved" ? (
+          <>
+            Saved to your favorites.{" "}
+            <Link
+              href="/favorites"
+              className="font-semibold text-accent underline-offset-4 hover:underline"
+            >
+              View favorites
+            </Link>
+          </>
+        ) : favoriteStatus === "login" ? (
+          <>
+            <Link
+              href="/login?next=/build"
+              className="font-semibold text-accent underline-offset-4 hover:underline"
+            >
+              Log in
+            </Link>{" "}
+            to save this drink to your favorites.
+          </>
+        ) : favoriteStatus === "failed" ? (
+          "We could not save this drink. Please try again."
+        ) : null}
       </p>
     </div>
   );
