@@ -3,9 +3,11 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { accountMenuLinks } from "@/components/layout/nav-items";
 import { ProfileForm } from "@/components/profile/profile-form";
+import { BadgeList } from "@/components/rewards/badge-list";
 import { Button } from "@/components/ui/button";
 import { logOut } from "@/server/auth/actions";
 import { requireUser } from "@/server/auth/session";
+import { listEarnedBadges } from "@/server/rewards/queries";
 
 export const metadata: Metadata = { title: "Your profile" };
 
@@ -34,6 +36,8 @@ async function ProfileDetails() {
     (link) => link.href !== "/profile",
   );
 
+  const badges = await listEarnedBadges(user.id);
+
   return (
     <>
       <p className="mt-2 text-muted-foreground">
@@ -57,6 +61,13 @@ async function ProfileDetails() {
             defaultAddress: user.defaultAddress ?? "",
           }}
         />
+      </section>
+
+      <section aria-labelledby="badges-heading" className="mt-8">
+        <h2 id="badges-heading" className="mb-3 text-lg font-bold">
+          Badges
+        </h2>
+        <BadgeList earned={badges} />
       </section>
 
       <nav aria-label="Account" className="mt-8">
