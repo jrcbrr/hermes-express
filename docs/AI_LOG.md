@@ -301,4 +301,4 @@ Rules the AI follows are in [`../CLAUDE.md`](../CLAUDE.md). Stage prompts are in
 - **What I learned:**
   - Doing two writes in one SQL statement is a simple way to make them succeed together without a long transaction.
   - A streamed page can't change its status code once it has started, so a page's 200 does not prove access was allowed. Check the content.
-- **Raw log:** [docs/ai-logs/2026-10-31-stage-6.md](ai-logs/2026-10-31-stage-6.md) (exported before the cart fix and the merge, so those are not in the raw log)
+- **Raw log:** [docs/ai-logs/2026-10-31-stage-6.md](ai-logs/2026-10-31-stage-6.md) (exported before the merge, so the merge itself is not in the raw log)
