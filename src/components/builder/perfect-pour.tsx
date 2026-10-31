@@ -49,7 +49,11 @@ export function PerfectPour({
   const holdRef = useRef<HTMLButtonElement>(null);
   const { play } = useSound();
 
-  useEffect(() => holdRef.current?.focus(), []);
+  // On phones the bars pinned above and below could otherwise cover the button.
+  useEffect(() => {
+    holdRef.current?.focus({ preventScroll: true });
+    holdRef.current?.scrollIntoView?.({ block: "center" });
+  }, []);
 
   const start = useCallback(() => {
     if (startedAt.current !== null) return;
