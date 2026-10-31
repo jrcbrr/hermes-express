@@ -10,7 +10,9 @@ vi.mock("@/db", () => ({ getDb: () => mocks.db }));
 
 const {
   getTodaySummary,
+  getPromo,
   getUserWithOrders,
+  listPromos,
   listAdminOrders,
   listBranches,
   listUsers,
@@ -20,6 +22,15 @@ const filters = { branch: null, status: null, date: null, page: 1 };
 const rows = (n: number) => Array.from({ length: n }, (_, id) => ({ id }));
 
 beforeEach(() => mocks.reset());
+
+describe("promos", () => {
+  it("lists codes and finds one", async () => {
+    mocks.state.selects = [[{ id: "p1" }], [{ id: "p1" }], []];
+    expect(await listPromos()).toEqual([{ id: "p1" }]);
+    expect(await getPromo("p1")).toEqual({ id: "p1" });
+    expect(await getPromo("nope")).toBeNull();
+  });
+});
 
 describe("listBranches", () => {
   it("returns the branches", async () => {

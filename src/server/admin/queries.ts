@@ -13,7 +13,7 @@ import {
   sql,
 } from "drizzle-orm";
 import { getDb } from "@/db";
-import { branch, order, user } from "@/db/schema";
+import { branch, order, promoCode, user } from "@/db/schema";
 import {
   ADMIN_PAGE_SIZE,
   buildSalesSummary,
@@ -24,6 +24,19 @@ import {
   type OrderFilters,
   type SalesSummary,
 } from "@/lib/admin";
+
+/** Every promo code, newest first. */
+export async function listPromos() {
+  return getDb().select().from(promoCode).orderBy(desc(promoCode.createdAt));
+}
+
+export async function getPromo(id: string) {
+  const [found] = await getDb()
+    .select()
+    .from(promoCode)
+    .where(eq(promoCode.id, id));
+  return found ?? null;
+}
 
 export async function listBranches() {
   return getDb()
