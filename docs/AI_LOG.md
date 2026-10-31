@@ -368,4 +368,4 @@ Rules the AI follows are in [`../CLAUDE.md`](../CLAUDE.md). Stage prompts are in
 - **What I learned:**
   - A mocked database test can't find a mistake in the SQL itself, so a real end-to-end run is still needed.
   - Automated accessibility checks find real bugs, but they only cover some issues, so they don't replace trying the app by keyboard and screen reader.
-- **Raw log:** docs/ai-logs/2026-10-31-stage-9.md (to be exported by the owner before the merge)
+- **Raw log:** [docs/ai-logs/2026-10-31-stage-9.md](ai-logs/2026-10-31-stage-9.md) (exported before the merge; scanned for secrets before committing)
