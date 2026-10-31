@@ -1,7 +1,7 @@
 "use server";
 
 import { randomUUID } from "node:crypto";
-import { eq, sql } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { updateTag } from "next/cache";
 import { z } from "zod";
 import { getDb } from "@/db";
@@ -10,6 +10,7 @@ import { canTransition, ORDER_STATUSES } from "@/lib/order-status";
 import { canManageBranch } from "@/lib/roles";
 import { requireRole } from "@/server/auth/session";
 import { CATALOG_CACHE_TAG } from "@/server/catalog/queries";
+import { writeOrderTransition } from "@/server/orders/transition";
 
 export type BaristaActionResult = { ok: true } | { ok: false; message: string };
 
@@ -52,22 +53,13 @@ export async function advanceOrder(
     return { ok: false, message: ALREADY_MOVED };
   }
 
-  // One statement, so the two writes succeed together. The update only matches
-  // while the status is still the one checked above: when two baristas tap at
-  // once, the second matches nothing and writes no event.
-  const result = await db.execute(sql`
-    with moved as (
-      update "order"
-      set status = ${to}, updated_at = now()
-      where id = ${orderId} and status = ${found.status}
-      returning id
-    )
-    insert into order_status_event (id, order_id, status, changed_by_user_id)
-    select ${randomUUID()}::text, id, ${to}::text, ${user.id}::text from moved
-    returning id`);
-  return result.rows.length > 0
-    ? { ok: true }
-    : { ok: false, message: ALREADY_MOVED };
+  const moved = await writeOrderTransition({
+    orderId,
+    from: found.status,
+    to,
+    changedByUserId: user.id,
+  });
+  return moved ? { ok: true } : { ok: false, message: ALREADY_MOVED };
 }
 
 const soldOutSchema = z.object({

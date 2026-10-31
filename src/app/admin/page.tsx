@@ -1,20 +1,71 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { StaffPlaceholder } from "@/components/staff/staff-placeholder";
+import { AdminHeading } from "@/components/admin/admin-ui";
+import type { BranchSales } from "@/lib/admin";
+import { formatPeso } from "@/lib/money";
+import { requireRole } from "@/server/auth/session";
+import { getTodaySummary } from "@/server/admin/queries";
 
 export const metadata: Metadata = { title: "Admin" };
 
+function SalesCard({ sales }: { sales: BranchSales }) {
+  return (
+    <section
+      aria-label={sales.name}
+      className="rounded-2xl border bg-surface p-5 shadow-sm"
+    >
+      <h2 className="font-heading text-lg font-extrabold">{sales.name}</h2>
+      <dl className="mt-3 grid grid-cols-3 gap-3">
+        <div>
+          <dt className="text-xs text-muted-foreground">Orders</dt>
+          <dd className="text-xl font-bold">{sales.orders}</dd>
+        </div>
+        <div>
+          <dt className="text-xs text-muted-foreground">Revenue</dt>
+          <dd className="text-xl font-bold">
+            {formatPeso(sales.revenueCentavos)}
+          </dd>
+        </div>
+        <div>
+          <dt className="text-xs text-muted-foreground">Average order</dt>
+          <dd className="text-xl font-bold">
+            {formatPeso(sales.averageCentavos)}
+          </dd>
+        </div>
+      </dl>
+    </section>
+  );
+}
+
+async function Summary() {
+  await requireRole(["admin"], "/admin");
+  const { overall, branches } = await getTodaySummary(new Date());
+  return (
+    <div className="mt-6 grid gap-4 xl:grid-cols-2">
+      <SalesCard sales={overall} />
+      {branches.map((sales) => (
+        <SalesCard key={sales.slug} sales={sales} />
+      ))}
+    </div>
+  );
+}
+
 export default function AdminPage() {
   return (
-    <div className="mx-auto w-full max-w-6xl px-4 py-10 pb-28 md:px-6 md:py-16">
-      <Suspense>
-        <StaffPlaceholder
-          roles={["admin"]}
-          path="/admin"
-          title="Admin"
-          stage="Stage 7"
-        />
+    <>
+      <AdminHeading title="Today" />
+      <p className="mt-2 text-sm text-muted-foreground">
+        Manila time. Cancelled orders are not counted; cash orders are.
+      </p>
+      <Suspense
+        fallback={
+          <p role="status" className="mt-6 text-muted-foreground">
+            Loading today&rsquo;s sales…
+          </p>
+        }
+      >
+        <Summary />
       </Suspense>
-    </div>
+    </>
   );
 }

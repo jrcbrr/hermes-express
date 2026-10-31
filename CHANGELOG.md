@@ -5,6 +5,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Stage 7: Admin (2026-10-31)
+
+#### Added
+
+- **Admin layout:** a sidebar on desktop and a drawer on mobile, built on the native `<dialog>` with no new dependency.
+- **`/admin`:** today's orders, revenue and average order value, per branch and overall, in Manila time. Cancelled orders are not counted; cash orders are.
+- **`/admin/orders`:** every branch's orders, with branch, status and date filters kept in the URL. The status list offers only moves `canTransition()` allows.
+- **`/admin/menu`:** create and edit products, prices, seasonal dates and active/hidden, plus sold-out per branch. Signature drinks have a recipe section checked against the catalog. Slugs and types are fixed once created, and products are hidden rather than deleted. New products have no photo until uploads exist.
+- **`/admin/ingredients`:** edit each builder option's name, price, colour, order and active state. `12oz`, `hot` and milk `none` must stay on because the builder relies on them, as must the last active size, temperature, base and milk.
+- **`/admin/customers` and `/admin/customers/[id]`:** search by name, email or phone, view orders, edit name, phone and address, change role, assign a barista's branch, and adjust points. Admins can't change their own role. Balances can't go below zero.
+- **Points ledger hook:** `recordPointsAdjustment()` in `src/server/points/ledger.ts`, a no-op until Stage 8 adds the table. Adjustments made before then leave no history.
+- `src/lib/admin.ts`, `src/lib/admin-recipe.ts`, `src/lib/validation/admin.ts`, `src/server/admin/`.
+- Tests: every admin action rejects customers, baristas and signed-out visitors with nothing written; new `e2e/admin.spec.ts`, where an admin changes a price and the menu shows it.
+
+#### Changed
+
+- The status update and event insert moved from `advanceOrder` to `src/server/orders/transition.ts`, so baristas and admins share them. Behaviour is unchanged.
+
 ### Stage 6: Tracking, barista queue & sold-out (2026-10-31)
 
 #### Added
