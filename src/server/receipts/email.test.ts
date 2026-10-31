@@ -68,6 +68,15 @@ describe("sendReceiptEmail", () => {
     );
   });
 
+  it("uses the key it is given, so the button can send again", async () => {
+    expect(await sendReceiptEmail(ORDER_ID, user, "receipt/again")).toBe(
+      "sent",
+    );
+    expect(mocks.send).toHaveBeenCalledWith(expect.anything(), {
+      idempotencyKey: "receipt/again",
+    });
+  });
+
   it.each(["RESEND_API_KEY", "EMAIL_FROM"])(
     "is skipped without %s, and says so in the log",
     async (name) => {

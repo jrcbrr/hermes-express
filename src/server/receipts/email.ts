@@ -94,11 +94,13 @@ ${section(row(payment) + soldTo)}
 /**
  * Sends the order's receipt to the address given at checkout. Skipped when
  * RESEND_API_KEY or EMAIL_FROM is not set. Logs never include the key or the
- * customer's address.
+ * customer's address. Resend sends at most once per key, even if this runs
+ * twice; the default key means once per order.
  */
 export async function sendReceiptEmail(
   orderId: string,
   user: Pick<SessionUser, "id" | "role" | "branchId">,
+  idempotencyKey = `receipt/${orderId}`,
 ): Promise<ReceiptEmailResult> {
   const apiKey = process.env.RESEND_API_KEY;
   const from = process.env.EMAIL_FROM;
@@ -127,8 +129,7 @@ export async function sendReceiptEmail(
         html: receiptEmailHtml(receipt),
         attachments: [{ filename: `${receipt.number}.pdf`, content: pdf }],
       },
-      // Resend sends at most once per key, even if this runs twice.
-      { idempotencyKey: `receipt/${orderId}` },
+      { idempotencyKey },
     );
     if (error) {
       console.error(
