@@ -320,4 +320,4 @@ Rules the AI follows are in [`../CLAUDE.md`](../CLAUDE.md). Stage prompts are in
   - **The first Vercel preview failed, with Neon at its limit of 10 branches.** Claude Code's permission check blocked `neonctl branches delete`, and the AI left it instead of working around the block, so the PR was opened with Neon still full. When I asked directly, it deleted `preview/stage-1-design`. Neon is at 9 of 10, so this PR's preview fills it again and the next new PR branch needs another old preview deleted first.
 - **What I learned:**
   - A guard has to match what the code relies on, not only what looks like a sensible rule. Reading the builder's starting state showed the gap.
-- **Raw log:** not yet exported. Save it to `docs/ai-logs/2026-10-31-stage-7.md` with `/export`.
+- **Raw log:** [docs/ai-logs/2026-10-31-stage-7.md](ai-logs/2026-10-31-stage-7.md) (exported after the merge; checked for secrets before committing)
