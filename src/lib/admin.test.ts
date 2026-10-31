@@ -10,6 +10,9 @@ import {
   phoneSearchTerm,
   slugify,
   uniqueSlug,
+  fillRevenueDays,
+  lastManilaDays,
+  shortDayLabel,
 } from "./admin";
 import { recipeOptions } from "./admin-recipe";
 
@@ -122,6 +125,33 @@ describe("buildSalesSummary", () => {
     ]);
     expect(summary.overall.averageCentavos).toBe(0);
     expect(summary.branches[0]?.averageCentavos).toBe(0);
+  });
+});
+
+describe("sales chart days", () => {
+  it("counts back in Manila days, oldest first", () => {
+    // 16:30 UTC on Oct 31 is already Nov 1 in Manila.
+    expect(lastManilaDays(new Date("2026-10-31T16:30:00Z"), 3)).toEqual([
+      "2026-10-30",
+      "2026-10-31",
+      "2026-11-01",
+    ]);
+  });
+
+  it("labels a day without shifting it", () => {
+    expect(shortDayLabel("2026-11-01")).toBe("Nov 1");
+  });
+
+  it("fills days with no sales with zero", () => {
+    expect(
+      fillRevenueDays(
+        ["2026-10-30", "2026-10-31"],
+        [{ day: "2026-10-31", revenueCentavos: 500 }],
+      ),
+    ).toEqual([
+      { day: "2026-10-30", label: "Oct 30", revenueCentavos: 0 },
+      { day: "2026-10-31", label: "Oct 31", revenueCentavos: 500 },
+    ]);
   });
 });
 

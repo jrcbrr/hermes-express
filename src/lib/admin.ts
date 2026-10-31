@@ -136,6 +136,46 @@ export type BranchSales = {
 
 export type SalesSummary = { overall: BranchSales; branches: BranchSales[] };
 
+export const SALES_CHART_DAYS = 14;
+export const TOP_ITEMS_LIMIT = 5;
+
+export type SalesCharts = {
+  revenueByDay: { day: string; label: string; revenueCentavos: number }[];
+  ordersByBranch: { name: string; orders: number }[];
+  topItems: { name: string; quantity: number }[];
+};
+
+/** The last `count` Manila days, oldest first, ending on the day of `now`. */
+export function lastManilaDays(now: Date, count: number): string[] {
+  return Array.from({ length: count }, (_, index) =>
+    manilaDateString(new Date(now.getTime() - (count - 1 - index) * DAY_MS)),
+  );
+}
+
+const shortDay = new Intl.DateTimeFormat("en-US", {
+  timeZone: "UTC",
+  month: "short",
+  day: "numeric",
+});
+
+/** "2026-10-31" as "Oct 31". */
+export function shortDayLabel(day: string): string {
+  return shortDay.format(new Date(`${day}T00:00:00Z`));
+}
+
+/** Fills in the days with no sales, so the chart shows them as gaps. */
+export function fillRevenueDays(
+  days: readonly string[],
+  rows: readonly { day: string; revenueCentavos: number }[],
+): SalesCharts["revenueByDay"] {
+  const revenue = new Map(rows.map((row) => [row.day, row.revenueCentavos]));
+  return days.map((day) => ({
+    day,
+    label: shortDayLabel(day),
+    revenueCentavos: revenue.get(day) ?? 0,
+  }));
+}
+
 /** Average order value in whole centavos; 0 with no orders. */
 function withAverage(row: Omit<BranchSales, "averageCentavos">): BranchSales {
   return {

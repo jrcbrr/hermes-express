@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { AdminHeading } from "@/components/admin/admin-ui";
-import type { BranchSales } from "@/lib/admin";
+import { SalesCharts } from "@/components/admin/sales-charts";
+import { Skeleton } from "@/components/ui/skeleton";
+import { SALES_CHART_DAYS, type BranchSales } from "@/lib/admin";
 import { formatPeso } from "@/lib/money";
 import { requireRole } from "@/server/auth/session";
-import { getTodaySummary } from "@/server/admin/queries";
+import { getSalesCharts, getTodaySummary } from "@/server/admin/queries";
 
 export const metadata: Metadata = { title: "Admin" };
 
@@ -50,6 +52,11 @@ async function Summary() {
   );
 }
 
+async function Charts() {
+  await requireRole(["admin"], "/admin");
+  return <SalesCharts data={await getSalesCharts(new Date())} />;
+}
+
 export default function AdminPage() {
   return (
     <>
@@ -65,6 +72,23 @@ export default function AdminPage() {
         }
       >
         <Summary />
+      </Suspense>
+      <h2 className="mt-10 font-heading text-2xl font-extrabold">
+        Last {SALES_CHART_DAYS} days
+      </h2>
+      <Suspense
+        fallback={
+          <div className="mt-4 grid gap-4 xl:grid-cols-2">
+            <p role="status" className="sr-only">
+              Loading the sales charts…
+            </p>
+            <Skeleton className="h-80 rounded-2xl xl:col-span-2" />
+            <Skeleton className="h-80 rounded-2xl" />
+            <Skeleton className="h-80 rounded-2xl" />
+          </div>
+        }
+      >
+        <Charts />
       </Suspense>
     </>
   );

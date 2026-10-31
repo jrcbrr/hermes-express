@@ -13,17 +13,23 @@ import {
   sql,
 } from "drizzle-orm";
 import { getDb } from "@/db";
-import { branch, order, promoCode, user } from "@/db/schema";
+import { branch, order, orderItem, promoCode, user } from "@/db/schema";
 import {
   ADMIN_PAGE_SIZE,
   buildSalesSummary,
   escapeLike,
+  fillRevenueDays,
+  lastManilaDays,
   manilaDateString,
   manilaDayRange,
   phoneSearchTerm,
+  SALES_CHART_DAYS,
+  TOP_ITEMS_LIMIT,
   type OrderFilters,
+  type SalesCharts,
   type SalesSummary,
 } from "@/lib/admin";
+import { MANILA_TIME_ZONE } from "@/lib/schedule";
 
 /** Every promo code, newest first. */
 export async function listPromos() {
@@ -74,6 +80,61 @@ export async function getTodaySummary(now: Date): Promise<SalesSummary> {
     .groupBy(branch.id, branch.slug, branch.name)
     .orderBy(asc(branch.name));
   return buildSalesSummary(rows);
+}
+
+/**
+ * The dashboard charts, on the same rules as the summary cards. Built drinks
+ * count together as "Custom drinks": their names are the customers' own.
+ */
+export async function getSalesCharts(now: Date): Promise<SalesCharts> {
+  const days = lastManilaDays(now, SALES_CHART_DAYS);
+  const first = manilaDayRange(days[0]!);
+  /* v8 ignore next: manilaDateString always gives a real date. */
+  if (!first) throw new RangeError("Invalid date");
+  const inPeriod = and(
+    gte(order.createdAt, first.start),
+    lte(order.createdAt, now),
+    ne(order.status, "cancelled"),
+  );
+  const db = getDb();
+
+  const manilaDay = sql<string>`to_char(${order.createdAt} at time zone ${MANILA_TIME_ZONE}, 'YYYY-MM-DD')`;
+  const itemName = sql<string>`case when ${orderItem.kind} = 'custom' then 'Custom drinks' else ${orderItem.name} end`;
+  const quantity = sql<number>`coalesce(sum(${orderItem.quantity}), 0)`.mapWith(
+    Number,
+  );
+
+  const [revenue, branches, items] = await Promise.all([
+    db
+      .select({
+        day: manilaDay,
+        revenueCentavos:
+          sql<number>`coalesce(sum(${order.totalCentavos}), 0)`.mapWith(Number),
+      })
+      .from(order)
+      .where(inPeriod)
+      .groupBy(manilaDay),
+    db
+      .select({ name: branch.name, orders: count(order.id) })
+      .from(branch)
+      .leftJoin(order, and(eq(order.branchId, branch.id), inPeriod))
+      .groupBy(branch.id, branch.name)
+      .orderBy(asc(branch.name)),
+    db
+      .select({ name: itemName, quantity })
+      .from(orderItem)
+      .innerJoin(order, eq(orderItem.orderId, order.id))
+      .where(inPeriod)
+      .groupBy(itemName)
+      .orderBy(desc(quantity), asc(itemName))
+      .limit(TOP_ITEMS_LIMIT),
+  ]);
+
+  return {
+    revenueByDay: fillRevenueDays(days, revenue),
+    ordersByBranch: branches,
+    topItems: items,
+  };
 }
 
 export type AdminOrderRow = Awaited<
