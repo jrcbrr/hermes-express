@@ -253,6 +253,7 @@ Rules the AI follows are in [`../CLAUDE.md`](../CLAUDE.md). Stage prompts are in
   - Approved the written plan.
   - After the PR and preview were up: "As for the receipts i want it to be formal." Picked the "PH sales receipt" mock-up out of three (PH sales receipt, business invoice, wording only), with the note that the TIN and VAT must stay.
   - "for the tin just generate random tin": the placeholder TIN was replaced with a random demo number, `301-707-321-000`.
+  - Asked for an "Email receipt" button that had never been in the plan, chose to keep the automatic email as well, and chose Resend's test sender for now instead of buying a domain.
 - **What the AI did:**
   - Found a contradiction in `PLAN.md` (§4 says five bottom tabs, §7 a Receipts bottom tab) and asked before choosing.
   - Added the TIN placeholder and a short receipt code per branch to `site.ts`; an additive migration with a counter per branch, numbering the 16 existing orders on the dev database per branch; and the counter update inside `placeOrder`'s existing transaction, so two orders at once can't share a number.
@@ -260,6 +261,7 @@ Rules the AI follows are in [`../CLAUDE.md`](../CLAUDE.md). Stage prompts are in
   - Added `/receipts`, `/receipts/[id]`, the PDF route (401 signed out, 404 not yours), the email (sent after the response, once per order, skipped without Resend settings), a "View receipt" button on the order page, and Receipts links in the header and account menu.
   - Checked that `.env.local` points at the Neon dev branch, not production, before applying the migration, and looked at a rendered sample PDF before committing.
   - Extended the checkout E2E to open the receipt, download the PDF and find it in the list, and ran lint, format check, typecheck, tests with coverage, the production build and the full E2E suite.
+  - Added the Email receipt button and the `emailReceipt` server action: owner only, always to the checkout address, at most once per order per minute using a Resend idempotency key per minute, so no database change.
 - **What I reviewed / changed / rejected and why:**
   - Chose real per-branch numbers (`HX-BGC-000123`) over reusing the order code, so receipts look like real receipts.
   - Approved the two new dependencies, since the plan already named them.

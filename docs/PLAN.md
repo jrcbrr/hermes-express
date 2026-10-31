@@ -290,6 +290,7 @@ Where it lives:
 - A **"Receipts"** link in the desktop header and the account menu. Phones keep the five bottom tabs (§4) and reach Receipts from the Profile page (owner decision). `/receipts` lists past receipts; `/receipts/[id]` shows one. Also linked from the order page.
 - **Download PDF** button, built on the server with `@react-pdf/renderer` (`GET /api/receipts/[id]/pdf`). The PDF is an 80 mm receipt roll in the built-in Courier font.
 - **Email:** checkout has a required "Email for your receipt" field, filled in with the account email and editable. The receipt (with the PDF attached) is sent there via Resend when the order is placed. If Resend is not configured, the order still succeeds and the email is skipped.
+- **Email receipt** button (owner decision, alongside the automatic email): on `/receipts/[id]`, the order's customer can send the receipt again. It shows and only ever uses the checkout email, and sends at most once per order per minute. Staff viewing the receipt do not see it.
 
 ### Order statuses
 `Received → Brewing → Ready for pickup | Out for delivery → Completed` (and `Cancelled`)
