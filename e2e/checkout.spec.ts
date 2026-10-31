@@ -133,6 +133,10 @@ test.describe("with a seeded database", () => {
     await expect(
       page.getByText("DEMO RECEIPT. NOT AN OFFICIAL RECEIPT."),
     ).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Email receipt" }),
+    ).toBeVisible();
+    await expect(page.getByText(`Sends to ${email}`)).toBeVisible();
     const downloading = page.waitForEvent("download");
     await page.getByRole("link", { name: "Download PDF" }).click();
     const download = await downloading;

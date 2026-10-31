@@ -1,4 +1,10 @@
-import { render, screen, within } from "@testing-library/react";
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { buildReceipt } from "@/lib/receipt";
 import { ORDER_ID, deliveryOrder, pickupOrder } from "@/test/order-fixture";
@@ -7,9 +13,14 @@ const mocks = vi.hoisted(() => ({
   requireUser: vi.fn(),
   getOrderForUser: vi.fn(),
   listReceiptsForUser: vi.fn(),
+  emailReceipt: vi.fn(),
   notFound: vi.fn(() => {
     throw new Error("NOT_FOUND");
   }),
+}));
+
+vi.mock("@/server/receipts/actions", () => ({
+  emailReceipt: mocks.emailReceipt,
 }));
 
 vi.mock("@/server/auth/session", () => ({ requireUser: mocks.requireUser }));
@@ -129,6 +140,45 @@ describe("ReceiptDetails", () => {
       "href",
       `/orders/${ORDER_ID}`,
     );
+  });
+
+  it("emails the receipt on request, shows the address and rests after sending", async () => {
+    mocks.getOrderForUser.mockResolvedValue(pickupOrder);
+    mocks.emailReceipt.mockResolvedValue({
+      ok: true,
+      message: "Your receipt was sent to maria@example.com.",
+    });
+    render(await ReceiptDetails({ params: Promise.resolve({ id: ORDER_ID }) }));
+    expect(screen.getByText("Sends to maria@example.com")).toBeVisible();
+
+    const button = screen.getByRole("button", { name: "Email receipt" });
+    fireEvent.click(button);
+    expect(mocks.emailReceipt).toHaveBeenCalledWith(ORDER_ID);
+    expect(await screen.findByRole("status")).toHaveTextContent(
+      "Your receipt was sent to maria@example.com.",
+    );
+    await waitFor(() => expect(button).toBeDisabled());
+  });
+
+  it("shows why sending failed and lets the customer try again", async () => {
+    mocks.getOrderForUser.mockResolvedValue(pickupOrder);
+    mocks.emailReceipt.mockResolvedValue({
+      ok: false,
+      message: "We could not send your receipt. Please try again shortly.",
+    });
+    render(await ReceiptDetails({ params: Promise.resolve({ id: ORDER_ID }) }));
+    const button = screen.getByRole("button", { name: "Email receipt" });
+    fireEvent.click(button);
+    expect(await screen.findByRole("status")).toHaveTextContent(/try again/);
+    await waitFor(() => expect(button).toBeEnabled());
+  });
+
+  it("has no email button for staff viewing a customer's receipt", async () => {
+    mocks.requireUser.mockResolvedValue({ id: "admin-1", role: "admin" });
+    mocks.getOrderForUser.mockResolvedValue(pickupOrder);
+    render(await ReceiptDetails({ params: Promise.resolve({ id: ORDER_ID }) }));
+    expect(screen.getByRole("link", { name: "Download PDF" })).toBeVisible();
+    expect(screen.queryByRole("button", { name: "Email receipt" })).toBeNull();
   });
 
   it("is not found for someone else's or a missing order", async () => {

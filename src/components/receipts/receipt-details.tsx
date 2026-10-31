@@ -5,6 +5,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { buildReceipt } from "@/lib/receipt";
 import { requireUser } from "@/server/auth/session";
 import { getOrderForUser } from "@/server/orders/queries";
+import { EmailReceiptButton } from "./email-receipt-button";
 import { ReceiptView } from "./receipt-view";
 
 /** One receipt, for its owner (or staff who may see the order). */
@@ -21,7 +22,7 @@ export async function ReceiptDetails({
 
   return (
     <div className="mt-6 flex flex-col gap-6">
-      <div className="flex flex-wrap gap-3 print:hidden">
+      <div className="flex flex-wrap items-start gap-3 print:hidden">
         <a
           href={`/api/receipts/${found.id}/pdf`}
           download={`${receipt.number}.pdf`}
@@ -33,6 +34,9 @@ export async function ReceiptDetails({
           <Download className="size-4" aria-hidden="true" />
           Download PDF
         </a>
+        {found.userId === user.id && (
+          <EmailReceiptButton orderId={found.id} email={found.receiptEmail} />
+        )}
         <Link
           href={`/orders/${found.id}`}
           className={buttonVariants({
