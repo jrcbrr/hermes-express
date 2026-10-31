@@ -3,7 +3,9 @@ import { siteConfig } from "@/config/site";
 import {
   BARISTA_PASSWORD_VARS,
   baristaEmail,
+  DEMO_CUSTOMER_EMAIL,
   parseSeedArgs,
+  readDemoCustomerSeed,
   readStaffSeeds,
 } from "./seed-env";
 
@@ -59,6 +61,28 @@ describe("readStaffSeeds", () => {
         "- SEED_BARISTA_LAKESHORE_PASSWORD is missing.",
       ].join("\n"),
     );
+  });
+});
+
+describe("readDemoCustomerSeed", () => {
+  it("is optional", () => {
+    expect(readDemoCustomerSeed({})).toBeNull();
+  });
+
+  it("creates a plain customer with no branch", () => {
+    expect(
+      readDemoCustomerSeed({ SEED_DEMO_CUSTOMER_PASSWORD: "demo-password" }),
+    ).toMatchObject({
+      email: DEMO_CUSTOMER_EMAIL,
+      role: "customer",
+      branchSlug: null,
+    });
+  });
+
+  it("refuses a short password", () => {
+    expect(() =>
+      readDemoCustomerSeed({ SEED_DEMO_CUSTOMER_PASSWORD: "short" }),
+    ).toThrow("at least 8 characters");
   });
 });
 
