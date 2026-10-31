@@ -317,7 +317,7 @@ Rules the AI follows are in [`../CLAUDE.md`](../CLAUDE.md). Stage prompts are in
 - **Problems & fixes:**
   - **The planned ingredient guard was not enough.** The plan only protected the last active option of a kind, but the builder always starts on `12oz` and `hot` and prices a missing milk as `none`. Those three can't be switched off now.
   - **A signature's price edit could have been blocked** when an ingredient in its recipe was switched off. Ingredients already in the saved recipe now count as active for that check; new recipes still need active ones.
-  - **The Neon branch was not deleted by the AI.** Claude Code's permission check blocked `neonctl branches delete`, and the AI left it for me instead of working around the block. Neon stays at 10 of 10 until `preview/stage-1-design` is deleted.
+  - **The first Vercel preview failed, with Neon at its limit of 10 branches.** Claude Code's permission check blocked `neonctl branches delete`, and the AI left it instead of working around the block, so the PR was opened with Neon still full. When I asked directly, it deleted `preview/stage-1-design`. Neon is at 9 of 10, so this PR's preview fills it again and the next new PR branch needs another old preview deleted first.
 - **What I learned:**
   - A guard has to match what the code relies on, not only what looks like a sensible rule. Reading the builder's starting state showed the gap.
 - **Raw log:** not yet exported. Save it to `docs/ai-logs/2026-10-31-stage-7.md` with `/export`.
