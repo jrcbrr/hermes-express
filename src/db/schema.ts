@@ -241,7 +241,14 @@ export const promoCode = pgTable(
     isActive: boolean("is_active").notNull().default(true),
     ...timestamps,
   },
-  (t) => [check("promo_code_value_positive", sql`${t.value} > 0`)],
+  (t) => [
+    check("promo_code_value_positive", sql`${t.value} > 0`),
+    // The last safeguard when two checkouts take a code's final use at once.
+    check(
+      "promo_code_within_max_uses",
+      sql`${t.maxUses} is null or ${t.usedCount} <= ${t.maxUses}`,
+    ),
+  ],
 );
 
 // ---------------------------------------------------------------------------

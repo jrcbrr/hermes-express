@@ -1,0 +1,1 @@
+ALTER TABLE "promo_code" ADD CONSTRAINT "promo_code_within_max_uses" CHECK ("promo_code"."max_uses" is null or "promo_code"."used_count" <= "promo_code"."max_uses");
