@@ -4,7 +4,7 @@
  * saves the result.
  */
 import type { BranchService } from "@/config/site";
-import type { PricedCartItem } from "./cart";
+import type { NewCartItem, PricedCartItem } from "./cart";
 import { multiplyCentavos } from "./money";
 import { calculateCartTotals, type CartTotals } from "./pricing";
 import type { DrinkConfig } from "./validation/drink";
@@ -88,6 +88,27 @@ export function draftOrder(
   }
   const totals = calculateCartTotals({ lines, fulfillment, discountCentavos });
   return { ok: true, lines, totals };
+}
+
+/** What an old order line becomes in the cart: choices only, never prices. */
+export function reorderEntry(line: {
+  quantity: number;
+  config: OrderItemConfig;
+}): NewCartItem | null {
+  if (line.config.drink) {
+    return {
+      kind: "custom",
+      config: line.config.drink,
+      quantity: line.quantity,
+    };
+  }
+  return line.config.productSlug
+    ? {
+        kind: "product",
+        productSlug: line.config.productSlug,
+        quantity: line.quantity,
+      }
+    : null;
 }
 
 /** No 0/O, 1/I/L or U/V, so codes are easy to read aloud at the counter. */

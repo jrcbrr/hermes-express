@@ -13,6 +13,8 @@ import type { SessionUser } from "@/lib/auth";
 import { ACTIVE_ORDER_STATUSES, type OrderStatus } from "@/lib/order-status";
 import { hasRole } from "@/lib/roles";
 
+const ORDER_HISTORY_LIMIT = 50;
+
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export type OrderDetails = NonNullable<Awaited<ReturnType<typeof loadOrder>>>;
@@ -164,6 +166,47 @@ export async function listBranchQueue(branchId: string): Promise<QueueOrder[]> {
         quantity: item.quantity,
         details: item.config.details,
       })),
+  }));
+}
+
+/** The customer's orders with their items, newest first. */
+export async function listOrdersForUser(userId: string) {
+  const db = getDb();
+  const orders = await db
+    .select({
+      id: order.id,
+      code: order.code,
+      status: order.status,
+      totalCentavos: order.totalCentavos,
+      createdAt: order.createdAt,
+      branchSlug: branch.slug,
+      branchName: branch.name,
+    })
+    .from(order)
+    .innerJoin(branch, eq(order.branchId, branch.id))
+    .where(eq(order.userId, userId))
+    .orderBy(desc(order.createdAt))
+    .limit(ORDER_HISTORY_LIMIT);
+  if (orders.length === 0) return [];
+  const items = await db
+    .select({
+      id: orderItem.id,
+      orderId: orderItem.orderId,
+      name: orderItem.name,
+      quantity: orderItem.quantity,
+      config: orderItem.config,
+    })
+    .from(orderItem)
+    .where(
+      inArray(
+        orderItem.orderId,
+        orders.map((o) => o.id),
+      ),
+    )
+    .orderBy(asc(orderItem.sortOrder));
+  return orders.map((o) => ({
+    ...o,
+    items: items.filter((item) => item.orderId === o.id),
   }));
 }
 
