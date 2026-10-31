@@ -4,8 +4,11 @@ import { useCallback, useSyncExternalStore } from "react";
 
 export const SOUND_STORAGE_KEY = "hx-sound-muted";
 
-/** Sound effects planned in docs/PLAN.md §3. Files arrive in Stage 8. */
+/** Sound effects from docs/PLAN.md §3, made by scripts/generate-sounds.mjs. */
 export type SoundName = "pour" | "clink" | "ding";
+
+const VOLUME = 0.5;
+const players = new Map<SoundName, HTMLAudioElement>();
 
 // Same-tab listeners. The browser's "storage" event only fires in other tabs.
 const listeners = new Set<() => void>();
@@ -40,9 +43,15 @@ export function useSound() {
     listeners.forEach((listener) => listener());
   }, []);
 
-  // Placeholder until Stage 8 adds the audio files. Callers can already use it.
+  // Reads the saved choice, so a call from a stale render still respects mute.
   const play = useCallback((sound: SoundName) => {
-    void sound;
+    if (getSnapshot()) return;
+    const player = players.get(sound) ?? new Audio(`/sounds/${sound}.wav`);
+    players.set(sound, player);
+    player.volume = VOLUME;
+    player.currentTime = 0;
+    // Browsers refuse to play before the first tap; a sound isn't worth an error.
+    void player.play()?.catch(() => undefined);
   }, []);
 
   return { muted, toggleMuted, play };

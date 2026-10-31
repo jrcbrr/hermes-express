@@ -24,6 +24,10 @@ _Coming soon: desktop and mobile screenshots of the landing page, coffee builder
 
 Progress is tracked stage by stage in [`CHANGELOG.md`](CHANGELOG.md).
 
+## Credits
+
+The sound effects in `public/sounds` (pour, clink, ding) are original, synthesized by `scripts/generate-sounds.mjs` for this project. Menu photo credits are on the `/credits` page.
+
 ## Tech stack
 
 | Layer             | Choice                                                        |
