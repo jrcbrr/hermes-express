@@ -1,5 +1,22 @@
 import { Skeleton } from "@/components/ui/skeleton";
 
+/** Stands in for a grid of product cards, so the footer stays put as they load. */
+export function CardGridSkeleton({ cards = 9 }: { cards?: number }) {
+  return (
+    <div className="mt-8">
+      <p role="status" className="sr-only">
+        Loading the menu…
+      </p>
+      <Skeleton className="h-8 w-40" />
+      <div className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        {Array.from({ length: cards }, (_, index) => (
+          <Skeleton key={index} className="h-[26rem] rounded-2xl" />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 /** The loading state for a route: a heading and a list or grid of cards. */
 export function PageSkeleton({
   cards = 6,

@@ -25,6 +25,8 @@ export function MenuPhoto({
         alt=""
         fill
         loading={eager ? "eager" : "lazy"}
+        preload={eager}
+        fetchPriority={eager ? "high" : undefined}
         // Card widths: 1 column on phones, 2 from 640px, 3 from 1024px.
         sizes="(min-width: 1024px) 360px, (min-width: 640px) 50vw, 100vw"
         className={cn(
