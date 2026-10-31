@@ -21,6 +21,7 @@ import {
 import { saveCart } from "@/server/cart/actions";
 
 export const CART_STORAGE_KEY = "hx_cart";
+const CART_UNSAVED_KEY = "hx_cart_unsaved";
 const SAVE_DELAY_MS = 400;
 
 export type CartSnapshot = {
@@ -35,6 +36,8 @@ let snapshot: CartSnapshot = SERVER_SNAPSHOT;
 let snapshotRaw: string | null = null;
 const listeners = new Set<() => void>();
 let saveTimer: ReturnType<typeof setTimeout> | undefined;
+/** Counts changes, so an older save finishing can't mark a newer one saved. */
+let saveVersion = 0;
 
 function readRaw(): string | null {
   try {
@@ -81,11 +84,32 @@ function getSnapshot(): CartSnapshot {
   return snapshot;
 }
 
+/**
+ * Remembers that this browser holds changes the account hasn't received. It is
+ * stored because leaving the page cancels the delayed save: the next page must
+ * send the browser's cart rather than load the older one over it.
+ */
+function setUnsaved(unsaved: boolean): void {
+  try {
+    if (unsaved) window.localStorage.setItem(CART_UNSAVED_KEY, "true");
+    else window.localStorage.removeItem(CART_UNSAVED_KEY);
+  } catch {
+    // Storage turned off: the cart lives in memory only anyway.
+  }
+}
+
 function scheduleSave(items: CartItem[]): void {
   clearTimeout(saveTimer);
+  setUnsaved(true);
+  const version = ++saveVersion;
   saveTimer = setTimeout(() => {
-    // Best effort: the browser copy stays, and the next change tries again.
-    saveCart(items).catch(() => undefined);
+    saveCart(items)
+      .then(() => {
+        // A newer change is still waiting for its own save.
+        if (version === saveVersion) setUnsaved(false);
+      })
+      // Best effort: the browser copy stays, and is sent again later.
+      .catch(() => undefined);
   }, SAVE_DELAY_MS);
 }
 
@@ -99,7 +123,12 @@ function write(cart: StoredCart, { save = true } = {}): void {
   snapshot = { ready: true, cart };
   snapshotRaw = readRaw();
   emit();
-  if (save && cart.owner !== null) scheduleSave(cart.items);
+  if (save && cart.owner !== null) {
+    scheduleSave(cart.items);
+  } else {
+    saveVersion++;
+    setUnsaved(false);
+  }
 }
 
 function update(change: (items: CartItem[]) => CartItem[]): void {
@@ -146,6 +175,18 @@ export const cartStore = {
   /** Takes the account's cart as loaded or merged by the server. */
   setAccount(owner: string, items: CartItem[]): void {
     write({ owner, items }, { save: false });
+  },
+  /** True when the account hasn't received the browser's latest changes. */
+  hasUnsavedChanges(): boolean {
+    try {
+      return window.localStorage.getItem(CART_UNSAVED_KEY) !== null;
+    } catch {
+      return false;
+    }
+  },
+  /** Sends the browser's cart to its account. */
+  saveToAccount(): void {
+    scheduleSave(getSnapshot().cart.items);
   },
 };
 

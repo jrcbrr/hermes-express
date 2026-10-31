@@ -224,6 +224,101 @@ describe("CartAccountSync", () => {
     expect(stored()).toEqual({ owner: null, items: [croissant] });
   });
 
+  /** A syncCart call that stays open until the test answers it. */
+  function pendingSync() {
+    let answer: (value: unknown) => void = () => {};
+    mocks.syncCart.mockImplementationOnce(
+      () => new Promise((resolve) => (answer = resolve)),
+    );
+    return (value: unknown) => act(async () => answer(value));
+  }
+
+  it("keeps an item added while the saved cart is loading", async () => {
+    storeCart([], "u1");
+    const answer = pendingSync();
+    render(<CartAccountSync userId="u1" />);
+    cartStore.add(croissant);
+    await answer({ userId: "u1", items: [] });
+    expect(stored().items).toEqual([
+      expect.objectContaining({ productSlug: croissant.productSlug }),
+    ]);
+  });
+
+  it("keeps a guest's item added while the login merge is running", async () => {
+    storeCart([croissant]);
+    const answer = pendingSync();
+    render(<CartAccountSync userId="u1" />);
+    cartStore.add({ ...latte, quantity: 1 });
+    await answer({ userId: "u1", items: [croissant] });
+    expect(stored().owner).toBe("u1");
+    expect(stored().items).toHaveLength(2);
+    expect(stored().items[0]).toEqual(croissant);
+    expect(stored().items[1]).toMatchObject({ kind: latte.kind });
+  });
+
+  it("sends that guest item to the account as well", async () => {
+    vi.useFakeTimers();
+    storeCart([croissant]);
+    const answer = pendingSync();
+    render(<CartAccountSync userId="u1" />);
+    cartStore.add({ ...latte, quantity: 1 });
+    await answer({ userId: "u1", items: [croissant] });
+    vi.advanceTimersByTime(500);
+    expect(mocks.saveCart).toHaveBeenCalledWith(stored().items);
+  });
+
+  it("keeps a change whose save was cut off by leaving the page", async () => {
+    vi.useFakeTimers();
+    storeCart([], "u1");
+    cartStore.add(croissant);
+    const added = stored().items;
+    // The delayed save never ran; a new page now opens.
+    vi.clearAllTimers();
+    mocks.syncCart.mockResolvedValue({ userId: "u1", items: [] });
+    render(<CartAccountSync userId="u1" />);
+    await act(() => vi.advanceTimersByTimeAsync(500));
+    expect(stored().items).toEqual(added);
+    expect(mocks.saveCart).toHaveBeenCalledWith(added);
+    expect(mocks.syncCart).not.toHaveBeenCalled();
+  });
+
+  it("loads the saved cart again once a change has been saved", async () => {
+    vi.useFakeTimers();
+    storeCart([], "u1");
+    cartStore.add(croissant);
+    await vi.advanceTimersByTimeAsync(500);
+    expect(mocks.saveCart).toHaveBeenCalledTimes(1);
+    mocks.syncCart.mockResolvedValue({ userId: "u1", items: [latte] });
+    render(<CartAccountSync userId="u1" />);
+    await act(() => vi.advanceTimersByTimeAsync(0));
+    expect(stored().items).toEqual([latte]);
+  });
+
+  it("does not treat a failed save as saved", async () => {
+    vi.useFakeTimers();
+    mocks.saveCart.mockRejectedValueOnce(new Error("offline"));
+    storeCart([], "u1");
+    cartStore.add(croissant);
+    await vi.advanceTimersByTimeAsync(500);
+    render(<CartAccountSync userId="u1" />);
+    await act(() => vi.advanceTimersByTimeAsync(500));
+    expect(mocks.syncCart).not.toHaveBeenCalled();
+    expect(mocks.saveCart).toHaveBeenCalledTimes(2);
+  });
+
+  it("never pushes one account's unsaved cart into another account", async () => {
+    vi.useFakeTimers();
+    storeCart([], "someone-else");
+    cartStore.add(croissant);
+    vi.clearAllTimers();
+    mocks.syncCart.mockResolvedValue({ userId: "u1", items: [latte] });
+    render(<CartAccountSync userId="u1" />);
+    await act(() => vi.advanceTimersByTimeAsync(500));
+    expect(mocks.syncCart).toHaveBeenCalledWith([]);
+    expect(mocks.saveCart).not.toHaveBeenCalled();
+    expect(stored()).toEqual({ owner: "u1", items: [latte] });
+  });
+
   it("forgets an account's cart after logging out, but keeps a guest's", () => {
     storeCart([croissant], "u1");
     const { rerender } = render(<CartAccountSync userId={null} />);
