@@ -240,7 +240,11 @@ export function buildReceipt(order: ReceiptSource): Receipt {
     payment: {
       label: `PAYMENT: ${PAYMENT_METHOD_LABELS[order.paymentMethod].toUpperCase()}`,
       value:
-        order.paymentStatus === "demo_paid" ? "PAID" : "TO BE PAID ON DELIVERY",
+        order.paymentStatus === "demo_paid"
+          ? "PAID"
+          : order.paymentMethod === "cash_pickup"
+            ? "TO BE PAID AT PICKUP"
+            : "TO BE PAID ON DELIVERY",
     },
     soldTo,
     footer: {

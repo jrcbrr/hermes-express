@@ -101,7 +101,9 @@ export async function OrderDetails({
             {PAYMENT_METHOD_LABELS[found.paymentMethod]} ·{" "}
             {found.paymentStatus === "demo_paid"
               ? "Paid (demo)"
-              : "Pay when your order arrives"}
+              : found.paymentMethod === "cash_pickup"
+                ? "Pay at the counter"
+                : "Pay when your order arrives"}
           </dd>
         </dl>
       </section>
@@ -142,7 +144,7 @@ export async function OrderDetails({
           </dd>
           {found.discountCentavos > 0 ? (
             <>
-              <dt>Discount</dt>
+              <dt>Discount{found.promoCode ? ` (${found.promoCode})` : ""}</dt>
               <dd className="text-right tabular-nums">
                 −{formatPeso(found.discountCentavos)}
               </dd>

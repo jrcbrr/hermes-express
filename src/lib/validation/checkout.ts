@@ -9,33 +9,43 @@ import { cartItemsSchema } from "./cart";
  * early) and in placeOrder (the real check). Prices are never part of it.
  */
 
-export const PAYMENT_METHODS = ["gcash_demo", "card_demo", "cod"] as const;
+export const PAYMENT_METHODS = [
+  "gcash_demo",
+  "card_demo",
+  "cash_pickup",
+  "cod",
+] as const;
 export type PaymentMethod = (typeof PAYMENT_METHODS)[number];
 
 export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
   gcash_demo: "GCash (Demo)",
   card_demo: "Card (Demo)",
+  cash_pickup: "Cash at Pickup",
   cod: "Cash on Delivery",
 };
 
-/** Demo payments are always "paid"; cash is collected at the door. */
+/** Demo payments are always "paid"; cash is collected at the counter or door. */
 export type PaymentStatus = "demo_paid" | "unpaid";
 
+export function isCashPayment(method: PaymentMethod): boolean {
+  return method === "cod" || method === "cash_pickup";
+}
+
 export function paymentStatusFor(method: PaymentMethod): PaymentStatus {
-  return method === "cod" ? "unpaid" : "demo_paid";
+  return isCashPayment(method) ? "unpaid" : "demo_paid";
 }
 
 /** Payment methods offered for pickup or delivery. */
 export function paymentMethodsFor(
   fulfillment: "pickup" | "delivery",
 ): PaymentMethod[] {
-  return fulfillment === "delivery"
-    ? [...PAYMENT_METHODS]
-    : PAYMENT_METHODS.filter((m) => m !== "cod");
+  const otherCash = fulfillment === "delivery" ? "cash_pickup" : "cod";
+  return PAYMENT_METHODS.filter((m) => m !== otherCash);
 }
 
 export const NOTE_MAX_LENGTH = 200;
 export const STREET_MAX_LENGTH = 200;
+export const PROMO_CODE_MAX_LENGTH = 20;
 
 const branchSlugs = siteConfig.branches.map((b) => b.slug);
 
@@ -77,7 +87,9 @@ export const checkoutSchema = z
     /** ISO date-time of the chosen slot; only for scheduled orders. */
     scheduledFor: z.iso.datetime("Please choose a time.").optional(),
     paymentMethod: z.enum(PAYMENT_METHODS, "Please choose a payment method."),
-    // Stage 8: promoCode and pointsToRedeem join here.
+    /** Checked and priced again by placeOrder. */
+    promoCode: z.string().trim().max(PROMO_CODE_MAX_LENGTH).optional(),
+    // Stage 8: pointsToRedeem joins here.
     items: cartItemsSchema.min(1, "Your cart is empty."),
   })
   .superRefine((data, ctx) => {
@@ -110,6 +122,13 @@ export const checkoutSchema = z
         code: "custom",
         path: ["paymentMethod"],
         message: "Cash on Delivery is only for delivery orders.",
+      });
+    }
+    if (data.paymentMethod === "cash_pickup" && data.fulfillment !== "pickup") {
+      ctx.addIssue({
+        code: "custom",
+        path: ["paymentMethod"],
+        message: "Cash at Pickup is only for pickup orders.",
       });
     }
   })

@@ -76,6 +76,21 @@ describe("formatReceiptDateTime", () => {
   });
 });
 
+describe("cash at pickup", () => {
+  it("says it is paid at pickup", () => {
+    const receipt = buildReceipt({
+      ...pickupOrder,
+      fulfillment: "pickup",
+      paymentStatus: "unpaid",
+      paymentMethod: "cash_pickup",
+    });
+    expect(receipt.payment).toEqual({
+      label: "PAYMENT: CASH AT PICKUP",
+      value: "TO BE PAID AT PICKUP",
+    });
+  });
+});
+
 describe("buildReceipt", () => {
   it("builds a pickup sales receipt", () => {
     expect(buildReceipt(pickupOrder)).toEqual({
