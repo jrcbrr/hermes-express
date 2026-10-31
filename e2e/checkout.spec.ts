@@ -126,6 +126,9 @@ test.describe("with a seeded database", () => {
     await expect(page).toHaveURL(/\/receipts\/[0-9a-f-]{36}$/, {
       timeout: 15_000,
     });
+    // Next keeps the previous page mounted but hidden, and the order page now
+    // shows a receipt too. Reload so only this page's receipt is in the DOM.
+    await page.reload();
     const receiptNumber = page.getByTestId("receipt-number");
     await expect(receiptNumber).toHaveText(/^HX-[A-Z]{2,5}-\d{6,}$/);
     await expect(page.getByTestId("receipt-total")).toHaveText("PHP 415.00");
