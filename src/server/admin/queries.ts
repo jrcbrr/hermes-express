@@ -113,7 +113,9 @@ export async function getSalesCharts(now: Date): Promise<SalesCharts> {
       })
       .from(order)
       .where(inPeriod)
-      .groupBy(manilaDay),
+      // By position: the time zone is a query parameter, so Postgres would not
+      // see two copies of this expression as the same one.
+      .groupBy(sql`1`),
     db
       .select({ name: branch.name, orders: count(order.id) })
       .from(branch)
@@ -125,7 +127,7 @@ export async function getSalesCharts(now: Date): Promise<SalesCharts> {
       .from(orderItem)
       .innerJoin(order, eq(orderItem.orderId, order.id))
       .where(inPeriod)
-      .groupBy(itemName)
+      .groupBy(sql`1`)
       .orderBy(desc(quantity), asc(itemName))
       .limit(TOP_ITEMS_LIMIT),
   ]);
