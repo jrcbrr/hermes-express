@@ -1,13 +1,21 @@
 import Link from "next/link";
 import { HermesMascot } from "@/components/brand/hermes-mascot";
 import { buttonVariants } from "@/components/ui/button";
+import { BADGES } from "@/lib/badges";
+import { formatPeso } from "@/lib/money";
+import { CENTAVOS_PER_POINT, REWARD_TIERS } from "@/lib/points";
 import { Section } from "./section";
 
-// Values from docs/PLAN.md §8. TODO(Stage 8): read them from src/lib/points.ts.
 const perks = [
-  { value: "1 point", text: "for every ₱10 you spend" },
-  { value: "150 points", text: "for a free 12oz drink" },
-  { value: "9 badges", text: "to collect as you explore" },
+  {
+    value: "1 point",
+    text: `for every ${formatPeso(CENTAVOS_PER_POINT)} you spend`,
+  },
+  {
+    value: `${REWARD_TIERS[0]!.points} points`,
+    text: `for a free ${REWARD_TIERS[0]!.size} drink`,
+  },
+  { value: `${BADGES.length} badges`, text: "to collect as you explore" },
 ] as const;
 
 export function RewardsTeaser() {

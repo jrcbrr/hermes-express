@@ -1,18 +1,33 @@
+import { randomUUID } from "node:crypto";
+import { sql } from "drizzle-orm";
+import { getDb } from "@/db";
+
 export type PointsAdjustment = {
   userId: string;
   delta: number;
   note: string;
-  adminId: string;
 };
 
 /**
- * Hook for the points ledger. Stage 8 adds the `points_ledger` table and writes
- * the row here (reason "admin_adjust"). Until then the balance changes but the
- * adjustment leaves no history. When Stage 8 fills this in, the balance update
- * and the ledger row should become one statement, as in writeOrderTransition.
+ * An admin's adjustment: the balance and its ledger row, in one statement. It
+ * matches nothing, and writes nothing, if the balance would go below zero or
+ * the account doesn't exist. False in that case.
  */
-export async function recordPointsAdjustment(
-  adjustment: PointsAdjustment,
-): Promise<void> {
-  void adjustment;
+export async function recordPointsAdjustment({
+  userId,
+  delta,
+  note,
+}: PointsAdjustment): Promise<boolean> {
+  const result = await getDb().execute(sql`
+    with changed as (
+      update "user"
+      set points_balance = points_balance + ${delta}::int
+      where id = ${userId} and points_balance + ${delta}::int >= 0
+      returning id
+    )
+    insert into points_ledger (id, user_id, delta, reason, note)
+    select ${randomUUID()}::text, id, ${delta}::int, 'admin_adjust', ${note}::text
+    from changed
+    returning id`);
+  return result.rows.length > 0;
 }

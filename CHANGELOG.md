@@ -5,6 +5,29 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Stage 8: Rewards, favorites & extras (2026-10-31)
+
+#### Added
+
+- **Cash at Pickup:** pickup orders can pay cash at the counter (owner request). Saved as unpaid; the order page and receipt say where to pay. Cash on Delivery stays delivery-only.
+- **Promo codes at checkout** (`src/lib/promos.ts`): start and end dates, maximum uses, first order only, minimum order, maximum discount. The server checks the code again when the order is placed. A use is counted with the order and returned if it is cancelled.
+- **`/admin/promos`:** list, create, edit, and switch codes on or off. No deleting, renaming or editing the used count.
+- **Loyalty points** (`src/lib/points.ts`): 1 point per ₱10 after discounts, excluding delivery, credited on Completed. Redeem 150/250/350 points for one free 12/16/22oz drink per order at checkout; add-ons are still charged. Cancelling returns redeemed points.
+- **`/rewards`:** balance, free drink tiers, badges and points history.
+- **Points ledger:** every earn, redeem, return and admin adjustment is written in the same statement or transaction as the balance. Balances from before the ledger get an "Opening balance" row.
+- **Favorites:** "Save to favorites" in the builder, and `/favorites` adds a drink to the cart at current prices. Guests are asked to log in.
+- **`/orders`:** order history with one-tap reorder. Items no longer available are skipped and named.
+- **Ratings:** 1 to 5 stars and a comment per item after Completed, once per item, on the order page.
+- **Badges** (`src/lib/badges.ts`): shown on `/rewards` and `/profile`, with an unlock toast. Perfect Pour unlocks in Stage 9 with the mini-game.
+- **Sound effects:** pour, clink and ding in `public/sounds`, original and synthesized by `scripts/generate-sounds.mjs`, respecting the mute toggle. A ding also plays when an order is placed.
+- Additive migrations `0004_promo_max_uses` and `0005_rewards`: new tables `saved_drink`, `points_ledger`, `rating`, `user_badge`, `user_stat`, and database checks so a balance can't go below zero and a code can't pass its maximum uses.
+- Tests: points, promos, badges, ratings, favorites and every new action's login and ownership checks; new `e2e/promo.spec.ts` and `e2e/rewards.spec.ts`.
+
+#### Changed
+
+- Admin points adjustments now write the ledger, in one statement with the balance.
+- The account menu has a Favorites link. The landing page's rewards numbers come from `src/lib/points.ts` and `src/lib/badges.ts`.
+
 ### Stage 7: Admin (2026-10-31)
 
 #### Added

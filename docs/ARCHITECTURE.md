@@ -84,6 +84,8 @@ flowchart LR
 9. **Changing an order (Stage 6):** `advanceOrder()` (`src/server/barista/actions.ts`) checks the role, `canManageBranch()` and `canTransition()`, then updates the order and inserts its `order_status_event` in one SQL statement. The update only matches while the status is unchanged, so a lost race writes nothing.
 10. **Sold-out switches (Stage 6):** `setSoldOut()` saves a `branch_stock` row and calls `updateTag(CATALOG_CACHE_TAG)`, so the cached catalog behind the menu, builder and checkout refreshes at once.
 11. **Admin (Stage 7):** the `/admin` layout and every page and action in `src/server/admin/` call `requireRole(["admin"])`. Status changes share `writeOrderTransition()` (`src/server/orders/transition.ts`) with baristas. Menu and ingredient edits call `updateTag(CATALOG_CACHE_TAG)`, and sold-out switches reuse `setSoldOut()`. Points adjustments update the balance in one conditional SQL statement and then call `recordPointsAdjustment()` (`src/server/points/ledger.ts`), a no-op until the Stage 8 ledger.
+12. **Points and discounts (Stage 8):** `placeOrder()` works out the free drink (`rewardForItem()`) and then the promo (`resolvePromo()`) from the catalog, and writes the order, promo use, balance and ledger row in one `db.batch` transaction. Database checks stop a balance going below zero or a code passing its maximum uses, so a lost race rolls the whole order back. `writeOrderTransition()` credits points on Completed and returns points and the promo use on Cancelled, in the same SQL statement as the status change. The sum of a user's `points_ledger` rows equals their `points_balance`.
+13. **Badges (Stage 8):** after a new order, `recordOrderBadges()` updates `user_stat` and `user_badge`. A failure is logged and never affects the order.
 
 ## Folder structure
 
@@ -104,7 +106,10 @@ src/
 │  ├─ sound/     Sound mute toggle (uses hooks/use-sound.ts).
 │  ├─ auth/      Login and sign-up forms, labelled form field.
 │  ├─ profile/   Profile edit form.
-│  └─ admin/     /admin: sidebar and drawer, order status select, product, ingredient and customer forms.
+│  ├─ admin/     /admin: sidebar and drawer, order status select, product, ingredient, customer and promo forms.
+│  ├─ favorites/ /favorites: remove button.
+│  ├─ ratings/   Order page: rating form and the ratings section.
+│  └─ rewards/   Badge list and unlock toast.
 ├─ config/       site.ts: name, tagline, contacts, branches (single source of truth);
 │                delivery-areas.ts: the Taguig barangays we deliver to.
 ├─ db/           Drizzle client (index.ts), schema.ts, migrations/, seed.ts, seed-env.ts,

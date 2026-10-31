@@ -229,12 +229,29 @@ describe("cart item checks", () => {
 
 describe("payment", () => {
   it("offers cash only for delivery", () => {
-    expect(paymentMethodsFor("pickup")).toEqual(["gcash_demo", "card_demo"]);
+    expect(paymentMethodsFor("pickup")).toEqual([
+      "gcash_demo",
+      "card_demo",
+      "cash_pickup",
+    ]);
     expect(paymentMethodsFor("delivery")).toEqual([
       "gcash_demo",
       "card_demo",
       "cod",
     ]);
+  });
+
+  it("keeps Cash at Pickup for pickup orders", () => {
+    expect(
+      errors({
+        ...base,
+        fulfillment: "delivery",
+        street: "12 Lakeshore Drive",
+        barangay: "Fort Bonifacio (BGC)",
+        paymentMethod: "cash_pickup",
+      }).paymentMethod,
+    ).toMatch(/pickup/i);
+    expect(paymentStatusFor("cash_pickup")).toBe("unpaid");
   });
 
   it("marks demo payments paid and cash unpaid", () => {

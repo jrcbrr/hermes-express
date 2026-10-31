@@ -40,6 +40,7 @@ export type ReceiptSource = {
   deliveryFeeCentavos: number;
   totalCentavos: number;
   promoCode: string | null;
+  pointsRedeemed: number;
   paymentMethod: PaymentMethod;
   paymentStatus: PaymentStatus;
   createdAt: Date;
@@ -174,10 +175,15 @@ export function buildReceipt(order: ReceiptSource): Receipt {
     { label: "SUBTOTAL", centavos: order.subtotalCentavos },
   ];
   if (order.discountCentavos > 0) {
+    const sources = [
+      order.promoCode,
+      order.pointsRedeemed > 0 ? `${order.pointsRedeemed} PTS` : null,
+    ].filter(Boolean);
     amounts.push({
-      label: order.promoCode
-        ? `LESS: DISCOUNT (${order.promoCode})`
-        : "LESS: DISCOUNT",
+      label:
+        sources.length > 0
+          ? `LESS: DISCOUNT (${sources.join(", ")})`
+          : "LESS: DISCOUNT",
       centavos: -order.discountCentavos,
     });
   }
@@ -240,7 +246,11 @@ export function buildReceipt(order: ReceiptSource): Receipt {
     payment: {
       label: `PAYMENT: ${PAYMENT_METHOD_LABELS[order.paymentMethod].toUpperCase()}`,
       value:
-        order.paymentStatus === "demo_paid" ? "PAID" : "TO BE PAID ON DELIVERY",
+        order.paymentStatus === "demo_paid"
+          ? "PAID"
+          : order.paymentMethod === "cash_pickup"
+            ? "TO BE PAID AT PICKUP"
+            : "TO BE PAID ON DELIVERY",
     },
     soldTo,
     footer: {

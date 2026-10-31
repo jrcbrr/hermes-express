@@ -11,6 +11,13 @@ import { requireUser } from "@/server/auth/session";
 import { getOrderForUser, trackingForOrder } from "@/server/orders/queries";
 import { OrderTracker } from "./order-tracker";
 
+function discountLabel(code: string | null, points: number): string {
+  const sources = [code, points > 0 ? `${points} points` : null].filter(
+    Boolean,
+  );
+  return sources.length > 0 ? `Discount (${sources.join(", ")})` : "Discount";
+}
+
 /** A placed order: its code, live tracker, items, totals and receipt. */
 export async function OrderDetails({
   params,
@@ -101,7 +108,9 @@ export async function OrderDetails({
             {PAYMENT_METHOD_LABELS[found.paymentMethod]} ·{" "}
             {found.paymentStatus === "demo_paid"
               ? "Paid (demo)"
-              : "Pay when your order arrives"}
+              : found.paymentMethod === "cash_pickup"
+                ? "Pay at the counter"
+                : "Pay when your order arrives"}
           </dd>
         </dl>
       </section>
@@ -142,7 +151,7 @@ export async function OrderDetails({
           </dd>
           {found.discountCentavos > 0 ? (
             <>
-              <dt>Discount</dt>
+              <dt>{discountLabel(found.promoCode, found.pointsRedeemed)}</dt>
               <dd className="text-right tabular-nums">
                 −{formatPeso(found.discountCentavos)}
               </dd>

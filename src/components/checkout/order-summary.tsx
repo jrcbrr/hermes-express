@@ -8,11 +8,19 @@ export function OrderSummary({
   priced,
   totals,
   fulfillment,
+  promoCode = null,
+  pointsRedeemed = 0,
 }: {
   priced: PricedCartItem[];
   totals: CartTotals;
   fulfillment: "pickup" | "delivery";
+  promoCode?: string | null;
+  pointsRedeemed?: number;
 }) {
+  const sources = [
+    promoCode,
+    pointsRedeemed > 0 ? `${pointsRedeemed} points` : null,
+  ].filter(Boolean);
   return (
     <section
       aria-labelledby="order-summary-heading"
@@ -61,7 +69,17 @@ export function OrderSummary({
         <dd className="text-right tabular-nums">
           {formatPeso(totals.subtotalCentavos)}
         </dd>
-        {/* Stage 8: promo discount and points lines go here. */}
+        {totals.discountCentavos > 0 ? (
+          <>
+            <dt>
+              Discount
+              {sources.length > 0 ? ` (${sources.join(", ")})` : ""}
+            </dt>
+            <dd className="text-right tabular-nums" data-testid="discount">
+              −{formatPeso(totals.discountCentavos)}
+            </dd>
+          </>
+        ) : null}
         <dt>Delivery fee</dt>
         <dd className="text-right tabular-nums" data-testid="delivery-fee">
           {fulfillment === "pickup"

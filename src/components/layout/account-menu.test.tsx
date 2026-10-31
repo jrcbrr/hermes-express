@@ -12,6 +12,7 @@ describe("accountMenuLinks", () => {
     expect(labels("customer")).toEqual([
       "Profile",
       "Orders",
+      "Favorites",
       "Receipts",
       "Rewards",
     ]);
@@ -21,6 +22,7 @@ describe("accountMenuLinks", () => {
     expect(labels("barista")).toEqual([
       "Profile",
       "Orders",
+      "Favorites",
       "Receipts",
       "Rewards",
       "Barista",
@@ -28,6 +30,7 @@ describe("accountMenuLinks", () => {
     expect(labels("admin")).toEqual([
       "Profile",
       "Orders",
+      "Favorites",
       "Receipts",
       "Rewards",
       "Barista",
@@ -39,6 +42,7 @@ describe("accountMenuLinks", () => {
     expect(labels("superuser")).toEqual([
       "Profile",
       "Orders",
+      "Favorites",
       "Receipts",
       "Rewards",
     ]);
@@ -78,6 +82,7 @@ describe("AccountMenu", () => {
     expect(items).toEqual([
       "Profile",
       "Orders",
+      "Favorites",
       "Receipts",
       "Rewards",
       "Barista",

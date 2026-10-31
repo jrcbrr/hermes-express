@@ -50,6 +50,7 @@ export function accountMenuLinks(
   const links: AccountLink[] = [
     { href: "/profile", label: "Profile" },
     { href: "/orders", label: "Orders" },
+    { href: "/favorites", label: "Favorites" },
     { href: "/receipts", label: "Receipts" },
     { href: "/rewards", label: "Rewards" },
   ];

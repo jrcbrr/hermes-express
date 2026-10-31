@@ -320,4 +320,27 @@ Rules the AI follows are in [`../CLAUDE.md`](../CLAUDE.md). Stage prompts are in
   - **The first Vercel preview failed, with Neon at its limit of 10 branches.** Claude Code's permission check blocked `neonctl branches delete`, and the AI left it instead of working around the block, so the PR was opened with Neon still full. When I asked directly, it deleted `preview/stage-1-design`. Neon is at 9 of 10, so this PR's preview fills it again and the next new PR branch needs another old preview deleted first.
 - **What I learned:**
   - A guard has to match what the code relies on, not only what looks like a sensible rule. Reading the builder's starting state showed the gap.
-- **Raw log:** not yet exported. Save it to `docs/ai-logs/2026-10-31-stage-7.md` with `/export`.
+- **Raw log:** [docs/ai-logs/2026-10-31-stage-7.md](ai-logs/2026-10-31-stage-7.md) (exported after the merge; checked for secrets before committing)
+
+## 2026-10-31 — Stage 8: Rewards, favorites & extras
+
+- **Goal:** Add favorites, order history, points, promo codes, ratings, badges and sounds, and connect the admin's points adjustment to a real ledger.
+- **Key prompts I gave:**
+  - The Stage 8 prompt from `MASTER_PROMPT.md`. Plan first and wait for my "go".
+  - I asked what admin promos would include before approving them.
+  - Mid-stage I noticed there was no cash option at pickup and asked for one, ahead of the promo work.
+- **What the AI did:**
+  - Proposed the plan and six rules for redeeming, stacking discounts, cancelling, badge timing and receipts. It noted the emailed receipt from the prompt already existed from Stage 5.
+  - Built the features above with additive migrations and no new dependency, and generated original sound files with a script.
+- **What I reviewed / changed / rejected and why:**
+  - Approved the plan and the six rules, and included `/admin/promos`.
+  - Added Cash at Pickup, changing the Stage 5 rule that pickup offered only demo payments.
+- **Problems & fixes:**
+  - **Stage 7 adjustments had left no history**, so the new ledger would not have matched existing balances. The migration adds an "Opening balance" row for any non-zero balance.
+  - **Two checkouts could have spent the same points or a code's last use.** Database checks now reject the second, which rolls back its whole order.
+  - **A test failed with an error the code had caught.** The test's `beforeEach` returned a mock, and Vitest runs a returned function as cleanup, so the mock ran again after the test. The test now returns nothing.
+  - **A status change in the E2E sometimes did nothing.** It was made on a freshly compiled page before React had attached its handlers, so the test now retries from a fresh page.
+  - **Neon was at its 10 branch limit again.** Claude Code's permission check blocked the delete until I asked for it directly; `preview/stage-2-auth` was then deleted. This PR's preview fills Neon again.
+- **What I learned:**
+  - A rule in the database, such as a balance that can't go negative, still holds when two requests race, where a check in the code alone would not.
+- **Raw log:** [docs/ai-logs/2026-10-31-stage-8.md](ai-logs/2026-10-31-stage-8.md) (exported before the merge; checked for secrets before committing)

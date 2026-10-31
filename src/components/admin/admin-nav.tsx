@@ -12,6 +12,7 @@ const LINKS = [
   { href: "/admin/menu", label: "Menu" },
   { href: "/admin/ingredients", label: "Ingredients" },
   { href: "/admin/customers", label: "Customers" },
+  { href: "/admin/promos", label: "Promos" },
 ] as const;
 
 function NavLinks({ onNavigate }: { onNavigate?: () => void }) {

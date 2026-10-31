@@ -37,6 +37,7 @@ export async function CheckoutContent() {
       snapshot={snapshot}
       now={now}
       initialBranch={branchSlug}
+      pointsBalance={user.pointsBalance ?? 0}
       timings={timings}
       defaults={{
         contactName: user.name,

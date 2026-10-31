@@ -38,6 +38,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   mocks.reset();
   mocks.role.current = "admin";
+  mocks.record.mockResolvedValue(true);
 });
 
 describe.each(["customer", "barista", null])("as %s", (role) => {
@@ -158,23 +159,21 @@ describe("setUserRole", () => {
 describe("adjustPoints", () => {
   const adjustment = { userId: "u1", delta: "-50", note: "Goodwill" };
 
-  it("changes the balance and calls the ledger hook", async () => {
+  it("writes the balance and ledger through one call", async () => {
     expect(await adjustPoints({}, form(adjustment))).toEqual({
       status: "saved",
     });
-    expect(mocks.state.sets[0]).toHaveProperty("pointsBalance");
     expect(mocks.record).toHaveBeenCalledWith({
       userId: "u1",
       delta: -50,
       note: "Goodwill",
-      adminId: "admin-1",
     });
   });
 
   it("returns validation errors", async () => {
     const state = await adjustPoints({}, form({ ...adjustment, delta: "0" }));
     expect(state.errors?.delta).toBeDefined();
-    expect(mocks.state.sets).toEqual([]);
+    expect(mocks.record).not.toHaveBeenCalled();
   });
 
   it("needs a reason", async () => {
@@ -182,10 +181,9 @@ describe("adjustPoints", () => {
     expect(state.errors?.note).toBeDefined();
   });
 
-  it("won't take a balance below zero, and records nothing", async () => {
-    mocks.state.updateRows = [];
+  it("reports a balance that would go below zero", async () => {
+    mocks.record.mockResolvedValue(false);
     const state = await adjustPoints({}, form(adjustment));
     expect(state.errors?.delta).toBeDefined();
-    expect(mocks.record).not.toHaveBeenCalled();
   });
 });
