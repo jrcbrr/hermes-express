@@ -37,6 +37,39 @@ test.describe("with a seeded database", () => {
     ).toHaveAttribute("href", "/menu");
   });
 
+  test("an item added while signed in survives going straight to checkout", async ({
+    page,
+  }, testInfo) => {
+    test.slow();
+    await page.setExtraHTTPHeaders({
+      "x-forwarded-for": `198.51.100.${Math.floor(Math.random() * 250) + 1}`,
+    });
+    await page.goto("/signup?next=/menu");
+    await page.getByLabel("Full name").fill("Playwright Quick Adder");
+    await page
+      .getByLabel("Email")
+      .fill(
+        `e2e-quick-${testInfo.project.name}-${Date.now()}@hermes-express.test`,
+      );
+    await page.getByLabel("Mobile number").fill("0917 123 4567");
+    await page
+      .getByLabel("Password", { exact: true })
+      .fill("brewed-by-you-123");
+    await page.getByLabel("Confirm password").fill("brewed-by-you-123");
+    await page.getByRole("button", { name: "Create account" }).click();
+    await expect(page).toHaveURL(onPath("/menu"), { timeout: 15_000 });
+
+    // Leave at once, before the delayed save to the account can run.
+    await page
+      .getByRole("button", { name: "Add Butter Croissant to cart" })
+      .click();
+    await page.goto("/cart");
+    await expect(page.getByTestId("cart-item")).toHaveCount(1);
+    await page.goto("/checkout");
+    await expect(page.getByText("Your cart is empty.")).toHaveCount(0);
+    await expect(page.getByTestId("checkout-total")).toBeVisible();
+  });
+
   test("build → cart → checkout → order created", async ({
     page,
   }, testInfo) => {
@@ -126,6 +159,9 @@ test.describe("with a seeded database", () => {
     await expect(page).toHaveURL(/\/receipts\/[0-9a-f-]{36}$/, {
       timeout: 15_000,
     });
+    // Next keeps the previous page mounted but hidden, and the order page now
+    // shows a receipt too. Reload so only this page's receipt is in the DOM.
+    await page.reload();
     const receiptNumber = page.getByTestId("receipt-number");
     await expect(receiptNumber).toHaveText(/^HX-[A-Z]{2,5}-\d{6,}$/);
     await expect(page.getByTestId("receipt-total")).toHaveText("PHP 415.00");

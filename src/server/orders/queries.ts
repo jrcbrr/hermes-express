@@ -1,8 +1,16 @@
 // Order reads for Server Components. Every read checks who is asking.
-import { asc, desc, eq } from "drizzle-orm";
+import { and, asc, desc, eq, inArray } from "drizzle-orm";
+import type { BranchService } from "@/config/site";
 import { getDb } from "@/db";
-import { branch, order, orderItem, promoCode } from "@/db/schema";
+import {
+  branch,
+  order,
+  orderItem,
+  orderStatusEvent,
+  promoCode,
+} from "@/db/schema";
 import type { SessionUser } from "@/lib/auth";
+import { ACTIVE_ORDER_STATUSES, type OrderStatus } from "@/lib/order-status";
 import { hasRole } from "@/lib/roles";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -56,6 +64,107 @@ export async function getOrderForUser(
     hasRole(user.role, ["admin"]) ||
     (hasRole(user.role, ["barista"]) && user.branchId === found.branchId);
   return allowed ? found : null;
+}
+
+export type OrderTracking = {
+  status: OrderStatus;
+  fulfillment: BranchService;
+  events: { status: OrderStatus; at: string }[];
+};
+
+/** The tracker's data for an order the caller has already been allowed to see. */
+export async function trackingForOrder(
+  found: Pick<OrderDetails, "id" | "status" | "fulfillment">,
+): Promise<OrderTracking> {
+  const events = await getDb()
+    .select({
+      status: orderStatusEvent.status,
+      createdAt: orderStatusEvent.createdAt,
+    })
+    .from(orderStatusEvent)
+    .where(eq(orderStatusEvent.orderId, found.id))
+    .orderBy(asc(orderStatusEvent.createdAt));
+  return {
+    status: found.status,
+    fulfillment: found.fulfillment,
+    events: events.map((e) => ({
+      status: e.status,
+      at: e.createdAt.toISOString(),
+    })),
+  };
+}
+
+/** What the tracker polls for. Same access rule as getOrderForUser. */
+export async function getOrderTracking(
+  orderId: string,
+  user: Pick<SessionUser, "id" | "role" | "branchId">,
+): Promise<OrderTracking | null> {
+  const found = await getOrderForUser(orderId, user);
+  return found ? trackingForOrder(found) : null;
+}
+
+/** An order on the barista's board. Dates are strings: it also travels as JSON. */
+export type QueueOrder = {
+  id: string;
+  code: string;
+  status: OrderStatus;
+  fulfillment: BranchService;
+  scheduledFor: string | null;
+  createdAt: string;
+  contactName: string;
+  phone: string;
+  address: string | null;
+  notes: string;
+  items: { id: string; name: string; quantity: number; details: string[] }[];
+};
+
+/**
+ * A branch's active orders. Callers must have checked the user may see this
+ * branch (see resolveStaffBranch).
+ */
+export async function listBranchQueue(branchId: string): Promise<QueueOrder[]> {
+  const db = getDb();
+  const orders = await db
+    .select()
+    .from(order)
+    .where(
+      and(
+        eq(order.branchId, branchId),
+        inArray(order.status, [...ACTIVE_ORDER_STATUSES]),
+      ),
+    )
+    .orderBy(asc(order.createdAt));
+  if (orders.length === 0) return [];
+  const items = await db
+    .select()
+    .from(orderItem)
+    .where(
+      inArray(
+        orderItem.orderId,
+        orders.map((o) => o.id),
+      ),
+    )
+    .orderBy(asc(orderItem.sortOrder));
+  return orders.map((o) => ({
+    id: o.id,
+    code: o.code,
+    status: o.status,
+    fulfillment: o.fulfillment,
+    scheduledFor: o.scheduledFor?.toISOString() ?? null,
+    createdAt: o.createdAt.toISOString(),
+    contactName: o.contactName,
+    phone: o.phone,
+    address: o.address,
+    notes: o.notes,
+    items: items
+      .filter((item) => item.orderId === o.id)
+      .map((item) => ({
+        id: item.id,
+        name: item.name,
+        quantity: item.quantity,
+        details: item.config.details,
+      })),
+  }));
 }
 
 export type ReceiptSummary = Awaited<

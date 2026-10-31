@@ -280,3 +280,25 @@ Rules the AI follows are in [`../CLAUDE.md`](../CLAUDE.md). Stage prompts are in
   - Locking one row (the branch's counter) inside a transaction is a simple way to hand out numbers without gaps or duplicates.
   - Building the receipt once and rendering it three ways (page, PDF, email) keeps them from disagreeing.
 - **Raw log:** [docs/ai-logs/2026-10-30-stage-5-receipts.md](ai-logs/2026-10-30-stage-5-receipts.md) (two sessions; exported before the merge, so the merge itself is not in the raw log)
+
+## 2026-10-31 — Stage 6: Tracking, barista queue & sold-out
+
+- **Goal:** Let staff move orders forward, let customers watch that live, and let a branch mark items sold out.
+- **Key prompts I gave:**
+  - The Stage 6 prompt: `order-status.ts`, the animated tracker with a receipt and 10-second polling, `/barista`, `/barista/stock`, a status event on every change, tests, and an E2E where a barista advances an order and the customer sees it update. Plan first and wait for my "go".
+- **What the AI did:**
+  - Read the plan and code, found `order-status.ts` and the status event table already existed, and proposed additions with no migration and no new dependency.
+  - Built the tracker, queue, stock page, two route handlers, a polling hook, and unit and E2E tests.
+- **What I reviewed / changed / rejected and why:**
+  - Approved the plan, including its added Cancel button with a confirm step, the admin branch switcher and a hand-built toast.
+- **Problems & fixes:**
+  - **Two baristas tapping at once could have written two events.** The status update and event insert became one SQL statement that only matches while the status is unchanged.
+  - **The E2E expected a 404 status for another branch's order and got 200.** The page streams, so the status is sent before the check finishes. The visitor still gets the not-found page and no order data. The test now checks that, plus a real 404 from the status API.
+  - **The login wait passed too early.** `/barista$` also matched the login URL's `?next=/barista`. It now compares the path. A screenshot of the queue showing the login page gave this away.
+  - **The existing checkout E2E found two receipts.** Next keeps the previous page mounted but hidden, and the order page now has a receipt. That test reloads the receipt page first.
+  - **An item added while signed in could vanish from the cart.** A Stage 5 bug, seen once in an E2E run. The AI first reported it and left it alone as out of scope; I then asked for it to be fixed in this PR. Tests reproduced it every time, and showed two causes: `CartAccountSync` replaced the browser cart when its server call returned, and leaving a page within 400 ms cancelled the delayed save, so the next page loaded the older cart over the new one. The sync now keeps changes made while it runs, and the browser remembers unsaved changes and sends them on the next page.
+  - **The Vercel preview failed with `Resource provisioning failed`.** The Neon free plan allows 10 branches and old previews had used them all. I approved deleting `preview/stage-0-setup`. Neon is full again, so the next new PR branch needs another old preview deleted first.
+- **What I learned:**
+  - Doing two writes in one SQL statement is a simple way to make them succeed together without a long transaction.
+  - A streamed page can't change its status code once it has started, so a page's 200 does not prove access was allowed. Check the content.
+- **Raw log:** [docs/ai-logs/2026-10-31-stage-6.md](ai-logs/2026-10-31-stage-6.md) (exported before the merge, so the merge itself is not in the raw log)

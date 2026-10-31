@@ -59,3 +59,42 @@ export function nextStatuses(
 export function isOrderStatus(value: string): value is OrderStatus {
   return (ORDER_STATUSES as readonly string[]).includes(value);
 }
+
+/** Orders still being worked on: what the barista queue shows. */
+export const ACTIVE_ORDER_STATUSES = [
+  "received",
+  "brewing",
+  "ready_for_pickup",
+  "out_for_delivery",
+] as const satisfies readonly OrderStatus[];
+
+/** True when nothing can happen to the order any more. */
+export function isFinalStatus(status: OrderStatus): boolean {
+  return NEXT[status].length === 0;
+}
+
+/** The one forward move (the barista's main button). Never Cancelled. */
+export function advanceStatus(
+  from: OrderStatus,
+  fulfillment: BranchService,
+): OrderStatus | null {
+  return nextStatuses(from, fulfillment).find((s) => s !== "cancelled") ?? null;
+}
+
+/** The path a customer's tracker shows, from Received to Completed. */
+export function trackerSteps(fulfillment: BranchService): OrderStatus[] {
+  return [
+    "received",
+    "brewing",
+    fulfillment === "pickup" ? "ready_for_pickup" : "out_for_delivery",
+    "completed",
+  ];
+}
+
+/** Where the order is on its tracker path. -1 when it isn't on it (Cancelled). */
+export function trackerStepIndex(
+  status: OrderStatus,
+  fulfillment: BranchService,
+): number {
+  return trackerSteps(fulfillment).indexOf(status);
+}

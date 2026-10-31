@@ -20,6 +20,18 @@ export function hasRole(
   return isRole(role) && allowed.includes(role);
 }
 
+/**
+ * May this user change orders and stock at this branch? Admins everywhere,
+ * baristas only at their own branch. Having placed an order gives no right.
+ */
+export function canManageBranch(
+  user: { role?: string | null; branchId?: string | null },
+  branchId: string,
+): boolean {
+  if (hasRole(user.role, ["admin"])) return true;
+  return hasRole(user.role, ["barista"]) && user.branchId === branchId;
+}
+
 /** What a path needs: nothing, any signed-in user, or specific roles. */
 export type RouteAccess =
   | { kind: "public" }

@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { cleanup, render, screen, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { OrderDetails as Details } from "@/server/orders/queries";
 import { ORDER_ID, pickupOrder } from "@/test/order-fixture";
@@ -14,6 +14,11 @@ const mocks = vi.hoisted(() => ({
 vi.mock("@/server/auth/session", () => ({ requireUser: mocks.requireUser }));
 vi.mock("@/server/orders/queries", () => ({
   getOrderForUser: mocks.getOrderForUser,
+  trackingForOrder: async (order: Details) => ({
+    status: order.status,
+    fulfillment: order.fulfillment,
+    events: [],
+  }),
 }));
 vi.mock("next/navigation", () => ({ notFound: mocks.notFound }));
 
@@ -75,13 +80,36 @@ describe("OrderDetails", () => {
       paymentStatus: "unpaid",
     });
     expect(screen.getByText("Deliver to")).toBeInTheDocument();
-    expect(screen.getByText(/9:00 AM/)).toBeInTheDocument();
+    // The receipt on the same page repeats the time, so look in Details.
+    expect(
+      within(screen.getByRole("region", { name: "Details" })).getByText(
+        /9:00 AM/,
+      ),
+    ).toBeInTheDocument();
     expect(screen.getByText("Ring the bell")).toBeInTheDocument();
     expect(screen.getByText("−₱50")).toBeInTheDocument();
     expect(screen.getByText("₱49")).toBeInTheDocument();
     expect(
       screen.getByText("Cash on Delivery · Pay when your order arrives"),
     ).toBeInTheDocument();
+  });
+
+  it("shows the tracker and the receipt on the page", async () => {
+    await renderDetails(pickup);
+    expect(screen.getByTestId("order-tracker")).toBeInTheDocument();
+    expect(screen.getByText("SALES RECEIPT")).toBeInTheDocument();
+    expect(screen.getByTestId("receipt-number")).toHaveTextContent(
+      "HX-BGC-000123",
+    );
+  });
+
+  it("thanks only the customer who placed the order", async () => {
+    await renderDetails(pickup);
+    expect(screen.getByText(/Thank you\./)).toBeInTheDocument();
+    cleanup();
+    mocks.requireUser.mockResolvedValue({ id: "staff", role: "barista" });
+    await renderDetails(pickup);
+    expect(screen.queryByText(/Thank you\./)).toBeNull();
   });
 
   it("shows free delivery", async () => {
