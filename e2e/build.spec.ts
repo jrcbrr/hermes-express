@@ -1,5 +1,6 @@
 import { loadEnvConfig } from "@next/env";
 import { expect, test, type Page } from "@playwright/test";
+import { winPerfectPour } from "./helpers";
 
 // Runs in both Playwright projects: desktop (1280px) and mobile (375px).
 loadEnvConfig(process.cwd());
@@ -71,6 +72,44 @@ test.describe("with a seeded database", () => {
     await expect(
       page.getByRole("button", { name: "Add to cart" }),
     ).toBeEnabled();
+  });
+
+  test("a guest wins the Perfect Pour and keeps the drink through login", async ({
+    page,
+  }, testInfo) => {
+    await page.goto("/build");
+    await page.waitForLoadState("networkidle");
+    await next(page).click();
+    await choose(page, /^Latte/);
+    await expect(price(page)).toHaveText("₱130");
+    await page.getByRole("button", { name: "Try the Perfect Pour" }).click();
+    await winPerfectPour(page, testInfo.project.name);
+    // Winning changes nothing about the drink.
+    await expect(price(page)).toHaveText("₱130");
+    await page.getByRole("link", { name: "Log in" }).last().click();
+    await expect(page).toHaveURL(/\/login/);
+
+    // Back on the builder, the drink is still there.
+    await page.goto("/build");
+    await expect(page.locator("#builder-step-heading")).toHaveText("Base");
+    await expect(price(page)).toHaveText("₱130");
+  });
+
+  test("a miss offers another try, and the game can be closed", async ({
+    page,
+  }) => {
+    await page.goto("/build");
+    await page.waitForLoadState("networkidle");
+    await next(page).click();
+    await page.getByRole("button", { name: "Try the Perfect Pour" }).click();
+    const hold = page.getByRole("button", { name: "Hold to pour" });
+    await expect(hold).toBeFocused();
+    await page.keyboard.press("Space");
+    await expect(page.getByText(/short of the gold line/)).toBeVisible();
+    await page.getByRole("button", { name: "Close" }).click();
+    await expect(
+      page.getByRole("button", { name: "Try the Perfect Pour" }),
+    ).toBeFocused();
   });
 
   test("opens a signature drink at its menu price", async ({ page }) => {

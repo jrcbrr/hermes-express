@@ -61,7 +61,7 @@ test.describe("with a seeded database", () => {
 
     // Leave at once, before the delayed save to the account can run.
     await page
-      .getByRole("button", { name: "Add Butter Croissant to cart" })
+      .getByRole("button", { name: "Add to cart: Butter Croissant" })
       .click();
     await page.goto("/cart");
     await expect(page.getByTestId("cart-item")).toHaveCount(1);
@@ -97,7 +97,7 @@ test.describe("with a seeded database", () => {
     // 2. Add a pastry from the menu.
     await page.goto("/menu");
     await page
-      .getByRole("button", { name: "Add Butter Croissant to cart" })
+      .getByRole("button", { name: "Add to cart: Butter Croissant" })
       .click();
     await expect(
       page.getByText("Butter Croissant added to your cart."),

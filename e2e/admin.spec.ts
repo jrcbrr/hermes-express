@@ -1,5 +1,6 @@
 import { loadEnvConfig } from "@next/env";
 import { expect, test, type Page } from "@playwright/test";
+import { logIn as logInWithRetry } from "./helpers";
 
 // Runs in both Playwright projects: desktop (1280px) and mobile (375px).
 loadEnvConfig(process.cwd());
@@ -16,13 +17,7 @@ const PRODUCTS: Record<string, { name: string; slug: string }> = {
 };
 
 async function logInAsAdmin(page: Page) {
-  await page.goto("/login?next=/admin");
-  await page.getByLabel("Email").fill(adminEmail!);
-  await page.getByLabel("Password").fill(adminPassword!);
-  await page.getByRole("button", { name: "Log in" }).click();
-  await expect(page).toHaveURL((url) => url.pathname === "/admin", {
-    timeout: 15_000,
-  });
+  await logInWithRetry(page, "/admin", adminEmail!, adminPassword!);
 }
 
 async function setPrice(page: Page, productId: string, price: string) {

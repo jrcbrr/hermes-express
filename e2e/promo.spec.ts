@@ -1,5 +1,6 @@
 import { loadEnvConfig } from "@next/env";
 import { expect, test, type Browser, type Page } from "@playwright/test";
+import { logIn as logInWithRetry } from "./helpers";
 
 // Runs in both Playwright projects: desktop (1280px) and mobile (375px).
 loadEnvConfig(process.cwd());
@@ -20,13 +21,7 @@ async function adminPage(
     extraHTTPHeaders: { "x-forwarded-for": fakeIp() },
   });
   const page = await context.newPage();
-  await page.goto("/login?next=/admin/promos");
-  await page.getByLabel("Email").fill(adminEmail!);
-  await page.getByLabel("Password").fill(adminPassword!);
-  await page.getByRole("button", { name: "Log in" }).click();
-  await expect(page).toHaveURL((url) => url.pathname === "/admin/promos", {
-    timeout: 15_000,
-  });
+  await logInWithRetry(page, "/admin/promos", adminEmail!, adminPassword!);
   return page;
 }
 
@@ -58,7 +53,7 @@ test.describe("promo codes", () => {
     // 2. A customer reaches checkout with a croissant (₱95).
     await page.goto("/menu");
     await page
-      .getByRole("button", { name: "Add Butter Croissant to cart" })
+      .getByRole("button", { name: "Add to cart: Butter Croissant" })
       .click();
     await expect(
       page.getByText("Butter Croissant added to your cart."),
@@ -114,13 +109,13 @@ test.describe("promo codes", () => {
     await admin.reload();
     const row = admin.getByRole("listitem").filter({ hasText: code });
     await expect(row).toContainText("Used 1");
-    await admin.getByRole("button", { name: `Switch ${code} off` }).click();
+    await admin.getByRole("button", { name: `Switch off: ${code}` }).click();
     await expect(row).toContainText("Off", { timeout: 15_000 });
 
     // 6. The next customer attempt is refused.
     await page.goto("/menu");
     await page
-      .getByRole("button", { name: "Add Butter Croissant to cart" })
+      .getByRole("button", { name: "Add to cart: Butter Croissant" })
       .click();
     await expect(
       page.getByText("Butter Croissant added to your cart."),

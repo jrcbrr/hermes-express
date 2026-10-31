@@ -37,7 +37,7 @@ test.describe("with a seeded database", () => {
       olympus.getByRole("link", { name: "Customize Olympus Latte" }),
     ).toHaveAttribute("href", "/build?from=olympus-latte");
     await expect(
-      olympus.getByRole("button", { name: "Add Olympus Latte to cart" }),
+      olympus.getByRole("button", { name: "Add to cart: Olympus Latte" }),
     ).toBeEnabled();
   });
 

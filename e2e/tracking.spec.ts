@@ -1,5 +1,6 @@
 import { loadEnvConfig } from "@next/env";
 import { expect, test, type Browser, type Page } from "@playwright/test";
+import { logIn as logInWithRetry } from "./helpers";
 
 // Runs in both Playwright projects: desktop (1280px) and mobile (375px).
 loadEnvConfig(process.cwd());
@@ -26,14 +27,12 @@ async function logInAsBarista(
     extraHTTPHeaders: { "x-forwarded-for": fakeIp() },
   });
   const page = await context.newPage();
-  await page.goto("/login?next=/barista");
-  await page.getByLabel("Email").fill(`barista.${branch}@hermes-express.test`);
-  await page.getByLabel("Password").fill(password);
-  await page.getByRole("button", { name: "Log in" }).click();
-  // Compare the path: the login URL also ends in "/barista" (its ?next=).
-  await expect(page).toHaveURL((url) => url.pathname === "/barista", {
-    timeout: 15_000,
-  });
+  await logInWithRetry(
+    page,
+    "/barista",
+    `barista.${branch}@hermes-express.test`,
+    password,
+  );
   return page;
 }
 
@@ -53,7 +52,7 @@ test.describe("order tracking", () => {
     // 1. A customer orders a pastry from Tipas, scheduled so any hour works.
     await page.goto("/menu");
     await page
-      .getByRole("button", { name: "Add Butter Croissant to cart" })
+      .getByRole("button", { name: "Add to cart: Butter Croissant" })
       .click();
     await expect(
       page.getByText("Butter Croissant added to your cart."),
@@ -114,7 +113,9 @@ test.describe("order tracking", () => {
     expect(tracking.status()).toBe(404);
     await bgc.goto(orderUrl);
     await expect(bgc.getByTestId("order-tracker")).toHaveCount(0);
-    await expect(bgc.getByText(/could not be found|not found/i)).toBeVisible();
+    await expect(
+      bgc.getByText(/could not be found|not found|could not find/i),
+    ).toBeVisible();
     await expect(bgc.getByTestId("order-code")).toHaveCount(0);
     await bgc.context().close();
 
