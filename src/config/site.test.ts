@@ -27,6 +27,16 @@ describe("siteConfig", () => {
     expect(new Set(slugs).size).toBe(3);
   });
 
+  it("has a TIN in 000-000-000-000 form", () => {
+    expect(siteConfig.tin).toMatch(/^\d{3}-\d{3}-\d{3}-\d{3}$/);
+  });
+
+  it("gives every branch a unique uppercase receipt code", () => {
+    const codes = siteConfig.branches.map((b) => b.receiptCode);
+    for (const code of codes) expect(code).toMatch(/^[A-Z]{2,5}$/);
+    expect(new Set(codes).size).toBe(codes.length);
+  });
+
   it.each(siteConfig.branches)("$name opens before it closes", (branch) => {
     expect(branch.opensAt).toMatch(HH_MM);
     expect(branch.closesAt).toMatch(HH_MM);

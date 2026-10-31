@@ -15,6 +15,8 @@ export type Branch = {
   /** 24-hour "HH:MM", local Manila time. */
   closesAt: string;
   services: readonly BranchService[];
+  /** Short code in receipt numbers, e.g. "BGC" in HX-BGC-000123. */
+  receiptCode: string;
 };
 
 export const siteConfig = {
@@ -35,6 +37,8 @@ export const siteConfig = {
     },
     email: "johnrudolph2010@gmail.com",
   },
+  /** Tax Identification Number on receipts. A made-up demo number (owner decision), not a real TIN. */
+  tin: "301-707-321-000",
   branches: [
     {
       slug: "tipas",
@@ -43,6 +47,7 @@ export const siteConfig = {
       opensAt: "07:00",
       closesAt: "22:00",
       services: ["pickup", "delivery"],
+      receiptCode: "TIP",
     },
     {
       slug: "bgc",
@@ -51,6 +56,7 @@ export const siteConfig = {
       opensAt: "07:00",
       closesAt: "23:00",
       services: ["pickup", "delivery"],
+      receiptCode: "BGC",
     },
     {
       slug: "taguig-lakeshore",
@@ -59,6 +65,7 @@ export const siteConfig = {
       opensAt: "07:00",
       closesAt: "22:00",
       services: ["pickup", "delivery"],
+      receiptCode: "TLK",
     },
   ] satisfies readonly Branch[],
   demoNotice: "Demo project — payments are simulated.",

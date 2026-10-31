@@ -3,6 +3,7 @@ import {
   Coffee,
   CupSoda,
   House,
+  Receipt,
   ShoppingBag,
   UserRound,
   type LucideIcon,
@@ -15,12 +16,16 @@ export type NavItem = {
   icon: LucideIcon;
 };
 
-/** Desktop top bar links (docs/PLAN.md §4). Cart and account sit on the right. */
+/**
+ * Desktop top bar links (docs/PLAN.md §4). Cart and account sit on the right.
+ * Phones keep five bottom tabs; Receipts is reached from Profile instead.
+ */
 export const desktopNavItems: readonly NavItem[] = [
   { href: "/", label: "Home", icon: House },
   { href: "/menu", label: "Menu", icon: Coffee },
   { href: "/build", label: "Build Your Drink", icon: CupSoda },
   { href: "/rewards", label: "Rewards", icon: Award },
+  { href: "/receipts", label: "Receipts", icon: Receipt },
 ];
 
 /** Mobile bottom tabs. The middle one (Build) is the raised gold button. */
@@ -45,6 +50,7 @@ export function accountMenuLinks(
   const links: AccountLink[] = [
     { href: "/profile", label: "Profile" },
     { href: "/orders", label: "Orders" },
+    { href: "/receipts", label: "Receipts" },
     { href: "/rewards", label: "Rewards" },
   ];
   if (hasRole(role, ["barista", "admin"])) {

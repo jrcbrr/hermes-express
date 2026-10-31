@@ -242,3 +242,41 @@ Rules the AI follows are in [`../CLAUDE.md`](../CLAUDE.md). Stage prompts are in
   - An idempotency key (one id per checkout) turns "the customer tapped Pay twice" from a bug into a non-event.
   - With Partial Prerendering, anything that reads the URL in a shared layout should sit in the smallest possible `<Suspense>` leaf.
 - **Raw log:** [docs/ai-logs/2026-10-29-stage-5.md](ai-logs/2026-10-29-stage-5.md) (exported before the merge of PR #6; checked for secrets before committing)
+
+## 2026-10-30 — Stage 5 follow-up: Receipts
+
+- **Goal:** Finish Stage 5 with the receipts from PLAN §7: a receipt for every order (branch address, phone, TIN, VAT line), a Receipts list and page, a PDF download, and the receipt emailed when the order is placed.
+- **Key prompts I gave:**
+  - "Just to be clear we are at stage 6 right?" The AI checked the plan, branches and log, and found that the Stage 5 receipts PR had not been done yet.
+  - Chose option 1: finish the receipts before starting Stage 6.
+  - Asked "what do u recommend 1 2 or 3" for the three open questions, then chose real per-branch receipt numbers (an additive database change), and "yes to both" for installing `@react-pdf/renderer` and `resend` and for keeping five bottom tabs on phones.
+  - Approved the written plan.
+  - After the PR and preview were up: "As for the receipts i want it to be formal." Picked the "PH sales receipt" mock-up out of three (PH sales receipt, business invoice, wording only), with the note that the TIN and VAT must stay.
+  - "for the tin just generate random tin": the placeholder TIN was replaced with a random demo number, `301-707-321-000`.
+  - Asked for an "Email receipt" button that had never been in the plan, chose to keep the automatic email as well, and chose Resend's test sender for now instead of buying a domain.
+- **What the AI did:**
+  - Found a contradiction in `PLAN.md` (§4 says five bottom tabs, §7 a Receipts bottom tab) and asked before choosing.
+  - Added the TIN placeholder and a short receipt code per branch to `site.ts`; an additive migration with a counter per branch, numbering the 16 existing orders on the dev database per branch; and the counter update inside `placeOrder`'s existing transaction, so two orders at once can't share a number.
+  - Built one `Receipt` object (`src/lib/receipt.ts`) used by the page, the PDF and the email, with the VAT split in whole centavos.
+  - Added `/receipts`, `/receipts/[id]`, the PDF route (401 signed out, 404 not yours), the email (sent after the response, once per order, skipped without Resend settings), a "View receipt" button on the order page, and Receipts links in the header and account menu.
+  - Checked that `.env.local` points at the Neon dev branch, not production, before applying the migration, and looked at a rendered sample PDF before committing.
+  - Extended the checkout E2E to open the receipt, download the PDF and find it in the list, and ran lint, format check, typecheck, tests with coverage, the production build and the full E2E suite.
+  - Added the Email receipt button and the `emailReceipt` server action: owner only, always to the checkout address, at most once per order per minute using a Resend idempotency key per minute, so no database change.
+- **What I reviewed / changed / rejected and why:**
+  - Chose real per-branch numbers (`HX-BGC-000123`) over reusing the order code, so receipts look like real receipts.
+  - Approved the two new dependencies, since the plan already named them.
+  - Kept five bottom tabs on phones rather than squeezing in a sixth; Receipts is reached from Profile.
+  - Asked for a formal receipt and chose the printed PH sales-receipt style; the AI restyled the page, PDF and email together, kept the TIN and added the VAT-exempt and zero-rated lines.
+- **Problems & fixes:**
+  - **The first sample PDF was two blank pages.** The test ran in the browser-like jsdom environment, where the PDF library draws nothing. PDF tests now use Vitest's Node environment, and the shared test setup skips its browser stubs there.
+  - **The PDF's built-in font (Helvetica) has no "₱" sign.** The PDF prints amounts as "PHP 495.00" through a new `formatPesoPlain()`; the page and the email keep "₱".
+  - **On the sample, the shop name overlapped the address and the footer spilled onto a second page.** Fixed the heading's line height and switched from A5 to A4; a test now checks every sample receipt is one page.
+  - **The phone E2E timed out once** going to the receipt page, while the dev server compiled it for the first time. That step now waits up to 15 seconds like the other first visits. One full-suite run had one such timeout; the next two runs passed 45 of 45.
+  - **The PDF library split words with hyphens** ("Lat-te") on the narrow receipt roll. Hyphenation is now off, and drink choices are separated by " / " so long lines wrap at spaces.
+  - **Screenshots of the formal page showed two flaws:** the shop name used the site's heading font instead of monospace, and on phones a scheduled time broke in the middle ("07:" / "00 AM)"). Both fixed and checked with new screenshots.
+  - **A shell command with Python failed** because Python isn't installed on this PC; the AI used its file-editing tool instead.
+- **What I learned:**
+  - A database migration that adds a required column also changes what older code must send: once the dev database has `receipt_number`, the code on `main` can't insert orders there, so the migration and the code ship together (Vercel migrates each deployment's own database first).
+  - Locking one row (the branch's counter) inside a transaction is a simple way to hand out numbers without gaps or duplicates.
+  - Building the receipt once and rendering it three ways (page, PDF, email) keeps them from disagreeing.
+- **Raw log:** [docs/ai-logs/2026-10-30-stage-5-receipts.md](ai-logs/2026-10-30-stage-5-receipts.md) (two sessions; exported before the merge, so the merge itself is not in the raw log)

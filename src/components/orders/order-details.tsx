@@ -167,16 +167,27 @@ export async function OrderDetails({
         </p>
       </section>
 
-      <Link
-        href="/menu"
-        className={buttonVariants({
-          variant: "outline",
-          size: "lg",
-          className: "h-11 self-start px-5 font-semibold",
-        })}
-      >
-        Back to the menu
-      </Link>
+      <div className="flex flex-wrap gap-3">
+        <Link
+          href={`/receipts/${found.id}`}
+          className={buttonVariants({
+            size: "lg",
+            className: "h-11 px-5 font-semibold",
+          })}
+        >
+          View receipt
+        </Link>
+        <Link
+          href="/menu"
+          className={buttonVariants({
+            variant: "outline",
+            size: "lg",
+            className: "h-11 px-5 font-semibold",
+          })}
+        >
+          Back to the menu
+        </Link>
+      </div>
     </div>
   );
 }

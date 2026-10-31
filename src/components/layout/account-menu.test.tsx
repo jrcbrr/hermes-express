@@ -9,19 +9,26 @@ describe("accountMenuLinks", () => {
   const labels = (role: string) => accountMenuLinks(role).map((l) => l.label);
 
   it("gives customers their own pages only", () => {
-    expect(labels("customer")).toEqual(["Profile", "Orders", "Rewards"]);
+    expect(labels("customer")).toEqual([
+      "Profile",
+      "Orders",
+      "Receipts",
+      "Rewards",
+    ]);
   });
 
   it("adds Barista for baristas, and both staff links for admins", () => {
     expect(labels("barista")).toEqual([
       "Profile",
       "Orders",
+      "Receipts",
       "Rewards",
       "Barista",
     ]);
     expect(labels("admin")).toEqual([
       "Profile",
       "Orders",
+      "Receipts",
       "Rewards",
       "Barista",
       "Admin",
@@ -29,7 +36,12 @@ describe("accountMenuLinks", () => {
   });
 
   it("treats unknown roles as customers", () => {
-    expect(labels("superuser")).toEqual(["Profile", "Orders", "Rewards"]);
+    expect(labels("superuser")).toEqual([
+      "Profile",
+      "Orders",
+      "Receipts",
+      "Rewards",
+    ]);
   });
 });
 
@@ -66,6 +78,7 @@ describe("AccountMenu", () => {
     expect(items).toEqual([
       "Profile",
       "Orders",
+      "Receipts",
       "Rewards",
       "Barista",
       "Admin",

@@ -1,6 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { OrderDetails as Details } from "@/server/orders/queries";
+import { ORDER_ID, pickupOrder } from "@/test/order-fixture";
 
 const mocks = vi.hoisted(() => ({
   requireUser: vi.fn(),
@@ -20,61 +21,8 @@ const { OrderDetails } = await import("./order-details");
 const { default: OrderPage, metadata } =
   await import("@/app/(customer)/orders/[id]/page");
 
-const ID = "6f1c7a52-8d1e-4f5b-9c3a-2b4d6e8f0a1b";
-
-const pickup: Details = {
-  id: ID,
-  code: "HX-7K2P",
-  userId: "u1",
-  branchId: "branch-bgc",
-  branchName: "BGC",
-  branchAddress: "High Street Kiosk, Bonifacio Global City",
-  fulfillment: "pickup",
-  status: "received",
-  scheduledFor: null,
-  contactName: "Maria Santos",
-  phone: "+639171234567",
-  receiptEmail: "maria@example.com",
-  address: null,
-  notes: "",
-  subtotalCentavos: 49500,
-  discountCentavos: 0,
-  deliveryFeeCentavos: 0,
-  pointsRedeemed: 0,
-  totalCentavos: 49500,
-  promoCodeId: null,
-  paymentMethod: "gcash_demo",
-  paymentStatus: "demo_paid",
-  clientRequestId: "r1",
-  createdAt: new Date(),
-  updatedAt: new Date(),
-  items: [
-    {
-      id: "i1",
-      orderId: ID,
-      kind: "custom",
-      productId: null,
-      name: "Custom Latte",
-      config: { details: ["16oz", "Iced", "Latte", "Oat milk"] },
-      unitPriceCentavos: 20000,
-      quantity: 2,
-      lineTotalCentavos: 40000,
-      sortOrder: 0,
-    },
-    {
-      id: "i2",
-      orderId: ID,
-      kind: "product",
-      productId: "p1",
-      name: "Butter Croissant",
-      config: { productSlug: "butter-croissant", details: [] },
-      unitPriceCentavos: 9500,
-      quantity: 1,
-      lineTotalCentavos: 9500,
-      sortOrder: 1,
-    },
-  ],
-};
+const ID = ORDER_ID;
+const pickup = pickupOrder;
 
 async function renderDetails(order: Details | null) {
   mocks.getOrderForUser.mockResolvedValue(order);
@@ -108,6 +56,10 @@ describe("OrderDetails", () => {
     expect(screen.getByText(/No real payment was made/)).toBeVisible();
     expect(screen.queryByText("Delivery fee")).toBeNull();
     expect(screen.queryByText("Deliver to")).toBeNull();
+    expect(screen.getByRole("link", { name: "View receipt" })).toHaveAttribute(
+      "href",
+      `/receipts/${ID}`,
+    );
   });
 
   it("shows delivery details, a schedule, a note and a discount", async () => {

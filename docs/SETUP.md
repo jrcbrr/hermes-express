@@ -53,8 +53,8 @@ There are three separate Neon databases (branches of the same Neon project):
 | `DATABASE_URL`                             | Stage 2            | Neon Postgres connection                                    |
 | `BETTER_AUTH_SECRET`                       | Stage 2            | Signs session cookies                                       |
 | `BETTER_AUTH_URL`                          | Stage 2            | App base URL                                                |
-| `RESEND_API_KEY`                           | Stage 8 (optional) | Sends receipt emails; skipped if missing                    |
-| `EMAIL_FROM`                               | Stage 8            | Sender address                                              |
+| `RESEND_API_KEY`                           | Stage 5 (optional) | Sends receipt emails; skipped if missing                    |
+| `EMAIL_FROM`                               | Stage 5            | Sender address                                              |
 | `SEED_ADMIN_EMAIL` / `SEED_ADMIN_PASSWORD` | Stage 2            | First admin account                                         |
 | `SEED_BARISTA_TIPAS_PASSWORD`              | Stage 2            | Password for `barista.tipas@hermes-express.test`            |
 | `SEED_BARISTA_BGC_PASSWORD`                | Stage 2            | Password for `barista.bgc@hermes-express.test`              |
