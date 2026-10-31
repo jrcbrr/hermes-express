@@ -178,7 +178,7 @@ Animations are CSS keyframes (`hx-*` in `globals.css`). Each illustration's rest
 
 ## Data model
 
-Tables are added stage by stage (users and auth in Stage 2, catalog in Stage 3, orders in Stage 5, rewards in Stage 8). The planned model is in [`PLAN.md` §9](PLAN.md#data-model-drizzle--postgres). Tables so far:
+The final data model. `src/db/schema.ts` is the source of truth; this diagram shows the key columns of every table.
 
 ```mermaid
 erDiagram
@@ -193,6 +193,7 @@ erDiagram
     text opens_at
     text closes_at
     boolean is_active
+    int receipt_seq "last receipt number at this branch"
   }
   user {
     text id PK
@@ -264,6 +265,9 @@ erDiagram
     boolean first_order_only
     timestamp starts_at
     timestamp ends_at
+    int max_uses
+    int used_count
+    boolean is_active
   }
   user ||--o| cart : "saved cart"
   user ||--o{ order : places
@@ -271,7 +275,7 @@ erDiagram
   order ||--o{ order_item : contains
   order ||--o{ order_status_event : "status history"
   product ||--o{ order_item : "snapshot of"
-  promo_code ||--o{ order : "Stage 8"
+  promo_code ||--o{ order : "applied to"
   cart {
     text user_id PK
     jsonb items "choices and quantities, never prices"
@@ -293,9 +297,11 @@ erDiagram
     int delivery_fee_centavos
     int points_redeemed
     int total_centavos
-    text payment_method "gcash_demo | card_demo | cod"
+    text payment_method "gcash_demo | card_demo | cod | cash_pickup"
     text payment_status "demo_paid | unpaid"
     text client_request_id UK "one order per checkout"
+    int receipt_number "per branch"
+    text promo_code_id FK
   }
   order_item {
     text id PK
@@ -313,6 +319,46 @@ erDiagram
     text order_id FK
     text status
     text changed_by_user_id FK
+  }
+  user ||--o{ saved_drink : saves
+  user ||--o{ points_ledger : "balance history"
+  order ||--o{ points_ledger : "earned or redeemed by"
+  user ||--o{ rating : gives
+  order_item ||--o{ rating : "rated in"
+  user ||--o{ user_badge : earns
+  user ||--o| user_stat : "counted in"
+  saved_drink {
+    text id PK
+    text user_id FK
+    text name
+    jsonb config "DrinkConfig"
+  }
+  points_ledger {
+    text id PK
+    text user_id FK
+    int delta
+    text reason "earn, redeem, admin_adjust"
+    text order_id FK
+    text note
+  }
+  rating {
+    text id PK
+    text order_item_id FK
+    text user_id FK
+    int stars "1 to 5"
+    text comment
+  }
+  user_badge {
+    text user_id PK
+    text badge_key PK "defined in src/lib/badges.ts"
+    timestamp earned_at
+    timestamp seen_at "unlock toast shown"
+  }
+  user_stat {
+    text user_id PK
+    int custom_drinks_built
+    jsonb bases_tried
+    jsonb milks_tried
   }
 ```
 

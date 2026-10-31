@@ -6,21 +6,48 @@ Hermes Express is a coffee-ordering web app where customers **build their own dr
 
 Built solo for the **NYHA Junior Dev Hackathon**.
 
-**Live demo:** _coming soon (Vercel production URL)_
+**Live demo:** [hermes-express.vercel.app](https://hermes-express.vercel.app)
 
 > Demo project: payments are simulated. No real payment data is ever collected.
 
-## Screenshots
-
-_Coming soon: desktop and mobile screenshots of the landing page, coffee builder, order tracker and barista queue._
-
 ## Features
 
-| Priority           | Features                                                                                                                                                                                            |
-| ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **P0** (must ship) | Landing page, menu, coffee builder (pour / stack / mix, live price, undo), cart, checkout with demo payment, order tracking, barista queue, admin menu and prices, sold-out toggle, auth with roles |
-| **P1** (core)      | Favorites and one-tap reorder, order history, loyalty points, promo codes, ratings, scheduled orders, email receipts, badges, sound effects, "Surprise me"                                          |
-| **P2** (polish)    | Perfect Pour mini-game, sales dashboard charts, admin customer editing                                                                                                                              |
+**Customers**
+
+- Coffee builder: pour, stack and mix, with a live price, undo, reset and "Surprise me"
+- Perfect Pour: an optional hold-and-release game for a badge, by touch or keyboard
+- Menu with signature drinks, pastries, snacks and per-branch sold-out labels
+- Cart and checkout with promo codes and points, pickup or delivery, ASAP or scheduled
+- Demo payment by GCash, card or cash, with no real payment taken
+- Live order tracking, receipts with PDF download and email, and item ratings
+- Favorites, order history with reorder, loyalty points, badges and sound effects
+
+**Baristas**
+
+- Live order queue and sold-out toggles for their own branch
+
+**Admins**
+
+- Sales dashboard with revenue by day, orders by branch and top items
+- Orders across all branches, menu and ingredient prices, promo codes
+- Customer profiles, points adjustments and staff roles
+
+**Throughout**
+
+- Phone and desktop layouts, light and dark themes, reduced-motion support
+- WCAG A/AA checks with axe in the E2E suite
+
+## Demo accounts
+
+| Role     | Email                                          | Branch           |
+| -------- | ---------------------------------------------- | ---------------- |
+| Customer | `demo.customer@hermes-express.test`            | Any              |
+| Barista  | `barista.tipas@hermes-express.test`            | Tipas            |
+| Barista  | `barista.bgc@hermes-express.test`              | BGC              |
+| Barista  | `barista.taguig-lakeshore@hermes-express.test` | Taguig Lakeshore |
+| Admin    | Provided with the password                     | All              |
+
+Passwords are not published, because a public admin login would let anyone change the live menu and see customer details. Hackathon judges receive them with the submission. Anyone can sign up as a new customer.
 
 Progress is tracked stage by stage in [`CHANGELOG.md`](CHANGELOG.md).
 
@@ -35,14 +62,18 @@ The sound effects in `public/sounds` (pour, clink, ding) are original, synthesiz
 | Framework         | Next.js 16 (App Router), React 19, TypeScript (strict)        |
 | Styling           | Tailwind CSS v4, shadcn/ui                                    |
 | Database          | Neon Postgres + Drizzle ORM                                   |
-| Auth              | Better Auth (email + password) _(Stage 2)_                    |
-| Validation        | Zod _(Stage 2)_                                               |
-| Animation / theme | Motion, next-themes _(Stage 1+)_                              |
-| Email / charts    | Resend, Recharts _(Stage 8–9)_                                |
+| Auth              | Better Auth (email + password)                                |
+| Validation        | Zod                                                           |
+| Animation / theme | Motion, next-themes                                           |
+| Email / charts    | Resend, Recharts                                              |
 | Testing           | Vitest + Testing Library, Playwright                          |
 | CI/CD             | GitHub Actions, Vercel (preview per PR, production on `main`) |
 
 Why these choices: [`docs/decisions/0001-tech-stack.md`](docs/decisions/0001-tech-stack.md).
+
+## Architecture
+
+A Next.js App Router app on Vercel. Pages are Server Components by default, and every change goes through a server action that checks the session, role and branch, and validates its input with Zod. Drizzle talks to Neon Postgres. Prices are integer centavos, always recomputed on the server by one pure function, and order status changes pass through one transition table. Order tracking polls every 10 seconds, which suits serverless hosting. Details and the data model are in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 
 ## Quick start
 
@@ -56,7 +87,7 @@ cp .env.example .env.local   # or: npx vercel env pull .env.local
 npm run dev                  # http://localhost:3000
 ```
 
-The app runs without a database for now. Full setup, including the database and deployment, is in [`docs/SETUP.md`](docs/SETUP.md).
+The menu and builder need a seeded database. Full setup, including the database and deployment, is in [`docs/SETUP.md`](docs/SETUP.md).
 
 ## Scripts
 

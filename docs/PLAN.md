@@ -53,7 +53,7 @@ Cozy coffee neutrals, with **gold** (Hermes' winged sandals) as the primary acce
 | `surface` | `#FFFFFF` | `#1E1A17` | Cards, sheets |
 | `surface-muted` | `#F1EBE1` (marble) | `#2A2420` | Inputs, chips |
 | `foreground` | `#2B1E17` (espresso) | `#F3ECE2` | Main text |
-| `muted` | `#7A6A5D` | `#A8998B` | Secondary text |
+| `muted` | `#6B5C50` (darkened in Stage 9 for AA on tinted backgrounds) | `#A8998B` | Secondary text |
 | `primary` | `#B8892E` (Hermes gold) | `#D4A853` | Buttons, highlights |
 | `primary-foreground` | `#2B1E17` | `#14110F` | Text on primary (espresso, not white: white on gold is ~3.1:1 and fails AA) |
 | `accent` | `#2F5D7C` (Aegean blue) | `#6FA3C7` | Links, badges, focus |
@@ -576,6 +576,17 @@ The seed stops with a clear error if any seed variable is missing or a password 
 | Receipts | One discount line naming both sources, e.g. `LESS: DISCOUNT (FIRSTSIP, 150 PTS)`. |
 | Sounds | Original WAV files synthesized by a script, so there is no licence to track and no new dependency. |
 | Favorites | Saved with the drink's choices only, up to 50 per customer. |
+
+### Decisions approved by the owner (Stage 9)
+| Topic | Decision |
+|---|---|
+| Demo passwords | The README lists demo emails and roles only. The owner gives judges the passwords in the hackathon submission. |
+| Demo customer | `demo.customer@hermes-express.test`, created by the seed only when `SEED_DEMO_CUSTOMER_PASSWORD` is set. |
+| CI database | Still not set up. Database E2E tests skip in CI and are run locally before a PR. |
+| Perfect Pour | Fills in 4 seconds, with a margin of 4% either side of the line at 70%. The browser reports a win and the server accepts it, because the badge carries no points or money. A guest must log in and win again to keep the badge. |
+| Sales charts | The last 14 Manila days, on the same rules as the summary cards. Top items shows 5; built drinks count together as "Custom drinks", because their names are the customers' own. |
+| Muted text | Light theme darkened from `#7A6A5D` to `#6B5C50` so it passes AA on tinted backgrounds. |
+| Screenshots | Dropped from the README at the owner's request. |
 
 ### Decisions approved by the owner (Stage 7)
 | Topic | Decision |

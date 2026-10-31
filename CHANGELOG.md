@@ -5,6 +5,36 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Stage 9: Polish (2026-10-31)
+
+#### Added
+
+- **Perfect Pour** on the Base step: hold to pour, release at the gold line, by mouse, touch or keyboard. Optional, with no timer or score, and it never changes the drink. A win unlocks the badge; a guest is asked to log in and pour again.
+- **Sales charts** on `/admin` with Recharts: revenue by day, orders by branch and top items for the last 14 Manila days, each with a table view.
+- **Error pages** with the Hermes mascot: 404, an error boundary and a root-level fallback. They never show raw error text.
+- **Loading skeletons** for the menu, builder, customer, barista and admin routes.
+- **Demo customer:** `demo.customer@hermes-express.test`, created by the seed when `SEED_DEMO_CUSTOMER_PASSWORD` is set.
+- **E2E:** `e2e/journey.spec.ts` runs sign-up, build, checkout with promo and points, tracking, barista and admin edit as one story. `e2e/a11y.spec.ts` runs axe WCAG A/AA checks at both widths in both themes.
+- New dependencies: `recharts` and `react-is` (charts), `@axe-core/playwright` (dev, accessibility checks).
+
+#### Changed
+
+- Add-to-cart and promo switch buttons now name their visible label first ("Add to cart: Olympus Latte"), so voice control users can say what they see.
+- Text links use Aegean blue instead of gold, which failed AA on light backgrounds.
+- Light-theme muted text darkened from `#7A6A5D` to `#6B5C50` for AA on tinted backgrounds.
+- The first menu photo loads with high priority, and the menu reserves its space while loading.
+- README, `docs/ARCHITECTURE.md` (final data model), `docs/SETUP.md` and `docs/PLAN.md` brought up to date.
+
+#### Fixed
+
+- A guest's drink now survives the trip to the login page from the builder.
+- Receipts no longer nest rows too deeply inside a definition list, which screen readers could misread.
+
+#### Known issues
+
+- `/menu` on mobile scores 75 for Lighthouse Performance, under the 90 target. See the Stage 9 entry in `docs/AI_LOG.md`.
+- Database E2E tests still skip in CI, because there is no CI database.
+
 ### Stage 8: Rewards, favorites & extras (2026-10-31)
 
 #### Added

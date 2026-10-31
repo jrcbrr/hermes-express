@@ -48,17 +48,18 @@ There are three separate Neon databases (branches of the same Neon project):
 - **E2E safety check:** `e2e/global-setup.ts` asks the database which Neon branch it is and **refuses to run the tests if it is `main`** (production).
 - A backup of the previous `.env.local` (which pointed at `main`) is kept as `.env.local.backup`. It is git-ignored; delete it once you no longer need it.
 
-| Variable                                   | Needed from        | Purpose                                                     |
-| ------------------------------------------ | ------------------ | ----------------------------------------------------------- |
-| `DATABASE_URL`                             | Stage 2            | Neon Postgres connection                                    |
-| `BETTER_AUTH_SECRET`                       | Stage 2            | Signs session cookies                                       |
-| `BETTER_AUTH_URL`                          | Stage 2            | App base URL                                                |
-| `RESEND_API_KEY`                           | Stage 5 (optional) | Sends receipt emails; skipped if missing                    |
-| `EMAIL_FROM`                               | Stage 5            | Sender address                                              |
-| `SEED_ADMIN_EMAIL` / `SEED_ADMIN_PASSWORD` | Stage 2            | First admin account                                         |
-| `SEED_BARISTA_TIPAS_PASSWORD`              | Stage 2            | Password for `barista.tipas@hermes-express.test`            |
-| `SEED_BARISTA_BGC_PASSWORD`                | Stage 2            | Password for `barista.bgc@hermes-express.test`              |
-| `SEED_BARISTA_LAKESHORE_PASSWORD`          | Stage 2            | Password for `barista.taguig-lakeshore@hermes-express.test` |
+| Variable                                   | Needed from        | Purpose                                                                |
+| ------------------------------------------ | ------------------ | ---------------------------------------------------------------------- |
+| `DATABASE_URL`                             | Stage 2            | Neon Postgres connection                                               |
+| `BETTER_AUTH_SECRET`                       | Stage 2            | Signs session cookies                                                  |
+| `BETTER_AUTH_URL`                          | Stage 2            | App base URL                                                           |
+| `RESEND_API_KEY`                           | Stage 5 (optional) | Sends receipt emails; skipped if missing                               |
+| `EMAIL_FROM`                               | Stage 5            | Sender address                                                         |
+| `SEED_ADMIN_EMAIL` / `SEED_ADMIN_PASSWORD` | Stage 2            | First admin account                                                    |
+| `SEED_BARISTA_TIPAS_PASSWORD`              | Stage 2            | Password for `barista.tipas@hermes-express.test`                       |
+| `SEED_BARISTA_BGC_PASSWORD`                | Stage 2            | Password for `barista.bgc@hermes-express.test`                         |
+| `SEED_BARISTA_LAKESHORE_PASSWORD`          | Stage 2            | Password for `barista.taguig-lakeshore@hermes-express.test`            |
+| `SEED_DEMO_CUSTOMER_PASSWORD`              | Stage 9 (optional) | Password for `demo.customer@hermes-express.test`; no value, no account |
 
 Every seed password needs at least 8 characters; the seed stops with a clear error otherwise. Generate strong values (and `BETTER_AUTH_SECRET`, with 32 bytes) like this:
 
@@ -130,7 +131,7 @@ CI has no database yet, so the database-backed E2E tests (`e2e/auth.spec.ts` "si
 2. In GitHub → Settings → Secrets and variables → Actions, add repository secrets `DATABASE_URL` (the `ci` branch's pooled connection string) and `BETTER_AUTH_SECRET`.
 3. In `.github/workflows/ci.yml`, pass both secrets as `env` and run `npm run db:migrate` before the E2E step.
 
-Locally, all requests share one rate-limit bucket (there is no client IP), so the E2E test sends a random test IP header so repeated runs stay under the per-IP limit.
+Locally, all requests share one rate-limit bucket (there is no client IP), so the E2E test sends a random test IP header so repeated runs stay under the per-IP limit. Staff logins share one email, so the `logIn` helper in `e2e/helpers.ts` waits out the limit of 5 attempts a minute. If tests lose their connection to Neon, lower the load with `npx playwright test --workers=2`.
 
 ## 7. Deployment
 

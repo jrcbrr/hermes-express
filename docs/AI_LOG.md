@@ -344,3 +344,28 @@ Rules the AI follows are in [`../CLAUDE.md`](../CLAUDE.md). Stage prompts are in
 - **What I learned:**
   - A rule in the database, such as a balance that can't go negative, still holds when two requests race, where a check in the code alone would not.
 - **Raw log:** [docs/ai-logs/2026-10-31-stage-8.md](ai-logs/2026-10-31-stage-8.md) (exported before the merge; checked for secrets before committing)
+
+## 2026-10-31 — Stage 9: Polish
+
+- **Goal:** Finish the app: the Perfect Pour game, sales charts, accessibility and performance passes, error and loading states, a full E2E journey, and final docs.
+- **Key prompts I gave:**
+  - The Stage 9 prompt from `MASTER_PROMPT.md`. Plan first and wait for my "go".
+  - I asked how the mini-game would work on phones before approving.
+  - I dropped the README screenshots, asked what the Lighthouse pass was, then asked for it to be run and everything tidied for the push.
+- **What the AI did:**
+  - Proposed the plan and flagged a conflict: the brief asked for a demo accounts table, but the plan bans secrets in docs.
+  - Built the features with three new dependencies, ran axe and Lighthouse against the production build, and fixed what they found.
+- **What I reviewed / changed / rejected and why:**
+  - Accepted its recommendations: no passwords in the README, a demo customer in the seed, and no CI database for now.
+  - Removed screenshots from the scope.
+- **Problems & fixes:**
+  - **The new chart query failed on a real database but passed its unit test.** The test mocks the database. Postgres treated the time zone parameter in `SELECT` and `GROUP BY` as different expressions, so the query now groups by position. The E2E run caught it.
+  - **Axe found real issues:** gold link text below AA, muted text below AA on tinted backgrounds, button names that didn't start with their visible label, and receipt rows nested too deeply.
+  - **The menu's layout jumped badly on load** (CLS 0.91 on desktop), because a one-line "Loading" message was replaced by a very tall page. A skeleton grid brought it to 0.
+  - **The Perfect Pour button could sit under the phone's pinned bars**, so the game now scrolls it into view when it opens.
+  - **E2E runs hit the login limit and lost their connection to Neon** when the new tests raised the parallel load. Tests now wait out the limit (the limit itself is unchanged), and the final run used two workers.
+  - **Still open: `/menu` on mobile scores 75** (LCP 4.7 s; 68 under real rather than simulated throttling). The menu streams in after the first paint. The fix would put it in the initial HTML, but that reverses the Stage 3 cookie decision and could cache a database failure, so it is left for the owner to decide. Final mobile and desktop Performance scores: landing 94 and 100, menu 75 and 98, build 97 and 100. Accessibility, Best Practices and SEO were 100 on all of them in the last runs.
+- **What I learned:**
+  - A mocked database test can't find a mistake in the SQL itself, so a real end-to-end run is still needed.
+  - Automated accessibility checks find real bugs, but they only cover some issues, so they don't replace trying the app by keyboard and screen reader.
+- **Raw log:** docs/ai-logs/2026-10-31-stage-9.md (to be exported by the owner before the merge)
